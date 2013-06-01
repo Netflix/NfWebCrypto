@@ -16,17 +16,6 @@
  *
  */
 
-//Globals
-var nfCrypto = window.nfCrypto.subtle;    
-
-//Checks that the crypt obj is present
-describe("General", function () {
-
-	it("crypto exists", function () {
-		expect(nfCrypto).toBeDefined();
-	});
-});
-
 function abv2latin1(abv) {
 	String.fromCharCode.apply(null, abv);
 };

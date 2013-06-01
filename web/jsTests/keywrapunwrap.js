@@ -1028,28 +1028,28 @@ describe("keywrapunwrapjwejsrsa-oaep", function () {
 		        		var headerB64 = recipient["header"];
 		                var header = JSON.parse(textEncoding$getString(b64urlDecode(headerB64), "utf-8"));
 		                header["alg"] = "x";
-		                recipient["header"] = textEncoding$getBytes(header, "utf-8");
+		                recipient["header"] = textEncoding$getString(header, "utf-8");
 		                recipientFlag = true;
 		        		break;
 		        	case "HeaderMissingAlgo":
 		        		var headerB64 = recipient["header"];
 		                var header = JSON.parse(textEncoding$getString(b64urlDecode(headerB64), "utf-8"));
 		                delete header["alg"];
-			            recipient["header"] = textEncoding$getBytes(header, "utf-8");
+			            recipient["header"] = textEncoding$getString(header, "utf-8");
 			            recipientFlag = true;
 		        		break;
 		        	case "HeaderInvalidEnc":
 		        		var headerB64 = recipient["header"];
 		                var header = JSON.parse(textEncoding$getString(b64urlDecode(headerB64), "utf-8"));
 		                header["enc"] = "x";
-		                recipient["header"] = textEncoding$getBytes(header, "utf-8");
+		                recipient["header"] = textEncoding$getString(header, "utf-8");
 		                recipientFlag = true;
 		        		break;
 		        	case "HeaderMissingEnc":
 		        		var headerB64 = recipient["header"];
 		                var header = JSON.parse(textEncoding$getString(b64urlDecode(headerB64), "utf-8"));
 		                delete header["enc"];
-			            recipient["header"] = textEncoding$getBytes(header, "utf-8");
+			            recipient["header"] = textEncoding$getString(header, "utf-8");
 			            recipientFlag = true;
 		                break;
 		        	default:
@@ -1061,8 +1061,8 @@ describe("keywrapunwrapjwejsrsa-oaep", function () {
 		        } 
 		        
 		        if (INDEXVALUE.name == "InvalidSerialization") {
-		        	jweData =  textEncoding$getBytes("x", "utf-8");
-		        	op = nfCrypto.unwrapKey(jweData, INDEXVALUE.unwrapAlgo, privKey, INDEXVALUE.unwrapExtractable);    
+		        	jweData =  textEncoding$getString("x", "utf-8");
+		        	op = nfCrypto.unwrapKey(latin1.parse(jweData), INDEXVALUE.unwrapAlgo, privKey, INDEXVALUE.unwrapExtractable);    
 		        } else {
 		        	var newJwe = JSON.stringify(jweObj);
 		        	op = nfCrypto.unwrapKey(latin1.parse(newJwe), INDEXVALUE.unwrapAlgo, privKey, INDEXVALUE.unwrapExtractable);    
@@ -1107,7 +1107,7 @@ for(OPINDEX = 0; OPINDEX < LISTOFOPERATIONS.length; OPINDEX++) {
 	wrapperForTest(OPINDEX);
 }
 });//describe("keywrapunwrapjwejsrsa-oaep")
-*/
+
 describe("keywrapunwrapjwejsaes", function () {
 
 
@@ -1437,7 +1437,7 @@ describe("keywrapunwrapjwejsaes", function () {
 		        		var headerB64 = recipient["header"];
 		                var header = JSON.parse(textEncoding$getString(b64urlDecode(headerB64, "utf-8")));
 		        		header["alg"] = "x";
-		                //recipient["header"] = textEncoding$getBytes(header, "utf-8");
+		                //recipient["header"] = textEncoding$getString(header, "utf-8");
 		                recipient["header"] = utf8.parse(header);
 		                recipientFlag = true;
 		        		break;

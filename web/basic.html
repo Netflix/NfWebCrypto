@@ -21,10 +21,10 @@
 <head>
     <title>nfCrypto basic sample</title>
 
-    <script src='nfcrypt.js'></script>
+    <script src='nfcrypto.js'></script>
 
     <script>
-        var crypt = window.nfCrypt;
+        var crypt = window.nfCrypto.subtle;
 
         function aesEncrypt() {
             var importKeyOperation = crypt.importKey(
