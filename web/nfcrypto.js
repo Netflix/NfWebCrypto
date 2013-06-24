@@ -57,14 +57,14 @@ End of (PolyCrypt) License Terms and Conditions.
 (function (window) {
     'use strict';
 
-    var navPlugin = window.navigator.plugins['Netflix'],
+    var navPlugin = window.navigator.plugins['NfWebCrypto'],
         pluginDelegate = {},
         operationId = 0,
         that = {},
         plugin;
 
     if (!navPlugin) {
-        throw ('Netflix plugin not found, unable to create nfCrypt');
+        throw ('NfWebCrypto plugin not found, unable to create nfCrypt');
     }
 
     // public api root
