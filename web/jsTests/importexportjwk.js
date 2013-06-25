@@ -17,11 +17,12 @@
  */
 
 describe("importexportjwk", function () {
-	
+
 	//Globals
 	var OPINDEX = 0;
 	var INDEXVALUE = 0;
 	var LISTOFTESTS = [
+
 	    {
 	    	test: "ImportExportHappyPathJWKKey",
 	    	keyFormat: "jwk",
@@ -41,7 +42,6 @@ describe("importexportjwk", function () {
 		    type: "public",
 		    result: "pass"
 		 },
-	     
 	     {
 		   	test: "ImportJWKInvalidUsage",
 		   	keyFormat: "jwk",
@@ -50,8 +50,7 @@ describe("importexportjwk", function () {
 	        extractable: true,
 	        type: "public",
 		    importKey: false
-		  },
-		  
+		  },		  
 		  {
 			 //Fails since PKCS1-v1_5 is not a valid algo 
 			 test: "ImportJWKInvalidAlgo",
@@ -62,7 +61,6 @@ describe("importexportjwk", function () {
 		     type: "public",
 		     importKey: false
 		  },
-		  
 		  {
 			  //Passes even though SHA-384 is not a valid import algo
 			  //because jwk has the correct algo
@@ -73,8 +71,7 @@ describe("importexportjwk", function () {
 			  extractable: true,
 			  type: "public",
 			  result: "pass"
-		   },
-		   
+		   },		   
 		  {
 			 //Specifying raw instead of jwk
 			 test: "ImportJWKIncorrectKeyFormat",
@@ -84,8 +81,7 @@ describe("importexportjwk", function () {
 		     extractable: true,
 		     type: "public",
 			 importKey: false
-	      },
-	      
+	      },	      
 	      {   //Import will pass export will fail
 	    	  test: "ExportJWKIncorrectKeyFormat",
 	    	  keyFormat: "jwk",
@@ -118,6 +114,7 @@ describe("importexportjwk", function () {
 			   exportKey: false
 		    }
 	];
+
 	function wrapperForTest(OPINDEX) {	
 		it(LISTOFTESTS[OPINDEX].test, function () {
 			INDEXVALUE = LISTOFTESTS[OPINDEX];
@@ -129,6 +126,7 @@ describe("importexportjwk", function () {
 			runs(function () {
 				error = undefined;
 				var op = undefined;
+				try {
 				if (INDEXVALUE.test == "ImportJWKInvalidKey") {
 					var jwkBadData = latin1.parse(JSON.stringify({
 						//Missing kty field
@@ -174,6 +172,10 @@ describe("importexportjwk", function () {
 				op.oncomplete = function (e) {
 					key = e.target.result;
 				};
+				}
+				catch(e) {
+					error = "ERROR";
+				}
 			});
 
 			waitsFor(function () {
@@ -217,6 +219,7 @@ describe("importexportjwk", function () {
 				error = undefined;
 				exportedJwkKeyData = undefined;
 				var op = undefined;
+				try {
 				if (INDEXVALUE.test == "ExportJWKIncorrectKeyFormat") {
 					op = nfCrypto.exportKey(INDEXVALUE.exportFormat, key);
 				} else if (INDEXVALUE.test == "ExportJWKInvalidKey") {
@@ -233,6 +236,9 @@ describe("importexportjwk", function () {
 				op.oncomplete = function (e) {
 					exportedJwkKeyData = e.target.result;
 				};
+				} catch(e) {
+					error = "ERROR";
+				}
 			});
 
 			waitsFor(function () {
@@ -251,9 +257,10 @@ describe("importexportjwk", function () {
 		});//it
 	}//function wrapperForTest
 	for(OPINDEX = 0; OPINDEX < LISTOFTESTS.length; OPINDEX++) {	
-		wrapperForTest(OPINDEX);
+		wrapperForTest(OPINDEX);		
 	}
 });//describe("importexportjwk")
+
 
 describe("importexportjwkerrors", function () {
 	
@@ -340,7 +347,6 @@ describe("importexportjwkerrors", function () {
 });
 
 describe("jwkdifferentalgos", function () {
-	
 	//Globals
 	var OPINDEX = 0;
 	var INDEXVALUE = 0;
@@ -592,3 +598,4 @@ describe("jwkdifferentalgos", function () {
 		wrapperForTest(OPINDEX);
 	}
 });//describe("importexportjwk")
+

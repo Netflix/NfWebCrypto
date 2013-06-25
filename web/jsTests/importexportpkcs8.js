@@ -140,13 +140,17 @@ describe("importpkcs8", function () {
 
 			// import pkcs8-formatted private key
 			runs(function () {
-				var op = nfCrypto.importKey(INDEXVALUE.keyFormat, INDEXVALUE.key, INDEXVALUE.algo, INDEXVALUE.extractable, INDEXVALUE.usages);
-				op.onerror = function (e) {
+				try {
+					var op = nfCrypto.importKey(INDEXVALUE.keyFormat, INDEXVALUE.key, INDEXVALUE.algo, INDEXVALUE.extractable, INDEXVALUE.usages);
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						privKey = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					privKey = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {
@@ -181,14 +185,18 @@ describe("importpkcs8", function () {
 			if(INDEXVALUE.importKey != false) {
 				// export the private key back out, raw pkcs8 data should be the same
 				runs(function () {
-					error = undefined;
-					var op = nfCrypto.exportKey(INDEXVALUE.keyFormat, privKey);
-					op.onerror = function (e) {
+					try {
+						error = undefined;
+						var op = nfCrypto.exportKey(INDEXVALUE.keyFormat, privKey);
+						op.onerror = function (e) {
+							error = "ERROR";
+						};
+						op.oncomplete = function (e) {
+							pkcs8PrivKeyData2 = e.target.result;
+						};
+					} catch(e) {
 						error = "ERROR";
-					};
-					op.oncomplete = function (e) {
-						pkcs8PrivKeyData2 = e.target.result;
-					};
+					}
 				});
 
 				waitsFor(function () {
@@ -284,13 +292,17 @@ describe("exportpkcs8", function () {
 
 			// import pkcs8-formatted private key
 			runs(function () {
-				var op = nfCrypto.importKey("pkcs8", PKCS8KEY, { name: "RSAES-PKCS1-v1_5" }, true);
-				op.onerror = function (e) {
+				try {
+					var op = nfCrypto.importKey("pkcs8", PKCS8KEY, { name: "RSAES-PKCS1-v1_5" }, true);
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						privKey = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					privKey = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {
@@ -313,14 +325,18 @@ describe("exportpkcs8", function () {
 
 			// export the private key back out, raw pkcs8 data should be the same
 			runs(function () {
-				error = undefined;
-				var op = nfCrypto.exportKey(INDEXVALUE.keyFormat, INDEXVALUE.key);
-				op.onerror = function (e) {
+				try {
+					error = undefined;
+					var op = nfCrypto.exportKey(INDEXVALUE.keyFormat, INDEXVALUE.key);
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						pkcs8PrivKeyData2 = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					pkcs8PrivKeyData2 = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {

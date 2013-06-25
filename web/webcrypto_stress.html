@@ -1,0 +1,72 @@
+﻿<!--
+
+ Copyright 2013 Netflix, Inc.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta http-equiv='Content-Type' content='text/html; charset=UTF-8' />
+
+    <title>nfCrypto unit tests</title>
+
+    <!-- nfCrypt -->
+    <script type="text/javascript" src="nfcrypto.js"></script>
+
+    <!-- jasmine -->
+    <link rel="stylesheet" type="text/css" href="jasmine/jasmine.css" />
+    <script type="text/javascript" src="jasmine/jasmine.js"></script>
+    <script type="text/javascript" src="jasmine/jasmine-html.js"></script>
+    <script type="text/javascript" src="jsTests/stressTests/jquery-1.4.2.min.js"></script>
+    
+    <!-- utiltities -->
+    <script type="text/javascript" src="jsTests/utils.js"></script>
+
+     <!-- Stress tests -->
+     
+     <script type="text/javascript" src="jsTests/stressTests/keywrapunwrap_stress.js"></script>
+     <script type="text/javascript" src="jsTests/stressTests/signverify_stress.js"></script>  
+     <script type="text/javascript" src="jsTests/stressTests/encryptdecrypt_stress.js"></script>      
+     <script type="text/javascript" src="jsTests/stressTests/digest_stress.js"></script>
+     
+		
+		
+		
+</head>
+
+<body>
+
+    <script type="text/javascript">
+        (function () {
+            var jasmineEnv = jasmine.getEnv();
+            jasmineEnv.updateInterval = 250;
+            jasmineEnv.defaultTimeoutInterval = 1000;
+
+            var htmlReporter = new jasmine.HtmlReporter();
+            jasmineEnv.addReporter(htmlReporter);
+
+            jasmineEnv.specFilter = function (spec) {
+                return htmlReporter.specFilter(spec);
+            };
+
+            jasmineEnv.execute();
+        })();
+    </script>
+
+</body>
+
+</html>

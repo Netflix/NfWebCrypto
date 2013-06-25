@@ -172,13 +172,17 @@ describe("generate", function () {
 			var keyData = undefined;
 
 			runs(function () {
-				var op = nfCrypto.generateKey(indexValue.algo, indexValue.extractable, indexValue.usages);
-				op.onerror = function (e) {
+				try {
+					var op = nfCrypto.generateKey(indexValue.algo, indexValue.extractable, indexValue.usages);
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						key = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					key = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {
@@ -207,13 +211,17 @@ describe("generate", function () {
 			});
 			
 			runs(function () {
-				var op = nfCrypto.exportKey("raw", key);
-				op.onerror = function (e) {
+				try {
+					var op = nfCrypto.exportKey("raw", key);
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						keyData = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					keyData = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {
@@ -277,14 +285,18 @@ describe("generateRSAES", function () {
 			    pubkeyData = undefined;
 
 			runs(function () {
-				var op = nfCrypto.generateKey(indexValue.algo, indexValue.extractable, indexValue.usages);
-				op.onerror = function (e) {
+				try {
+					var op = nfCrypto.generateKey(indexValue.algo, indexValue.extractable, indexValue.usages);
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						pubKey  = e.target.result.publicKey;
+		                privKey = e.target.result.privateKey;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					pubKey  = e.target.result.publicKey;
-	                privKey = e.target.result.privateKey;
-				};
+				}
 			});
 
 			waitsFor(function () {

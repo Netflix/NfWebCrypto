@@ -85,14 +85,18 @@ describe("SignHMAC", function () {
 			                          ]);
             //First import the key to sign/verify with
 			runs(function () {
-				error = undefined;
-				var op = nfCrypto.importKey("raw", keyData, { name: "HMAC", params: { hash: "SHA-256" } }, true, ["sign", "verify"]);
-				op.onerror = function (e) {
+				try {
+					error = undefined;
+					var op = nfCrypto.importKey("raw", keyData, { name: "HMAC", params: { hash: "SHA-256" } }, true, ["sign", "verify"]);
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						importKey = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					importKey = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {
@@ -105,22 +109,26 @@ describe("SignHMAC", function () {
 			});
 			
 			runs(function () {
-				error = undefined;
-				//Making a bad sign key
-				if (INDEXVALUE.test == "SignInvalidSignKey" ) {
-					importKey.handle = 0;
-					INDEXVALUE.testKey = importKey;
-				} else {
-					//initalized testKey value with importkey
-					INDEXVALUE.testKey = importKey;
-				}
-				var signOp = nfCrypto.sign(INDEXVALUE.algo, INDEXVALUE.testKey, INDEXVALUE.testData);
-				signOp.onerror = function (e) {
+				try {
+					error = undefined;
+					//Making a bad sign key
+					if (INDEXVALUE.test == "SignInvalidSignKey" ) {
+						importKey.handle = 0;
+						INDEXVALUE.testKey = importKey;
+					} else {
+						//initalized testKey value with importkey
+						INDEXVALUE.testKey = importKey;
+					}
+					var signOp = nfCrypto.sign(INDEXVALUE.algo, INDEXVALUE.testKey, INDEXVALUE.testData);
+					signOp.onerror = function (e) {
+						error = "ERROR";
+					};
+					signOp.oncomplete = function (e) {
+						signature = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				signOp.oncomplete = function (e) {
-					signature = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {
@@ -138,16 +146,20 @@ describe("SignHMAC", function () {
 			});
 
 			runs(function () {
-				error = undefined;
-				//initalized testKey value with importkey
-				//INDEXVALUE.testKey = importKey;
-				var signOp = nfCrypto.verify(INDEXVALUE.algo, INDEXVALUE.testKey, signature, INDEXVALUE.testData);
-				signOp.onerror = function (e) {
+				try {
+					error = undefined;
+					//initalized testKey value with importkey
+					//INDEXVALUE.testKey = importKey;
+					var signOp = nfCrypto.verify(INDEXVALUE.algo, INDEXVALUE.testKey, signature, INDEXVALUE.testData);
+					signOp.onerror = function (e) {
+						error = "ERROR";
+					};
+					signOp.oncomplete = function (e) {
+						verified = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				signOp.oncomplete = function (e) {
-					verified = e.target.result;
-				};
+				}					
 			});
 
 			waitsFor(function () {
@@ -240,14 +252,18 @@ describe("VerifyHMAC", function () {
 			                          ]);
             //First import the key to sign/verify with
 			runs(function () {
-				error = undefined;
-				var op = nfCrypto.importKey("raw", keyData, { name: "HMAC", params: { hash: "SHA-256" } }, true, ["sign", "verify"]);
-				op.onerror = function (e) {
+				try {
+					error = undefined;
+					var op = nfCrypto.importKey("raw", keyData, { name: "HMAC", params: { hash: "SHA-256" } }, true, ["sign", "verify"]);
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						importKey = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					importKey = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {
@@ -260,16 +276,20 @@ describe("VerifyHMAC", function () {
 			});
 			
 			runs(function () {
-				error = undefined;
-				INDEXVALUE.testKey = importKey;
-				
-		    	var signOp = nfCrypto.sign(SIGN_ALGO, importKey, GOOD_DATA);
-				signOp.onerror = function (e) {
+				try {
+					error = undefined;
+					INDEXVALUE.testKey = importKey;
+					
+			    	var signOp = nfCrypto.sign(SIGN_ALGO, importKey, GOOD_DATA);
+					signOp.onerror = function (e) {
+						error = "ERROR";
+					};
+					signOp.oncomplete = function (e) {
+						signature = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				signOp.oncomplete = function (e) {
-					signature = e.target.result;
-				};
+				}					
 			});
 
 			waitsFor(function () {
@@ -282,20 +302,24 @@ describe("VerifyHMAC", function () {
 			});
 
 			runs(function () {
-				error = undefined;
-				if (INDEXVALUE.test == "VerifyInvalidKey") {
-					INDEXVALUE.testKey.handle = 0;
-				} else if (INDEXVALUE.test == "VerifyInvalidSignature") {
-					//flipping bits 
-					signature[5] = signature[5] ^ 0xFF;
-				}
-				var signOp = nfCrypto.verify(INDEXVALUE.algo, INDEXVALUE.testKey, signature, INDEXVALUE.testData);
-				signOp.onerror = function (e) {
+				try {
+					error = undefined;
+					if (INDEXVALUE.test == "VerifyInvalidKey") {
+						INDEXVALUE.testKey.handle = 0;
+					} else if (INDEXVALUE.test == "VerifyInvalidSignature") {
+						//flipping bits 
+						signature[5] = signature[5] ^ 0xFF;
+					}
+					var signOp = nfCrypto.verify(INDEXVALUE.algo, INDEXVALUE.testKey, signature, INDEXVALUE.testData);
+					signOp.onerror = function (e) {
+						error = "ERROR";
+					};
+					signOp.oncomplete = function (e) {
+						verified = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				signOp.oncomplete = function (e) {
-					verified = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {

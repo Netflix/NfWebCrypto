@@ -88,15 +88,19 @@ describe("digest", function () {
 			complete = undefined;
 
 			runs(function () {
-				console.log("Test being run is " + JSON.stringify(indexValue.algo));
-				op = nfCrypto.digest(indexValue.algo, indexValue.data)
-				op.onerror = function (e) {
+				try {
+					console.log("Test being run is " + JSON.stringify(indexValue.algo));
+					op = nfCrypto.digest(indexValue.algo, indexValue.data)
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						complete = true;
+						localResult = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					complete = true;
-					localResult = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {

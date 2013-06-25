@@ -109,13 +109,17 @@ describe("importraw", function () {
 			runs(function () {
 				// TODO:
 				// Once https://www.w3.org/Bugs/Public/show_bug.cgi?id=21435 is resolved, might need to pass in length as part of AlgorithmIdentifier
-				var op = nfCrypto.importKey(INDEXVALUE.keyFormat, INDEXVALUE.key, INDEXVALUE.algo, INDEXVALUE.extractable, INDEXVALUE.usages);
-				op.onerror = function (e) {
+				try {
+					var op = nfCrypto.importKey(INDEXVALUE.keyFormat, INDEXVALUE.key, INDEXVALUE.algo, INDEXVALUE.extractable, INDEXVALUE.usages);
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						key = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					key = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {
@@ -147,13 +151,17 @@ describe("importraw", function () {
 			});
 			if(INDEXVALUE.importKey != false) {
 				runs(function () {
-					var op = nfCrypto.exportKey(INDEXVALUE.keyFormat, key);
-					op.onerror = function (e) {
+					try {
+						var op = nfCrypto.exportKey(INDEXVALUE.keyFormat, key);
+						op.onerror = function (e) {
+							error = "ERROR";
+						};
+						op.oncomplete = function (e) {
+							keyData2 = e.target.result;
+						};
+					} catch(e) {
 						error = "ERROR";
-					};
-					op.oncomplete = function (e) {
-						keyData2 = e.target.result;
-					};
+					}
 				});
 
 				waitsFor(function () {
@@ -219,13 +227,17 @@ describe("exportraw", function () {
 			runs(function () {
 				// TODO:
 				// Once https://www.w3.org/Bugs/Public/show_bug.cgi?id=21435 is resolved, might need to pass in length as part of AlgorithmIdentifier
-				var op = nfCrypto.importKey("raw", KEYDATA, { name: "AES-CBC" }, true);
-				op.onerror = function (e) {
+				try {
+					var op = nfCrypto.importKey("raw", KEYDATA, { name: "AES-CBC" }, true);
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						key = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					key = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {
@@ -247,13 +259,17 @@ describe("exportraw", function () {
 			});
 			
 			runs(function () {
-				var op = nfCrypto.exportKey(INDEXVALUE.keyFormat, INDEXVALUE.key);
-				op.onerror = function (e) {
+				try {
+					var op = nfCrypto.exportKey(INDEXVALUE.keyFormat, INDEXVALUE.key);
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						keyData2 = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					keyData2 = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {

@@ -119,14 +119,18 @@ describe("importspki", function () {
 			var exportedSpkiKeyData = undefined;
 
 			runs(function () {
-				error = undefined;
-				var op = nfCrypto.importKey(INDEXVALUE.keyFormat, INDEXVALUE.key, INDEXVALUE.algo, INDEXVALUE.extractable, INDEXVALUE.usages);
-				op.onerror = function (e) {
+				try {
+					error = undefined;
+					var op = nfCrypto.importKey(INDEXVALUE.keyFormat, INDEXVALUE.key, INDEXVALUE.algo, INDEXVALUE.extractable, INDEXVALUE.usages);
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						key = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					key = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {
@@ -164,13 +168,17 @@ describe("importspki", function () {
 			
 			if(INDEXVALUE.importKey != false) {
 				runs(function () {
-					var op = nfCrypto.exportKey(INDEXVALUE.keyFormat, key);
-					op.onerror = function (e) {
+					try {
+						var op = nfCrypto.exportKey(INDEXVALUE.keyFormat, key);
+						op.onerror = function (e) {
+							error = "ERROR";
+						};
+						op.oncomplete = function (e) {
+							exportedSpkiKeyData = e.target.result;
+						};
+					} catch(e) {
 						error = "ERROR";
-					};
-					op.oncomplete = function (e) {
-						exportedSpkiKeyData = e.target.result;
-					};
+					}
 				});
 
 				waitsFor(function () {
@@ -247,14 +255,18 @@ describe("exportspki", function () {
 			var exportedSpkiKeyData = undefined;
 
 			runs(function () {
-				error = undefined;
-				var op = nfCrypto.importKey("spki", SPKIPUBKEY, { name: "RSAES-PKCS1-v1_5" }, true);
-				op.onerror = function (e) {
+				try {
+					error = undefined;
+					var op = nfCrypto.importKey("spki", SPKIPUBKEY, { name: "RSAES-PKCS1-v1_5" }, true);
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						key = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					key = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {
@@ -281,6 +293,7 @@ describe("exportspki", function () {
 			});
 			
 			runs(function () {
+				try {
 					var op = nfCrypto.exportKey(INDEXVALUE.keyFormat, INDEXVALUE.key);
 					op.onerror = function (e) {
 						error = "ERROR";
@@ -288,6 +301,9 @@ describe("exportspki", function () {
 					op.oncomplete = function (e) {
 						exportedSpkiKeyData = e.target.result;
 					};
+				} catch(e) {
+					error = "ERROR";
+				}				
 			});
 
 			waitsFor(function () {

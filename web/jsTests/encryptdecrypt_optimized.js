@@ -111,7 +111,35 @@ describe("encryptaes", function () {
 	    
 	    
 	];
-	
+/*
+	// This is a function that does a lot of the common stuff we do.
+	// It runs a crypto operation with the given arguments, waits for
+	// it to fail or succeed and then calls the 'after' function with
+	// the result of the operation and the error, if any
+
+	function runop(name, args, after) {
+		var error,
+			result;
+		runs(function() {
+			var op;
+			try {
+				op = nfCrypto[name].apply(nfCrypto, args);
+				op.oncomplete = function(event) { result = event.target.result; };
+				op.onerror = function() { error = true; };
+			} catch(e) {
+				error = true;
+			}
+		});
+
+		waitsFor(function() {
+			return error || result;
+		});
+
+		runs(function() {
+			after(result, error);
+		});
+	}
+*/	
 	function wrapperForTest(OPINDEX) {	
 		it(LISTOFOPERATIONS[OPINDEX].name, function () {
 			INDEXVALUE = LISTOFOPERATIONS[OPINDEX];
@@ -120,21 +148,39 @@ describe("encryptaes", function () {
 			var encrypted = undefined;
 			var decrypted = undefined;
 			var importedKey = undefined;
+/*
+			// If we use the 'runop' function above, we can shorten this
+			// sequence to just this:
 
+			runop('importKey', [
+					"raw",
+					new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
+					"AES-GCM", true, ["encrypt", "decrypt"]
+				], 
+				function(result, error) {
+					expect(error).toBeUndefined();
+					expect(result).toBeDefined();
+					importedKey = result;
+				});
+*/
 			runs(function () {
-				var op = nfCrypto.importKey(
-						"raw",
-						new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
-						"AES-GCM",
-						true,
-						["encrypt", "decrypt"]
-				);
-				op.onerror = function (e) {
-					error = "ERROR :: " + e.target.result
-				};
-				op.oncomplete = function (e) {
-					importedKey = e.target.result;
-				};
+				try {
+					var op = nfCrypto.importKey(
+							"raw",
+							new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
+							"AES-GCM",
+							true,
+							["encrypt", "decrypt"]
+					);
+					op.onerror = function (e) {
+						error = "ERROR :: " + e.target.result
+					};
+					op.oncomplete = function (e) {
+						importedKey = e.target.result;
+					};
+				} catch(e) {
+					error = "ERROR";
+				}
 			});
 
 			waitsFor(function () {
@@ -147,17 +193,21 @@ describe("encryptaes", function () {
 			});
 			
 			runs(function () {
-				error = undefined;
-				if(INDEXVALUE.name == "AESEncryptInvalidKeyHandle") {
-					importedKey.handle = 0;
-				}
-				var encryptOp = nfCrypto.encrypt(INDEXVALUE.algo, importedKey, INDEXVALUE.clearText);
-				encryptOp.onerror = function (e) {
+				try {
+					error = undefined;
+					if(INDEXVALUE.name == "AESEncryptInvalidKeyHandle") {
+						importedKey.handle = 0;
+					}
+					var encryptOp = nfCrypto.encrypt(INDEXVALUE.algo, importedKey, INDEXVALUE.clearText);
+					encryptOp.onerror = function (e) {
+						error = "ERROR";
+					};
+					encryptOp.oncomplete = function (e) {
+						encrypted = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				encryptOp.oncomplete = function (e) {
-					encrypted = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {
@@ -178,24 +228,28 @@ describe("encryptaes", function () {
 			
 			if(INDEXVALUE.disableDecrypt != true) {
 				runs(function () {
-					error = undefined;
-					if (INDEXVALUE.name == "AESMangledEncryptionData") {
-						encrypted[0] = encrypted[0] ^ 0xFF;
-					}
-					if (INDEXVALUE.name == "AESDifferentDecryptIV") {
-						var diff_iv = base16.parse("b63e541bc9ece19a1339df4f8720dcc3");
-						INDEXVALUE.algo.params.iv = diff_iv
-					} else {
-						//Require a separate IV since encrypt was clobbering original IV
-						INDEXVALUE.algo.params.iv = IV_DECRYPT;
-					}
-					var decryptOp = nfCrypto.decrypt(INDEXVALUE.algo, importedKey, encrypted);
-					decryptOp.onerror = function (e) {
+					try {
+						error = undefined;
+						if (INDEXVALUE.name == "AESMangledEncryptionData") {
+							encrypted[0] = encrypted[0] ^ 0xFF;
+						}
+						if (INDEXVALUE.name == "AESDifferentDecryptIV") {
+							var diff_iv = base16.parse("b63e541bc9ece19a1339df4f8720dcc3");
+							INDEXVALUE.algo.params.iv = diff_iv
+						} else {
+							//Require a separate IV since encrypt was clobbering original IV
+							INDEXVALUE.algo.params.iv = IV_DECRYPT;
+						}
+						var decryptOp = nfCrypto.decrypt(INDEXVALUE.algo, importedKey, encrypted);
+						decryptOp.onerror = function (e) {
+							error = "ERROR";
+						};
+						decryptOp.oncomplete = function (e) {
+							decrypted = e.target.result;
+						};
+					} catch(e) {
 						error = "ERROR";
-					};
-					decryptOp.oncomplete = function (e) {
-						decrypted = e.target.result;
-					};
+					}
 				});
 
 				waitsFor(function () {
@@ -222,9 +276,9 @@ describe("encryptaes", function () {
 			}//if(INDEXVALUE.disableDecrypt 
 		});//it
 	}//function wrapperForTest
-for(OPINDEX = 0; OPINDEX < LISTOFOPERATIONS.length; OPINDEX++) {	
-	wrapperForTest(OPINDEX);
-}
+	for(OPINDEX = 0; OPINDEX < LISTOFOPERATIONS.length; OPINDEX++) {	
+		wrapperForTest(OPINDEX);
+	}
 });//describe("EncryptAES")
 
 describe("decryptaes", function () {
@@ -287,19 +341,23 @@ describe("decryptaes", function () {
 			var importedKey = undefined;
 
 			runs(function () {
-				var op = nfCrypto.importKey(
-						"raw",
-						new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
-						"AES-GCM",
-						true,
-						["encrypt", "decrypt"]
-				);
-				op.onerror = function (e) {
-					error = "ERROR :: " + e.target.result
-				};
-				op.oncomplete = function (e) {
-					importedKey = e.target.result;
-				};
+				try {
+					var op = nfCrypto.importKey(
+							"raw",
+							new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
+							"AES-GCM",
+							true,
+							["encrypt", "decrypt"]
+					);
+					op.onerror = function (e) {
+						error = "ERROR :: " + e.target.result
+					};
+					op.oncomplete = function (e) {
+						importedKey = e.target.result;
+					};
+				} catch(e) {
+					error = "ERROR";
+				}
 			});
 
 			waitsFor(function () {
@@ -312,14 +370,18 @@ describe("decryptaes", function () {
 			});
 			
 			runs(function () {
-				error = undefined;
-				var encryptOp = nfCrypto.encrypt({name: "AES-CBC", params: { iv: IV } }, importedKey, CLEARTEXT);
-				encryptOp.onerror = function (e) {
+				try {
+					error = undefined;
+					var encryptOp = nfCrypto.encrypt({name: "AES-CBC", params: { iv: IV } }, importedKey, CLEARTEXT);
+					encryptOp.onerror = function (e) {
+						error = "ERROR";
+					};
+					encryptOp.oncomplete = function (e) {
+						encrypted = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				encryptOp.oncomplete = function (e) {
-					encrypted = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {
@@ -334,21 +396,25 @@ describe("decryptaes", function () {
 			});
 			
 			runs(function () {
-				error = undefined;
-				if(INDEXVALUE.name == "AESDecryptNullData") {
-					encrypted = null;
-				} else if (INDEXVALUE.name == "AESDecryptEmptyData") {
-					encrypted = new Uint8Array([]);
-				} else if (INDEXVALUE.name == "AESDecryptInvalidKeyHandle") {
-					importedKey.handle = 0;
-				}
-				var decryptOp = nfCrypto.decrypt(INDEXVALUE.algo, importedKey, encrypted);
-				decryptOp.onerror = function (e) {
+				try {
+					error = undefined;
+					if(INDEXVALUE.name == "AESDecryptNullData") {
+						encrypted = null;
+					} else if (INDEXVALUE.name == "AESDecryptEmptyData") {
+						encrypted = new Uint8Array([]);
+					} else if (INDEXVALUE.name == "AESDecryptInvalidKeyHandle") {
+						importedKey.handle = 0;
+					}
+					var decryptOp = nfCrypto.decrypt(INDEXVALUE.algo, importedKey, encrypted);
+					decryptOp.onerror = function (e) {
+						error = "ERROR";
+					};
+					decryptOp.oncomplete = function (e) {
+						decrypted = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				decryptOp.oncomplete = function (e) {
-					decrypted = e.target.result;
-				};
+				}					
 			});
 
 			waitsFor(function () {
@@ -367,9 +433,9 @@ describe("decryptaes", function () {
 			});
 		});//it
 	}//function wrapperForTest
-for(OPINDEX = 0; OPINDEX < LISTOFOPERATIONS.length; OPINDEX++) {	
-	wrapperForTest(OPINDEX);
-}
+	for(OPINDEX = 0; OPINDEX < LISTOFOPERATIONS.length; OPINDEX++) {	
+		wrapperForTest(OPINDEX);
+	}
 });//describe("decryptaes")
 
 describe("encryptrsa", function () {
@@ -467,22 +533,26 @@ describe("encryptrsa", function () {
 			var fermatF4 = new Uint8Array([0x00, 0x01]);
 			var error;
 			runs(function () {
-				var genOp = nfCrypto.generateKey({
-					name: "RSASSA-PKCS1-v1_5",
-					params: {
-						//2048 bit RSA key can encrypt (n/8) - 11 bytes for PKCS
-						//With given 2048 bit key it can encrypt 245 bytes
-						modulusLength: 2048,
-						publicExponent: fermatF4,
-					},
-				});
-				genOp.onerror = function (e) {
-					error = "ERROR :: " + e.target.result;
-				};
-				genOp.oncomplete = function (e) {
-					pubKey = e.target.result.publicKey;
-					privKey = e.target.result.privateKey;
-				};
+				try {
+					var genOp = nfCrypto.generateKey({
+						name: "RSASSA-PKCS1-v1_5",
+						params: {
+							//2048 bit RSA key can encrypt (n/8) - 11 bytes for PKCS
+							//With given 2048 bit key it can encrypt 245 bytes
+							modulusLength: 2048,
+							publicExponent: fermatF4,
+						},
+					});
+					genOp.onerror = function (e) {
+						error = "ERROR :: " + e.target.result;
+					};
+					genOp.oncomplete = function (e) {
+						pubKey = e.target.result.publicKey;
+						privKey = e.target.result.privateKey;
+					};
+				} catch(e) {
+					error = "ERROR";
+				}
 			});
 
 			waitsFor(function () {
@@ -516,22 +586,26 @@ describe("encryptrsa", function () {
 			});
 			
 			runs(function () {
-				//Test manipulations
-				if(INDEXVALUE.name == "RSAEncryptNullData") {
-					INDEXVALUE.clearText = null;
-				} else if(INDEXVALUE.name == "RSAEncryptEmptyData") {
-					INDEXVALUE.clearText = new Uint8Array([]);
-				} else if(INDEXVALUE.name == "RSAEncryptInvalidKeyHandle") {
-					pubKey.handle = 0;
-				}
-				// encrypt clearText with the public key
-				var encryptOp = nfCrypto.encrypt(INDEXVALUE.algo, pubKey, INDEXVALUE.clearText);
-				encryptOp.onerror = function (e) {
+				try {
+					//Test manipulations
+					if(INDEXVALUE.name == "RSAEncryptNullData") {
+						INDEXVALUE.clearText = null;
+					} else if(INDEXVALUE.name == "RSAEncryptEmptyData") {
+						INDEXVALUE.clearText = new Uint8Array([]);
+					} else if(INDEXVALUE.name == "RSAEncryptInvalidKeyHandle") {
+						pubKey.handle = 0;
+					}
+					// encrypt clearText with the public key
+					var encryptOp = nfCrypto.encrypt(INDEXVALUE.algo, pubKey, INDEXVALUE.clearText);
+					encryptOp.onerror = function (e) {
+						error = "ERROR";
+					};
+					encryptOp.oncomplete = function (e) {
+						encrypted = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				encryptOp.oncomplete = function (e) {
-					encrypted = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {
@@ -551,17 +625,21 @@ describe("encryptrsa", function () {
 
 			if(INDEXVALUE.encrypt != false) {
 				runs(function () {
-					error = undefined;
-					if(INDEXVALUE.name == "RSAMangledEncryptionData") {
-						encrypted[5] = encrypted[5] ^ 0xFF;
-					}
-					var encryptOp = nfCrypto.decrypt(INDEXVALUE.algo, privKey, encrypted);
-					encryptOp.onerror = function (e) {
+					try {
+						error = undefined;
+						if(INDEXVALUE.name == "RSAMangledEncryptionData") {
+							encrypted[5] = encrypted[5] ^ 0xFF;
+						}
+						var encryptOp = nfCrypto.decrypt(INDEXVALUE.algo, privKey, encrypted);
+						encryptOp.onerror = function (e) {
+							error = "ERROR";
+						};
+						encryptOp.oncomplete = function (e) {
+							decrypted = e.target.result;
+						};
+					} catch(e) {
 						error = "ERROR";
-					};
-					encryptOp.oncomplete = function (e) {
-						decrypted = e.target.result;
-					};
+					}
 				});
 
 				waitsFor(function () {
@@ -659,22 +737,26 @@ describe("decryptrsa", function () {
 			var fermatF4 = new Uint8Array([0x00, 0x01]);
 			var error;
 			runs(function () {
-				var genOp = nfCrypto.generateKey({
-					name: "RSASSA-PKCS1-v1_5",
-					params: {
-						//2048 bit RSA key can encrypt (n/8) - 11 bytes for PKCS
-						//With given 2048 bit key it can encrypt 245 bytes
-						modulusLength: 2048,
-						publicExponent: fermatF4,
-					},
-				});
-				genOp.onerror = function (e) {
-					error = "ERROR :: " + e.target.result;
-				};
-				genOp.oncomplete = function (e) {
-					pubKey = e.target.result.publicKey;
-					privKey = e.target.result.privateKey;
-				};
+				try {
+					var genOp = nfCrypto.generateKey({
+						name: "RSASSA-PKCS1-v1_5",
+						params: {
+							//2048 bit RSA key can encrypt (n/8) - 11 bytes for PKCS
+							//With given 2048 bit key it can encrypt 245 bytes
+							modulusLength: 2048,
+							publicExponent: fermatF4,
+						},
+					});
+					genOp.onerror = function (e) {
+						error = "ERROR :: " + e.target.result;
+					};
+					genOp.oncomplete = function (e) {
+						pubKey = e.target.result.publicKey;
+						privKey = e.target.result.privateKey;
+					};
+				} catch(e) {
+					error = "ERROR";
+				}
 			});
 
 			waitsFor(function () {
@@ -708,14 +790,18 @@ describe("decryptrsa", function () {
 			});
 			
 			runs(function () {
-				// encrypt clearText with the public key
-				var encryptOp = nfCrypto.encrypt("RSAES-PKCS1-v1_5", pubKey, CLEARTEXT);
-				encryptOp.onerror = function (e) {
+				try {
+					// encrypt clearText with the public key
+					var encryptOp = nfCrypto.encrypt("RSAES-PKCS1-v1_5", pubKey, CLEARTEXT);
+					encryptOp.onerror = function (e) {
+						error = "ERROR";
+					};
+					encryptOp.oncomplete = function (e) {
+						encrypted = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				encryptOp.oncomplete = function (e) {
-					encrypted = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {
@@ -729,22 +815,26 @@ describe("decryptrsa", function () {
 			});
 
 			runs(function () {
-				error = undefined;
-				//Test manipulations
-				if(INDEXVALUE.name == "RSADecryptNullData") {
-					encrypted = null;
-				} else if(INDEXVALUE.name == "RSADecryptEmptyData") {
-					encrypted = new Uint8Array([]);
-				} else if(INDEXVALUE.name == "RSADecryptInvalidKeyHandle") {
-					privKey.handle = 0;
-				}
-				var encryptOp = nfCrypto.decrypt(INDEXVALUE.algo, privKey, encrypted);
-				encryptOp.onerror = function (e) {
+				try {
+					error = undefined;
+					//Test manipulations
+					if(INDEXVALUE.name == "RSADecryptNullData") {
+						encrypted = null;
+					} else if(INDEXVALUE.name == "RSADecryptEmptyData") {
+						encrypted = new Uint8Array([]);
+					} else if(INDEXVALUE.name == "RSADecryptInvalidKeyHandle") {
+						privKey.handle = 0;
+					}
+					var encryptOp = nfCrypto.decrypt(INDEXVALUE.algo, privKey, encrypted);
+					encryptOp.onerror = function (e) {
+						error = "ERROR";
+					};
+					encryptOp.oncomplete = function (e) {
+						decrypted = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				encryptOp.oncomplete = function (e) {
-					decrypted = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {

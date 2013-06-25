@@ -92,22 +92,26 @@ describe("SignRSA", function () {
 			var error;
 
 			runs(function () {
-				var genOp = nfCrypto.generateKey({
-					name: "RSASSA-PKCS1-v1_5",
-					params: {
-						modulusLength: 512,
-						publicExponent: fermatF4,
-					},
-					//TODO: Add specific tests to check default values and see that 
-					//they hold true wrt C++
-				});
-				genOp.onerror = function (e) {
-					error = "ERROR :: " + e.target.result;
-				};
-				genOp.oncomplete = function (e) {
-					pubKey = e.target.result.publicKey;
-					privKey = e.target.result.privateKey;
-				};
+				try {
+					var genOp = nfCrypto.generateKey({
+						name: "RSASSA-PKCS1-v1_5",
+						params: {
+							modulusLength: 512,
+							publicExponent: fermatF4,
+						},
+						//TODO: Add specific tests to check default values and see that 
+						//they hold true wrt C++
+					});
+					genOp.onerror = function (e) {
+						error = "ERROR :: " + e.target.result;
+					};
+					genOp.oncomplete = function (e) {
+						pubKey = e.target.result.publicKey;
+						privKey = e.target.result.privateKey;
+					};
+				} catch(e) {
+					error = "ERROR";
+				}
 			});
 			waitsFor(function () {
 				return pubKey || privKey || error;
@@ -141,18 +145,22 @@ describe("SignRSA", function () {
 
 			// sign data with the private key
 			runs(function () {
-				error = undefined;
-				//Invalidating the handle for specific test case
-				if (INDEXVALUE.test == "SignRSAInvalidSignKey" ) {
-					privKey.handle = 0;
-				} 
-				var signOp = nfCrypto.sign(INDEXVALUE.algo, privKey, INDEXVALUE.testData);
-				signOp.onerror = function (e) {
-					error = "ERROR :: " + e.target.result;
-				};
-				signOp.oncomplete = function (e) {
-					signature = e.target.result;
-				};
+				try {
+					error = undefined;
+					//Invalidating the handle for specific test case
+					if (INDEXVALUE.test == "SignRSAInvalidSignKey" ) {
+						privKey.handle = 0;
+					} 
+					var signOp = nfCrypto.sign(INDEXVALUE.algo, privKey, INDEXVALUE.testData);
+					signOp.onerror = function (e) {
+						error = "ERROR :: " + e.target.result;
+					};
+					signOp.oncomplete = function (e) {
+						signature = e.target.result;
+					};
+				} catch(e) {
+					error = "ERROR";
+				}
 			});
 
 			waitsFor(function () {
@@ -171,14 +179,18 @@ describe("SignRSA", function () {
 
 			// verify data with the public key
 			runs(function () {
-				error = undefined;
-				var verifyOp = nfCrypto.verify(INDEXVALUE.algo, pubKey, signature, INDEXVALUE.testData);
-				verifyOp.onerror = function (e) {
-					error = "ERROR :: " + e.target.result;
-				};
-				verifyOp.oncomplete = function (e) {
-					verified = e.target.result;
-				};
+				try {
+					error = undefined;
+					var verifyOp = nfCrypto.verify(INDEXVALUE.algo, pubKey, signature, INDEXVALUE.testData);
+					verifyOp.onerror = function (e) {
+						error = "ERROR :: " + e.target.result;
+					};
+					verifyOp.oncomplete = function (e) {
+						verified = e.target.result;
+					};
+				} catch(e) {
+					error = "ERROR";
+				}
 			});
 
 			waitsFor(function () {
@@ -271,22 +283,26 @@ describe("VerifyRSA", function () {
 			var error;
 
 			runs(function () {
-				var genOp = nfCrypto.generateKey({
-					name: "RSASSA-PKCS1-v1_5",
-					params: {
-						modulusLength: 512,
-						publicExponent: fermatF4,
-					},
-					//TODO: Add specific tests to check default values and see that 
-					//they hold true wrt C++
-				});
-				genOp.onerror = function (e) {
-					error = "ERROR :: " + e.target.result;
-				};
-				genOp.oncomplete = function (e) {
-					pubKey = e.target.result.publicKey;
-					privKey = e.target.result.privateKey;
-				};
+				try {
+					var genOp = nfCrypto.generateKey({
+						name: "RSASSA-PKCS1-v1_5",
+						params: {
+							modulusLength: 512,
+							publicExponent: fermatF4,
+						},
+						//TODO: Add specific tests to check default values and see that 
+						//they hold true wrt C++
+					});
+					genOp.onerror = function (e) {
+						error = "ERROR :: " + e.target.result;
+					};
+					genOp.oncomplete = function (e) {
+						pubKey = e.target.result.publicKey;
+						privKey = e.target.result.privateKey;
+					};
+				} catch(e) {
+					error = "ERROR";
+				}
 			});
 			waitsFor(function () {
 				return pubKey || privKey || error;
@@ -320,14 +336,18 @@ describe("VerifyRSA", function () {
 
 			// sign data with the private key
 			runs(function () {
-				error = undefined;
-				var signOp = nfCrypto.sign(SIGN_ALGO, privKey, DATA);
-				signOp.onerror = function (e) {
-					error = "ERROR :: " + e.target.result;
-				};
-				signOp.oncomplete = function (e) {
-					signature = e.target.result;
-				};
+				try {
+					error = undefined;
+					var signOp = nfCrypto.sign(SIGN_ALGO, privKey, DATA);
+					signOp.onerror = function (e) {
+						error = "ERROR :: " + e.target.result;
+					};
+					signOp.oncomplete = function (e) {
+						signature = e.target.result;
+					};
+				} catch(e) {
+					error = "ERROR";
+				}
 			});
 
 			waitsFor(function () {
@@ -341,20 +361,24 @@ describe("VerifyRSA", function () {
 
 			// verify data with the public key
 			runs(function () {
-				error = undefined;
-				//Invalidating the handle for specific test case
-				if (INDEXVALUE.test == "VerifyRSAInvalidVerifyKey") {
-					pubKey.handle = 0;
-				} else if (INDEXVALUE.test == "VerifyRSAInvalidSignature") {
-					signature[5] = signature[5] ^ 0xFF;
-				} 
-				var verifyOp = nfCrypto.verify(INDEXVALUE.algo, pubKey, signature, INDEXVALUE.testData);
-				verifyOp.onerror = function (e) {
-					error = "ERROR :: " + e.target.result;
-				};
-				verifyOp.oncomplete = function (e) {
-					verified = e.target.result;
-				};
+				try {
+					error = undefined;
+					//Invalidating the handle for specific test case
+					if (INDEXVALUE.test == "VerifyRSAInvalidVerifyKey") {
+						pubKey.handle = 0;
+					} else if (INDEXVALUE.test == "VerifyRSAInvalidSignature") {
+						signature[5] = signature[5] ^ 0xFF;
+					} 
+					var verifyOp = nfCrypto.verify(INDEXVALUE.algo, pubKey, signature, INDEXVALUE.testData);
+					verifyOp.onerror = function (e) {
+						error = "ERROR :: " + e.target.result;
+					};
+					verifyOp.oncomplete = function (e) {
+						verified = e.target.result;
+					};
+				} catch(e) {
+					error = "ERROR";
+				}					
 			});
 
 			waitsFor(function () {

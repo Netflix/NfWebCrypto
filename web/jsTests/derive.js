@@ -111,15 +111,19 @@ describe("derive", function () {
 			//Generate key pair first then derive
 			//This is because the generate creates a "secret" in crypto context which is required for derive key 
             runs(function () {
-            	error = undefined;
-                var op = nfCrypto.generateKey( {name: "DH", params: { prime: dhPrime, generator: dhGenerator } }, true, ["encrypt", "decrypt"] );
-                op.onerror = function (e) {
-                    error = "ERROR";
-                };
-                op.oncomplete = function (e) {
-                	genPubkey  = e.target.result.publicKey;
-                	genPrivkey = e.target.result.privateKey;
-                };
+            	try {
+	            	error = undefined;
+	                var op = nfCrypto.generateKey( {name: "DH", params: { prime: dhPrime, generator: dhGenerator } }, true, ["encrypt", "decrypt"] );
+	                op.onerror = function (e) {
+	                    error = "ERROR";
+	                };
+	                op.oncomplete = function (e) {
+	                	genPubkey  = e.target.result.publicKey;
+	                	genPrivkey = e.target.result.privateKey;
+	                };
+				} catch(e) {
+					error = "ERROR";
+				}
             });
             waitsFor(function () {
                 return genPubkey || genPrivkey || error;
@@ -131,22 +135,26 @@ describe("derive", function () {
             });
             //Derive key from generate key
 			runs(function () {
-				error = undefined;
-				//invalidating the basekey
-				if(indexValue.name == "DeriveDHKeyInvalidBaseKey") {
-					//rand characters
-					genPubkey.algorithm.params.prime = "bkeoluRoBsQ4ug0uNZgsuMhrWRM4ag7"; 
-					indexValue.baseKey = genPubkey ;
-				} else {
-					indexValue.baseKey = genPubkey;
-				}
-				var op = nfCrypto.deriveKey( indexValue.algo, indexValue.baseKey, indexValue.derivedKeyAlgo, indexValue.extractable, indexValue.usages);
-				op.onerror = function (e) {
+				try {
+					error = undefined;
+					//invalidating the basekey
+					if(indexValue.name == "DeriveDHKeyInvalidBaseKey") {
+						//rand characters
+						genPubkey.algorithm.params.prime = "bkeoluRoBsQ4ug0uNZgsuMhrWRM4ag7"; 
+						indexValue.baseKey = genPubkey ;
+					} else {
+						indexValue.baseKey = genPubkey;
+					}
+					var op = nfCrypto.deriveKey( indexValue.algo, indexValue.baseKey, indexValue.derivedKeyAlgo, indexValue.extractable, indexValue.usages);
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						sharedKey  = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					sharedKey  = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {
@@ -175,14 +183,18 @@ describe("derive", function () {
 			});
 			//Export shared key
 			runs(function () {
-				error = undefined;
-				var op = nfCrypto.exportKey("raw", sharedKey);
-				op.onerror = function (e) {
+				try {
+					error = undefined;
+					var op = nfCrypto.exportKey("raw", sharedKey);
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						pubkeyData = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					pubkeyData = e.target.result;
-				};
+				}
 			});
 
 			waitsFor(function () {
