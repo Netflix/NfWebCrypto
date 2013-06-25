@@ -85,6 +85,10 @@
             expect(typeof cryptoSubtle.unwrapKey).toEqual("function");
         });
 
+        it("crypto.getDeviceId exists", function () {
+            expect(typeof cryptoSubtle.unwrapKey).toEqual("function");
+        });
+
     });
 
     // --------------------------------------------------------------------------------
@@ -109,6 +113,41 @@
                 expect(base16.stringify(abv4)).not.toEqual(base16.stringify(abv2));
             });
 
+        });
+
+    });
+
+    // --------------------------------------------------------------------------------
+
+    describe("DeviceId", function () {
+
+        it("getDeviceId", function () {
+            var op,
+                result,
+                error,
+                complete;
+
+            runs(function () {
+                op = crypto.getDeviceId();
+                op.onerror = function (e) {
+                    error = "ERROR";
+                };
+                op.oncomplete = function (e) {
+                    complete = true;
+                    result = e.target.result;
+                };
+            });
+
+            waitsFor(function () {
+                return error || complete;
+            });
+
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(complete).toBeTruthy();
+                // device ID will be empty except on Chrome OS, where it will be 52 chars long
+                expect(result.length == 0 || result.length == 52).toBeTrue;
+            });
         });
 
     });

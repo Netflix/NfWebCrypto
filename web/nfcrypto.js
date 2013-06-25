@@ -509,6 +509,10 @@ End of (PolyCrypt) License Terms and Conditions.
         }
         return abv;
     };
+    
+    that.getDeviceId = function () {
+        return createKeyOp('getDeviceId', null, null, null, null, null, null, null, null)
+    }
 
     //--------------------------------------------------------------------------
 
