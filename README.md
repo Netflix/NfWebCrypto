@@ -28,7 +28,7 @@ Supported
   + sign, verify
   + generateKey
   + exportKey, importKey
-  + wrapKey, unwrapKey*
+  + wrapKey, unwrapKey* **
 * Key formats supported
   + symmetric keys: raw and jwk (raw)
   + asymmetric keys: pkcs#8 (public), spki (private), and jwk (public only)
@@ -39,8 +39,8 @@ Supported
   + RSASSA-PKCS1-v1_5: sign, verify, importKey, generateKey
   + RSAES-PKCS1-v1_5: encrypt, decrypt, importKey, exportKey, generateKey
   + Diffie-Hellman: generateKey, deriveKey
-  + RSA-OAEP: wrapKey**, unwrapKey**
-  + AES-KW: wrapKey**, unwrapKey**
+  + RSA-OAEP: wrapKey, unwrapKey
+  + AES-KW: wrapKey, unwrapKey
 
 *A special SYSTEM key bound to the plugin binary and script origin can be used with (un)wrapKey to export/import
 opaque key representations for persistence in HTML5 local storage or equivalent.
