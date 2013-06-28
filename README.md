@@ -28,20 +28,24 @@ Supported
   + sign, verify
   + generateKey
   + exportKey, importKey
-  + wrapKey, unwrapKey
+  + wrapKey, unwrapKey*
 * Key formats supported
   + symmetric keys: raw and jwk (raw)
   + asymmetric keys: pkcs#8 (public), spki (private), and jwk (public only)
 * Algorithms supported
+  + SHA-1, SHA-224, SHA-256, SHA-384, SHA-512: digest
   + HMAC SHA-256: sign, verify, importKey, exportKey, generateKey
   + AES-128 CBC w/ PKCS#5 padding: encrypt, decrypt, importKey, exportKey, generateKey
   + RSASSA-PKCS1-v1_5: sign, verify, importKey, generateKey
   + RSAES-PKCS1-v1_5: encrypt, decrypt, importKey, exportKey, generateKey
   + Diffie-Hellman: generateKey, deriveKey
-  + RSA-OAEP: wrapKey*, unwrapKey*
-  + AES-KW: wrapKey*, unwrapKey*
+  + RSA-OAEP: wrapKey**, unwrapKey**
+  + AES-KW: wrapKey**, unwrapKey**
 
-*Wrap/Unwrap operations follow the Netflix [KeyWrap Proposal](http://www.w3.org/2012/webcrypto/wiki/KeyWrap_Proposal)
+*A special SYSTEM key bound to the plugin binary and script origin can be used with (un)wrapKey to export/import
+opaque key representations for persistence in HTML5 local storage or equivalent.
+
+**Wrap/Unwrap operations follow the Netflix [KeyWrap Proposal](http://www.w3.org/2012/webcrypto/wiki/KeyWrap_Proposal)
 and support protection of the JWE payload with AES128-GCM.
 It is be possible to wrap/unwrap the following key types: HMAC SHA-256 and AES-128 CBC.
 
