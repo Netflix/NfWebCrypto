@@ -345,7 +345,6 @@ void CadmiumCrypto::CadmiumCryptoImpl::createSystemKey()
     {
         uint8_t idx = deviceIdVuc[i];
         uint8_t r = gRandTable[idx];
-        DLOG() << "idx = " << (int)idx << " r = " << (int)r << endl;
         keyVuc[i] ^= r;
     }
     //DLOG() << "\tkeyVuc\t\t\t\t= " << NtbaUtil::toHexString(keyVuc, "") << endl;
