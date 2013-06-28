@@ -150,7 +150,7 @@
                     var key = e.target.result;
                     assert_not_equals(key, undefined);
                     assert_true(key.extractable);
-                    assert_array_equals(key.keyUsages, ["encrypt", "decrypt"]);
+                    assert_array_equals(key.keyUsage, ["encrypt", "decrypt"]);
                     assert_equals(key.type, "secret");
                     exportAndCheck1(key);
                 });
@@ -599,7 +599,7 @@
                 // TODO: confirm that these checks are valid and add them
                 // expect(key.algorithm.name).toBe("RSAES-PKCS1-v1_5");
                 // expect(key.extractable).toBe(false);
-                // expect(key.keyUsages).toEqual([]);
+                // expect(key.keyUsage).toEqual([]);
             });
             
             runs(function () {
@@ -700,7 +700,7 @@
                 expect(key.extractable).toBe(true);
                 // TODO: confirm that these checks are valid and add them
                 // expect(key.algorithm.name).toBe("RSAES-PKCS1-v1_5");
-                // expect(key.keyUsages).toEqual([]);
+                // expect(key.keyUsage).toEqual([]);
             });
 
             // verify exported key matches what was imported
@@ -1852,7 +1852,7 @@
                 expect(unwrappedKey).toBeDefined();
                 expect(unwrappedKey.algorithm).toEqual({"name":"AES-CBC"});
                 expect(unwrappedKey.extractable).toBe(false);
-                expect(base16.stringify(unwrappedKey.keyUsages)).toBe(base16.stringify(["encrypt","decrypt"]));
+                expect(base16.stringify(unwrappedKey.keyUsage)).toBe(base16.stringify(["encrypt","decrypt"]));
                 expect(unwrappedKey.type).toBe("secret");
             });
 
@@ -2138,7 +2138,7 @@
                 expect(error).toBeUndefined();
                 expect(sharedKey).toBeDefined();
                 expect(sharedKey.extractable).toBe(true);
-                expect(sharedKey.keyUsages).toEqual(["encrypt", "decrypt"]);
+                expect(sharedKey.keyUsage).toEqual(["encrypt", "decrypt"]);
                 expect(sharedKey.type).toBe("secret");
                 expect(sharedKey.algorithm.name).toBe("AES-CBC");
             });

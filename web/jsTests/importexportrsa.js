@@ -91,9 +91,9 @@ describe("ImportExportRSA", function () {
 			//Doing checks on keys to validate Key structure
 			expect(key.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
 			expect(key.extractable).toBeTruthy();
-			expect(key.keyUsages.length).toEqual(0);
+			expect(key.keyUsage.length).toEqual(0);
 			//TODO: need to confirm what the default value should be
-			//expect(key.keyUsages[0]).toEqual("sign");
+			//expect(key.keyUsage[0]).toEqual("sign");
 			expect(key.type).toEqual("public");
 			//Handle is how C++ correlates keys with JS
 			//0 implies invalid key
@@ -145,9 +145,9 @@ describe("ImportExportRSA", function () {
 		runs(function () {
 			expect(error).toBeUndefined();
 			expect(privKey.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
-			expect(privKey.keyUsages.length).toEqual(0);
+			expect(privKey.keyUsage.length).toEqual(0);
 			//TODO: need to confirm what the default value should be
-			//expect(key.keyUsages[0]).toEqual("sign");
+			//expect(key.keyUsage[0]).toEqual("sign");
 			//Handle is how C++ correlates keys with JS
 			//0 implies invalid key
 			expect(privKey.handle).not.toEqual(0);
@@ -208,9 +208,9 @@ describe("ImportExportRSA", function () {
 			expect(error).toBeUndefined();
 			expect(privKey.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
 			expect(privKey.extractable).toBeFalsy();
-			expect(privKey.keyUsages.length).toEqual(0);
+			expect(privKey.keyUsage.length).toEqual(0);
 			//TODO: need to confirm what the default value should be
-			//expect(privKey.keyUsages[0]).toEqual("sign");
+			//expect(privKey.keyUsage[0]).toEqual("sign");
 			expect(privKey.type).toBe("private");
 			expect(privKey.extractable).toBe(false);
 			//Handle is how C++ correlates keys with JS
@@ -239,9 +239,9 @@ describe("ImportExportRSA", function () {
 			expect(pubKey.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
 			//Since this is a public key it should always be true, irrespective of what is specified in the api
 			expect(pubKey.extractable).toBeTruthy();
-			expect(pubKey.keyUsages.length).toEqual(0);
+			expect(pubKey.keyUsage.length).toEqual(0);
 			//TODO: need to confirm what the default value should be
-			//expect(pubKey.keyUsages[0]).toEqual("sign");
+			//expect(pubKey.keyUsage[0]).toEqual("sign");
 			expect(pubKey.type).toBe("public");
 			//Handle is how C++ correlates keys with JS
 			//0 implies invalid key
@@ -322,9 +322,9 @@ describe("ImportExportRSA", function () {
 			expect(error).toBeUndefined();
 			expect(key.algorithm.name).toEqual("AES-CBC");
 			expect(key.extractable).toBeTruthy();
-			expect(key.keyUsages.length).toEqual(0);
+			expect(key.keyUsage.length).toEqual(0);
 			//TODO: need to confirm what the default value should be
-			//expect(key.keyUsages[0]).toEqual("sign");
+			//expect(key.keyUsage[0]).toEqual("sign");
 			expect(key.type).toBe("secret");
 			//Handle is how C++ correlates keys with JS
 			//0 implies invalid key
@@ -752,9 +752,9 @@ describe("ImportExportRSA", function () {
 			//Doing checks on keys to validate Key structure
 			expect(key.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
 			expect(key.extractable).toBeTruthy();
-			expect(key.keyUsages.length).toEqual(2);
-			expect(key.keyUsages[0]).toEqual("encrypt");
-			expect(key.keyUsages[1]).toEqual("decrypt");
+			expect(key.keyUsage.length).toEqual(2);
+			expect(key.keyUsage[0]).toEqual("encrypt");
+			expect(key.keyUsage[1]).toEqual("decrypt");
 			expect(key.type).toEqual("public");
 			//Handle is how C++ correlates keys with JS
 			//0 implies invalid key
@@ -800,9 +800,9 @@ describe("ImportExportRSA", function () {
 			//Doing checks on keys to validate Key structure
 			expect(keyJwk.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
 			expect(keyJwk.extractable).toBeTruthy();
-			expect(key.keyUsages.length).toEqual(2);
-			expect(key.keyUsages[0]).toEqual("encrypt");
-			expect(key.keyUsages[1]).toEqual("decrypt");
+			expect(key.keyUsage.length).toEqual(2);
+			expect(key.keyUsage[0]).toEqual("encrypt");
+			expect(key.keyUsage[1]).toEqual("decrypt");
 			expect(keyJwk.type).toEqual("public");
 			//Handle is how C++ correlates keys with JS
 			//0 implies invalid key
@@ -853,9 +853,9 @@ describe("ImportExportRSA", function () {
 		runs(function () {
 			expect(error).toBeUndefined();
 			expect(privKey.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
-			expect(privKey.keyUsages.length).toEqual(0);
+			expect(privKey.keyUsage.length).toEqual(0);
 			//TODO: need to confirm what the default value should be
-			//expect(key.keyUsages[0]).toEqual("sign");
+			//expect(key.keyUsage[0]).toEqual("sign");
 			//Handle is how C++ correlates keys with JS
 			//0 implies invalid key
 			expect(privKey.handle).not.toEqual(0);
@@ -913,9 +913,9 @@ describe("ImportExportRSA", function () {
 			expect(error).toBeUndefined();
 			expect(key.algorithm.name).toEqual("AES-CBC");
 			expect(key.extractable).toBeTruthy();
-			expect(key.keyUsages.length).toEqual(2);
-			expect(key.keyUsages[0]).toEqual("encrypt");
-			expect(key.keyUsages[1]).toEqual("decrypt");
+			expect(key.keyUsage.length).toEqual(2);
+			expect(key.keyUsage[0]).toEqual("encrypt");
+			expect(key.keyUsage[1]).toEqual("decrypt");
 			expect(key.type).toBe("secret");
 			//Handle is how C++ correlates keys with JS
 			//0 implies invalid key
@@ -959,9 +959,9 @@ describe("ImportExportRSA", function () {
 			expect(error).toBeUndefined();
 			expect(keyJwk.algorithm.name).toEqual("AES-CBC");
 			expect(keyJwk.extractable).toBeTruthy();
-			expect(keyJwk.keyUsages.length).toEqual(2);
-			expect(keyJwk.keyUsages[0]).toEqual("encrypt");
-			expect(keyJwk.keyUsages[1]).toEqual("decrypt");
+			expect(keyJwk.keyUsage.length).toEqual(2);
+			expect(keyJwk.keyUsage[0]).toEqual("encrypt");
+			expect(keyJwk.keyUsage[1]).toEqual("decrypt");
 			expect(keyJwk.type).toBe("secret");
 			//Handle is how C++ correlates keys with JS
 			//0 implies invalid key

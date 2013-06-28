@@ -565,10 +565,10 @@ describe("encryptrsa", function () {
 				expect(pubKey.algorithm.name).toEqual("RSASSA-PKCS1-v1_5");
 				//since all pub keys are extractable
 				expect(pubKey.extractable).toBeTruthy();
-				expect(pubKey.keyUsages.length).toEqual(0);
+				expect(pubKey.keyUsage.length).toEqual(0);
 				//TODO: Re-enable this check when we know what default values should be
-				//expect(pubKey.keyUsages[0]).toEqual("verify");
-				expect(pubKey.keyUsages).not.toBeNull();
+				//expect(pubKey.keyUsage[0]).toEqual("verify");
+				expect(pubKey.keyUsage).not.toBeNull();
 				expect(pubKey.type).toEqual("public");
 				//Handle is how C++ correlates keys with JS
 				//0 implies invalid key
@@ -577,9 +577,9 @@ describe("encryptrsa", function () {
 				//Doing checks on keys to validate Private Key structure
 				expect(privKey.algorithm.name).toEqual("RSASSA-PKCS1-v1_5");
 				expect(privKey.extractable).toBeFalsy();
-				expect(privKey.keyUsages.length).toEqual(0);
+				expect(privKey.keyUsage.length).toEqual(0);
 				//TODO: Re-enable this check when we know what default values should be
-				//expect(privKey.keyUsages[0]).toEqual("sign");
+				//expect(privKey.keyUsage[0]).toEqual("sign");
 				expect(privKey.type).toEqual("private");
 				expect(privKey.handle).not.toEqual(0);
 				expect(privKey.handle).not.toEqual(pubKey.handle);
@@ -769,10 +769,10 @@ describe("decryptrsa", function () {
 				expect(pubKey.algorithm.name).toEqual("RSASSA-PKCS1-v1_5");
 				//since all pub keys are extractable
 				expect(pubKey.extractable).toBeTruthy();
-				expect(pubKey.keyUsages.length).toEqual(0);
+				expect(pubKey.keyUsage.length).toEqual(0);
 				//TODO: Re-enable this check when we know what default values should be
-				//expect(pubKey.keyUsages[0]).toEqual("verify");
-				expect(pubKey.keyUsages).not.toBeNull();
+				//expect(pubKey.keyUsage[0]).toEqual("verify");
+				expect(pubKey.keyUsage).not.toBeNull();
 				expect(pubKey.type).toEqual("public");
 				//Handle is how C++ correlates keys with JS
 				//0 implies invalid key
@@ -781,9 +781,9 @@ describe("decryptrsa", function () {
 				//Doing checks on keys to validate Private Key structure
 				expect(privKey.algorithm.name).toEqual("RSASSA-PKCS1-v1_5");
 				expect(privKey.extractable).toBeFalsy();
-				expect(privKey.keyUsages.length).toEqual(0);
+				expect(privKey.keyUsage.length).toEqual(0);
 				//TODO: Re-enable this check when we know what default values should be
-				//expect(privKey.keyUsages[0]).toEqual("sign");
+				//expect(privKey.keyUsage[0]).toEqual("sign");
 				expect(privKey.type).toEqual("private");
 				expect(privKey.handle).not.toEqual(0);
 				expect(privKey.handle).not.toEqual(pubKey.handle);

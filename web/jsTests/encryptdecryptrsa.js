@@ -54,10 +54,10 @@ describe("EncryptDecryptRSA", function () {
 			//Doing checks on keys to validate Public Key structure
 			expect(PUBKEY.algorithm).toEqual("RSASSA-PKCS1-v1_5");
 			expect(PUBKEY.extractable).toBeFalsy();
-			expect(PUBKEY.keyUsages.length).toEqual(0);
+			expect(PUBKEY.keyUsage.length).toEqual(0);
 			//TODO: Re-enable this check when we know what default values should be
-			//expect(PUBKEY.keyUsages[0]).toEqual("verify");
-			expect(PUBKEY.keyUsages).not.toBeNull();
+			//expect(PUBKEY.keyUsage[0]).toEqual("verify");
+			expect(PUBKEY.keyUsage).not.toBeNull();
 			expect(PUBKEY.type).toEqual("public");
 			//Handle is how C++ correlates keys with JS
 			//0 implies invalid key
@@ -66,9 +66,9 @@ describe("EncryptDecryptRSA", function () {
 			//Doing checks on keys to validate Private Key structure
 			expect(PRIVKEY.algorithm).toEqual("RSASSA-PKCS1-v1_5");
 			expect(PRIVKEY.extractable).toBeFalsy();
-			expect(PRIVKEY.keyUsages.length).toEqual(0);
+			expect(PRIVKEY.keyUsage.length).toEqual(0);
 			//TODO: Re-enable this check when we know what default values should be
-			//expect(PRIVKEY.keyUsages[0]).toEqual("sign");
+			//expect(PRIVKEY.keyUsage[0]).toEqual("sign");
 			expect(PRIVKEY.type).toEqual("private");
 			expect(PRIVKEY.handle).not.toEqual(0);
 			expect(PRIVKEY.handle).not.toEqual(PUBKEY.handle);

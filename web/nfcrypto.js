@@ -380,7 +380,7 @@ End of (PolyCrypt) License Terms and Conditions.
 
     //--------------------------------------------------------------------------
     var createKeyOp = function (type, format, keyData, algorithm,
-            extractable, keyUsages, baseKey, derivedKeyType, key) {
+            extractable, keyUsage, baseKey, derivedKeyType, key) {
 
         var op = {},
         result = null,
@@ -427,7 +427,7 @@ End of (PolyCrypt) License Terms and Conditions.
             keyData: keyData && b64encode(keyData),
             algorithm: algorithm,
             extractable: extractable,
-            keyUsages: keyUsages,
+            keyUsage: keyUsage,
             baseKeyHandle: (baseKey == null) ? baseKey : baseKey.handle,
             derivedAlgorithm : derivedKeyType,
             keyHandle: (key == null) ? key : key.handle,
@@ -445,8 +445,8 @@ End of (PolyCrypt) License Terms and Conditions.
         return createCryptoOp('digest', algorithm, null, null, buffer);
     };
 
-    that.importKey = function (format, keyData, algorithm, extractable, keyUsages) {
-        return createKeyOp('import', format, keyData, algorithm, extractable, keyUsages);
+    that.importKey = function (format, keyData, algorithm, extractable, keyUsage) {
+        return createKeyOp('import', format, keyData, algorithm, extractable, keyUsage);
     };
 
     that.exportKey = function (format, key) {
@@ -475,23 +475,25 @@ End of (PolyCrypt) License Terms and Conditions.
         return createCryptoOp('verify', algorithm, key, signature, buffer);
     };
 
-    that.generateKey = function (algorithm, extractable, keyUsages) {
+    that.generateKey = function (algorithm, extractable, keyUsage) {
         var tob64 = ["publicExponent", "prime", "generator"];
         var propName;
-        for (var i = 0; i < tob64.length; i++) {
-            propName = tob64[i];
-            if (algorithm.params.hasOwnProperty(propName)) {
-                algorithm.params[propName] = b64encode(algorithm.params[propName]);
+        if (algorithm.hasOwnProperty('params')) {
+            for (var i = 0; i < tob64.length; i++) {
+                propName = tob64[i];
+                if (algorithm.params.hasOwnProperty(propName)) {
+                    algorithm.params[propName] = b64encode(algorithm.params[propName]);
+                }
             }
         }
-        return createKeyOp('generate', null, null, algorithm, extractable, keyUsages);
+        return createKeyOp('generate', null, null, algorithm, extractable, keyUsage);
     };
 
-    that.deriveKey = function (algorithm, baseKey, derivedKeyAlgorithm, extractable, keyUsages) {
+    that.deriveKey = function (algorithm, baseKey, derivedKeyAlgorithm, extractable, keyUsage) {
         if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("public")) {
             algorithm.params["public"] = b64encode(algorithm.params["public"]);
         }
-        return createKeyOp("derive", null, null, algorithm, extractable, keyUsages, baseKey, derivedKeyAlgorithm, null)
+        return createKeyOp("derive", null, null, algorithm, extractable, keyUsage, baseKey, derivedKeyAlgorithm, null)
     };
 
     that.wrapKey = function (keyToWrap, wrappingKey, wrappingAlgorithm) {

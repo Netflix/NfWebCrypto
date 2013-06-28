@@ -170,12 +170,12 @@ describe("derive", function () {
 					expect(error).toBeUndefined();
 					expect(sharedKey.algorithm.name).toEqual(indexValue.derivedKeyAlgo);
 					expect(sharedKey.extractable).toEqual(indexValue.extractable);
-					expect(sharedKey.keyUsages.length).toEqual(indexValue.usages.length);
+					expect(sharedKey.keyUsage.length).toEqual(indexValue.usages.length);
 					if(indexValue.usages.length > 1) {
-						expect(sharedKey.keyUsages[0]).toEqual(indexValue.usages[0]);
-						expect(sharedKey.keyUsages[1]).toEqual(indexValue.usages[1]);
+						expect(sharedKey.keyUsage[0]).toEqual(indexValue.usages[0]);
+						expect(sharedKey.keyUsage[1]).toEqual(indexValue.usages[1]);
 					} else {
-						expect(sharedKey.keyUsages[0]).toEqual(indexValue.usages[0]);
+						expect(sharedKey.keyUsage[0]).toEqual(indexValue.usages[0]);
 					}
 					expect(sharedKey.handle).not.toEqual(0);
 					expect(sharedKey.type).toEqual("secret");

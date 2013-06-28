@@ -50,9 +50,9 @@ describe("ImportExport", function () {
 			//Doing checks on keys to validate Key structure
 			expect(key.algorithm).toEqual("AES-GCM");
 			expect(key.extractable).toBeTruthy();
-			expect(key.keyUsages.length).toEqual(1);
-			expect(key.keyUsages[0]).toEqual("encrypt");
-			expect(key.keyUsages[1]).toEqual("decrypt");
+			expect(key.keyUsage.length).toEqual(1);
+			expect(key.keyUsage[0]).toEqual("encrypt");
+			expect(key.keyUsage[1]).toEqual("decrypt");
 			expect(key.type).toEqual("secret");
 			//Handle is how C++ correlates keys with JS
 			//0 implies invalid key
@@ -78,9 +78,9 @@ describe("ImportExport", function () {
 			//Doing checks on keys to validate Key structure
 			expect(exportedKeyData.algorithm).toEqual("AES-GCM");
 			expect(exportedKeyData.extractable).toBeTruthy();
-			expect(exportedKeyData.keyUsages.length).toEqual(1);
-			expect(exportedKeyData.keyUsages[0]).toEqual("encrypt");
-			expect(exportedKeyData.keyUsages[1]).toEqual("decrypt");
+			expect(exportedKeyData.keyUsage.length).toEqual(1);
+			expect(exportedKeyData.keyUsage[0]).toEqual("encrypt");
+			expect(exportedKeyData.keyUsage[1]).toEqual("decrypt");
 			expect(exportedKeyData.type).toEqual("secret");
 			//Handle is how C++ correlates keys with JS
 			//0 implies invalid key
@@ -139,9 +139,9 @@ describe("ImportExport", function () {
 			//Doing checks on keys to validate Key structure
 			expect(key.algorithm).toEqual("AES-CBC");
 			expect(key.extractable).toBeFalsy();
-			expect(key.keyUsages.length).toEqual(1);
-			expect(key.keyUsages[0]).toEqual("encrypt");
-			expect(key.keyUsages[1]).toEqual("decrypt");
+			expect(key.keyUsage.length).toEqual(1);
+			expect(key.keyUsage[0]).toEqual("encrypt");
+			expect(key.keyUsage[1]).toEqual("decrypt");
 			expect(key.type).toEqual("secret");
 			//Handle is how C++ correlates keys with JS
 			//0 implies invalid key
@@ -167,9 +167,9 @@ describe("ImportExport", function () {
 			//Doing checks on keys to validate Key structure
 			expect(exportedKeyData.algorithm).toEqual("AES-CBC");
 			expect(exportedKeyData.extractable).toBeFalsy();
-			expect(exportedKeyData.keyUsages.length).toEqual(1);
-			expect(exportedKeyData.keyUsages[0]).toEqual("encrypt");
-			expect(exportedKeyData.keyUsages[1]).toEqual("decrypt");
+			expect(exportedKeyData.keyUsage.length).toEqual(1);
+			expect(exportedKeyData.keyUsage[0]).toEqual("encrypt");
+			expect(exportedKeyData.keyUsage[1]).toEqual("decrypt");
 			expect(exportedKeyData.type).toEqual("secret");
 			//Handle is how C++ correlates keys with JS
 			//0 implies invalid key
@@ -232,9 +232,9 @@ describe("ImportExport", function () {
              //Doing checks on keys to validate Key structure
 			expect(key.algorithm).toEqual("HMAC");
 			expect(key.extractable).toBeFalsy();
-			expect(key.keyUsages.length).toEqual(1);
-			expect(key.keyUsages[0]).toEqual("sign");
-			expect(key.keyUsages[1]).toEqual("verify");
+			expect(key.keyUsage.length).toEqual(1);
+			expect(key.keyUsage[0]).toEqual("sign");
+			expect(key.keyUsage[1]).toEqual("verify");
 			expect(key.type).toEqual("secret");
 			//Handle is how C++ correlates keys with JS
 			//0 implies invalid key
@@ -260,9 +260,9 @@ describe("ImportExport", function () {
             //Doing checks on keys to validate Key structure
 			expect(exportedKeyData.algorithm).toEqual("HMAC");
 			expect(exportedKeyData.extractable).toBeFalsy();
-			expect(exportedKeyData.keyUsages.length).toEqual(1);
-			expect(exportedKeyData.keyUsages[0]).toEqual("sign");
-			expect(exportedKeyData.keyUsages[1]).toEqual("verify");
+			expect(exportedKeyData.keyUsage.length).toEqual(1);
+			expect(exportedKeyData.keyUsage[0]).toEqual("sign");
+			expect(exportedKeyData.keyUsage[1]).toEqual("verify");
 			expect(exportedKeyData.type).toEqual("secret");
 			//Handle is how C++ correlates keys with JS
 			//0 implies invalid key
@@ -319,9 +319,9 @@ describe("ImportExport", function () {
             //Doing checks on keys to validate Key structure
 			expect(key.algorithm).toEqual("AES-CBC");
 			expect(key.extractable).toBeTruthy();
-			expect(key.keyUsages.length).toEqual(0);
+			expect(key.keyUsage.length).toEqual(0);
 			//TODO: determine what default values should be
-			expect(key.keyUsages[0]).toEqual("sign");
+			expect(key.keyUsage[0]).toEqual("sign");
 			expect(key.type).toEqual("secret");
 			//Handle is how C++ correlates keys with JS
 			//0 implies invalid key

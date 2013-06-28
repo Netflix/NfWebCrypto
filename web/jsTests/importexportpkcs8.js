@@ -164,15 +164,15 @@ describe("importpkcs8", function () {
 				} else {
 					expect(error).toBeUndefined();
 					expect(privKey.algorithm.name).toEqual(INDEXVALUE.algo.name);
-					expect(privKey.keyUsages.length).toEqual(INDEXVALUE.usages.length);
+					expect(privKey.keyUsage.length).toEqual(INDEXVALUE.usages.length);
 					if(INDEXVALUE.usages.length > 1) {
-						expect(privKey.keyUsages[0]).toEqual(INDEXVALUE.usages[0]);
-						expect(privKey.keyUsages[1]).toEqual(INDEXVALUE.usages[1]);
+						expect(privKey.keyUsage[0]).toEqual(INDEXVALUE.usages[0]);
+						expect(privKey.keyUsage[1]).toEqual(INDEXVALUE.usages[1]);
 					} else {
-						expect(privKey.keyUsages[0]).toEqual(INDEXVALUE.usages[0]);
+						expect(privKey.keyUsage[0]).toEqual(INDEXVALUE.usages[0]);
 					}
 					//TODO: need to confirm what the default value should be
-					//expect(key.keyUsages[0]).toEqual("sign");
+					//expect(key.keyUsage[0]).toEqual("sign");
 					//Handle is how C++ correlates keys with JS
 					//0 implies invalid key
 					expect(privKey.handle).not.toEqual(0);
@@ -312,9 +312,9 @@ describe("exportpkcs8", function () {
 			runs(function () {
 				expect(error).toBeUndefined();
 				expect(privKey.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
-				expect(privKey.keyUsages.length).toEqual(0);
+				expect(privKey.keyUsage.length).toEqual(0);
 				//TODO: need to confirm what the default value should be
-				//expect(key.keyUsages[0]).toEqual("sign");
+				//expect(key.keyUsage[0]).toEqual("sign");
 				//Handle is how C++ correlates keys with JS
 				//0 implies invalid key
 				expect(privKey.handle).not.toEqual(0);

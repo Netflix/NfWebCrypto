@@ -200,12 +200,12 @@ describe("importexportjwk", function () {
 						expect(key.extractable).toEqual(INDEXVALUE.extractable);
 					}
 					
-					expect(key.keyUsages.length).toEqual(INDEXVALUE.usages.length);
+					expect(key.keyUsage.length).toEqual(INDEXVALUE.usages.length);
 					if(INDEXVALUE.usages.length > 1) {
-						expect(key.keyUsages[0]).toEqual(INDEXVALUE.usages[0]);
-						expect(key.keyUsages[1]).toEqual(INDEXVALUE.usages[1]);
+						expect(key.keyUsage[0]).toEqual(INDEXVALUE.usages[0]);
+						expect(key.keyUsage[1]).toEqual(INDEXVALUE.usages[1]);
 					} else {
-						expect(key.keyUsages[0]).toEqual(INDEXVALUE.usages[0]);
+						expect(key.keyUsage[0]).toEqual(INDEXVALUE.usages[0]);
 					}
 					expect(key.type).toEqual(INDEXVALUE.type);
 					//Handle is how C++ correlates keys with JS

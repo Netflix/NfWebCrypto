@@ -131,24 +131,24 @@ describe("generatexportdhkey", function () {
 					} else {
 						expect(pubKey.extractable).toEqual(indexValue.extractable);
 					}
-					expect(pubKey.keyUsages.length).toEqual(indexValue.usages.length);
+					expect(pubKey.keyUsage.length).toEqual(indexValue.usages.length);
 					if(indexValue.usages.length > 1) {
-						expect(pubKey.keyUsages[0]).toEqual(indexValue.usages[0]);
-						expect(pubKey.keyUsages[1]).toEqual(indexValue.usages[1]);
+						expect(pubKey.keyUsage[0]).toEqual(indexValue.usages[0]);
+						expect(pubKey.keyUsage[1]).toEqual(indexValue.usages[1]);
 					} else {
-						expect(pubKey.keyUsages[0]).toEqual(indexValue.usages[0]);
+						expect(pubKey.keyUsage[0]).toEqual(indexValue.usages[0]);
 					}
 					expect(pubKey.handle).not.toEqual(0);
 					expect(pubKey.type).toBe(indexValue.type[0]);
 					//Priv key checks
 					expect(privKey.algorithm.name).toEqual(indexValue.algo.name);
 					expect(privKey.extractable).toEqual(indexValue.extractable);
-					expect(privKey.keyUsages.length).toEqual(indexValue.usages.length);
+					expect(privKey.keyUsage.length).toEqual(indexValue.usages.length);
 					if(indexValue.usages.length > 1) {
-						expect(privKey.keyUsages[0]).toEqual(indexValue.usages[0]);
-						expect(privKey.keyUsages[1]).toEqual(indexValue.usages[1]);	
+						expect(privKey.keyUsage[0]).toEqual(indexValue.usages[0]);
+						expect(privKey.keyUsage[1]).toEqual(indexValue.usages[1]);	
 					} else {
-						expect(privKey.keyUsages[0]).toEqual(indexValue.usages[0]);
+						expect(privKey.keyUsage[0]).toEqual(indexValue.usages[0]);
 					}
 					expect(privKey.handle).not.toEqual(0);
 					expect(privKey.type).toBe(indexValue.type[1]);	

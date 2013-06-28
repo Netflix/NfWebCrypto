@@ -134,15 +134,15 @@ describe("importraw", function () {
 					expect(error).toBeUndefined();
 					expect(key.algorithm.name).toEqual(INDEXVALUE.algo.name);
 					expect(key.extractable).toEqual(INDEXVALUE.extractable);
-					expect(key.keyUsages.length).toEqual(INDEXVALUE.usages.length);
+					expect(key.keyUsage.length).toEqual(INDEXVALUE.usages.length);
 					if(INDEXVALUE.usages.length > 1) {
-						expect(key.keyUsages[0]).toEqual(INDEXVALUE.usages[0]);
-						expect(key.keyUsages[1]).toEqual(INDEXVALUE.usages[1]);
+						expect(key.keyUsage[0]).toEqual(INDEXVALUE.usages[0]);
+						expect(key.keyUsage[1]).toEqual(INDEXVALUE.usages[1]);
 					} else {
-						expect(key.keyUsages[0]).toEqual(INDEXVALUE.usages[0]);
+						expect(key.keyUsage[0]).toEqual(INDEXVALUE.usages[0]);
 					}
 					//TODO: need to confirm what the default value should be
-					//expect(key.keyUsages[0]).toEqual("sign");
+					//expect(key.keyUsage[0]).toEqual("sign");
 					expect(key.type).toBe(INDEXVALUE.type);
 					//Handle is how C++ correlates keys with JS
 					//0 implies invalid key
@@ -248,9 +248,9 @@ describe("exportraw", function () {
 				expect(error).toBeUndefined();
 				expect(key.algorithm.name).toEqual("AES-CBC");
 				expect(key.extractable).toEqual(true);
-				expect(key.keyUsages.length).toEqual(0);
+				expect(key.keyUsage.length).toEqual(0);
 				//TODO: need to confirm what the default value should be
-				//expect(key.keyUsages[0]).toEqual("sign");
+				//expect(key.keyUsage[0]).toEqual("sign");
 				expect(key.type).toBe("secret");
 				//Handle is how C++ correlates keys with JS
 				//0 implies invalid key
