@@ -1,0 +1,11 @@
+# Copyright (c) ${DATESTR} The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Registration file for the ${PLUGIN_NAME} plugin.
+
+FILE_NAME=${SOPATH}
+PLUGIN_NAME="${PLUGIN_NAME}"
+VERSION="${CMAKE_VERSION_STRING}"
+DESCRIPTION="${DESCRIPTION}"
+MIME_TYPES="${MIME_TYPES}"

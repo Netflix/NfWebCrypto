@@ -1,0 +1,1 @@
+set args --profile-directory="nfwc" --register-pepper-plugins="/home/padolph/runCadmium/nfWebCrypto/libnfwebcrypto.so#NfWebCrypto#;application/x-ppapi-nfwebcrypto" --single-process --no-sandbox --disable-hang-monitor --disable-application-cache "http://localhost/nfwebcrypto/test_qa.html"

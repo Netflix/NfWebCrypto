@@ -1,0 +1,12 @@
+proxy/ppapi_messages.cc
+proxy/ppapi_messages.h
+proxy/ppapi_param_traits.cc
+proxy/ppapi_param_traits.h
+proxy/resource_message_params.cc
+proxy/resource_message_params.h
+proxy/serialized_flash_menu.h
+proxy/serialized_structs.cc
+proxy/serialized_structs.h
+proxy/serialized_var.cc
+proxy/serialized_var.h
+proxy/var_serialization_rules.h
