@@ -57,7 +57,7 @@ End of (PolyCrypt) License Terms and Conditions.
 (function (window) {
     'use strict';
 
-    var navPlugin = window.navigator.plugins['NfWebCrypto'] || window.navigator.plugins['NetflixHelper2'],
+    var navPlugin = window.navigator.plugins['NfWebCrypto'] || window.navigator.plugins['NetflixHelper'],
         pluginDelegate = {},
         operationId = 0,
         that = {},

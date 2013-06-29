@@ -197,7 +197,7 @@ bool PpInstance::Init(uint32_t argc, const char* argn[], const char* argv[])
 
     // announce
     stringstream banner;
-    banner << "Netflix WebCrypto Version " << Plugin_VERSION_MAJOR << "."
+    banner << "Netflix Plugin Version " << Plugin_VERSION_MAJOR << "."
             << Plugin_VERSION_MINOR << "." << Plugin_VERSION_MICRO;
     DLOG() << banner << endl;
     LogToBrowserConsole(pp_instance(), PP_LOGLEVEL_LOG, banner.str().c_str());

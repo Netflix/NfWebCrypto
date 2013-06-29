@@ -821,7 +821,7 @@ bool NativeBridge::doVerify(const string& cmdIndex, int keyHandle,
         const string& dataStr64, const string& sigStr64,
         VariantMap& returnVarMap)
 {
-    bool isVerified;
+    bool isVerified = false;
     if (algType == CadmiumCrypto::HMAC)
     {
         // compute the HMAC
