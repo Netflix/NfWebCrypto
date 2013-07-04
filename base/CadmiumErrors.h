@@ -48,6 +48,7 @@ enum CadErr
     CAD_ERR_KEYGEN,
     CAD_ERR_ALREADY_INITIALIZED,
     CAD_ERR_INTERNAL,
+    CAD_ERR_KEY_USAGE,
     CAD_ERR_END     // sentinel, do not use
 };
 

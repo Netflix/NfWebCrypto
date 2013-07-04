@@ -378,6 +378,15 @@ bool CadmiumCrypto::CadmiumCryptoImpl::hasKey(uint32_t keyHandle) const
     return keyMap_.count(keyHandle);
 }
 
+bool CadmiumCrypto::CadmiumCryptoImpl::isUsageAllowed(uint32_t keyHandle, KeyUsage keyUsage)
+{
+    assert(hasKey(keyHandle));
+    const Key key = keyMap_[keyHandle];
+    if (key.keyUsage.empty())   // empty keyUsage means all allowed
+        return true;
+    return std::find(key.keyUsage.begin(), key.keyUsage.end(), keyUsage) != key.keyUsage.end();
+}
+
 CadErr CadmiumCrypto::CadmiumCryptoImpl::digest(Algorithm algorithm,
         const std::string& dataStr64, std::string& digestStr64)
 {
@@ -1190,6 +1199,14 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::aesCbc(uint32_t keyHandle,
     if (!hasKey(keyHandle))
         return CAD_ERR_BADKEYINDEX;
 
+    // verify the provided key is permitted this usage
+    const KeyUsage keyUsage = (cipherOp == DOENCRYPT) ? ENCRYPT : DECRYPT;
+    if (!isUsageAllowed(keyHandle, keyUsage))
+    {
+        DLOG() << "CadmiumCrypto::aesCbc: operation disallowed by keyUsage\n";
+        return CAD_ERR_KEY_USAGE;
+    }
+
     // convert iv
     const Vuc ivVec = str64toVuc(ivInStr64);
     if (ivVec.empty())
@@ -1241,6 +1258,8 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::hmac(uint32_t keyHandle, Algorithm shaA
 
     if (!hasKey(keyHandle))
         return CAD_ERR_BADKEYINDEX;
+
+    // NOTE: keyUsage is not enforced here, since there is no appropriate spec value for HMAC usage
 
     // Wes and Mark say that we must validate the hash associated with the key
     // matches that of the hmac requested
@@ -1361,6 +1380,14 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::rsaCrypt(uint32_t keyHandle,
     if (!hasKey(keyHandle))
         return CAD_ERR_BADKEYINDEX;
 
+    // verify the provided key is permitted this usage
+    const KeyUsage keyUsage = (cipherOp == DOENCRYPT) ? ENCRYPT : DECRYPT;
+    if (!isUsageAllowed(keyHandle, keyUsage))
+    {
+        DLOG() << "CadmiumCrypto::rsaCrypt: operation disallowed by keyUsage\n";
+        return CAD_ERR_KEY_USAGE;
+    }
+
     // convert input data
     Vuc dataVec = str64toVuc(dataInStr64);
     if (dataVec.empty())
@@ -1400,6 +1427,13 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::rsaSign(uint32_t keyHandle, Algorithm s
     if (!hasKey(keyHandle))
         return CAD_ERR_BADKEYINDEX;
 
+    // verify the provided key is permitted this usage
+    if (!isUsageAllowed(keyHandle, SIGN))
+    {
+        DLOG() << "CadmiumCrypto::rsaCrypt: operation disallowed by keyUsage\n";
+        return CAD_ERR_KEY_USAGE;
+    }
+
     // decode input data
     const Vuc dataVec = str64toVuc(dataStr64);
     if (dataVec.empty())
@@ -1425,6 +1459,13 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::rsaVerify(uint32_t keyHandle,
 
     if (!hasKey(keyHandle))
         return CAD_ERR_BADKEYINDEX;
+
+    // verify the provided key is permitted this usage
+    if (!isUsageAllowed(keyHandle, VERIFY))
+    {
+        DLOG() << "CadmiumCrypto::rsaCrypt: operation disallowed by keyUsage\n";
+        return CAD_ERR_KEY_USAGE;
+    }
 
     // decode input data
     const Vuc dataVec = str64toVuc(dataStr64);
@@ -1507,6 +1548,13 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::dhDerive(uint32_t baseKeyHandle,
     // check base key
     if (!hasKey(baseKeyHandle))
         return CAD_ERR_BADKEYINDEX;
+
+    // verify the provided base key is permitted this usage
+    if (!isUsageAllowed(baseKeyHandle, DERIVE))
+    {
+        DLOG() << "CadmiumCrypto::rsaCrypt: operation disallowed by keyUsage\n";
+        return CAD_ERR_KEY_USAGE;
+    }
 
     // decode peer public key data
     const Vuc pubKeyVec = str64toVuc(peerPublicKeyStr64);
@@ -1649,6 +1697,11 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::unwrapJwe(const vector<string>& jweStrV
     // ---- check the wrapping key
     if (!hasKey(wrappingKeyHandle))
         return CAD_ERR_BADKEYINDEX;
+    if (!isUsageAllowed(wrappingKeyHandle, UNWRAP))
+    {
+        DLOG() << "CadmiumCrypto::unwrapJwe: operation disallowed by keyUsage\n";
+        return CAD_ERR_KEY_USAGE;
+    }
     Key key = keyMap_[wrappingKeyHandle];
     const Algorithm wrappingKeyAlg = toAlgorithm(key.algVar["name"].string());
     if (wrappingKeyAlg != jweHeaderAlg)
@@ -1801,6 +1854,11 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::wrapJwe(uint32_t toBeWrappedKeyHandle,
     }
 
     // check the wrapping key
+    if (!isUsageAllowed(wrappingKeyHandle, WRAP))
+    {
+        DLOG() << "CadmiumCrypto::wrapJwe: operation disallowed by keyUsage\n";
+        return CAD_ERR_KEY_USAGE;
+    }
     const Key wrappingKey = keyMap_[wrappingKeyHandle];
     const Algorithm wrappingKeyAlgoType = toAlgorithm(wrappingKey.algVar["name"].string());
     // if provided, the API alg must match the wrapping key's alg

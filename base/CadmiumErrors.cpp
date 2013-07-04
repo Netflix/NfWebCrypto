@@ -46,6 +46,7 @@ const char * CadErrStr[CAD_ERR_END] =
         "key generation failure", // CAD_ERR_KEYGEN
         "already initialized",  // CAD_ERR_ALREADY_INITIALIZED
         "unspecified internal error",    //CAD_ERR_INTERNAL
+        "disallowed key usage", //CAD_ERR_KEY_USAGE
 };
 
 }   // namespace cadmium

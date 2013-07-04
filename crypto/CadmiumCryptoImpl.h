@@ -91,8 +91,9 @@ private:
         Key(const Key& rhs);
         Key& operator=(const Key& rhs);
     };
-    bool hasKey(uint32_t keyHandle) const;
 private:
+    bool hasKey(uint32_t keyHandle) const;
+    bool isUsageAllowed(uint32_t keyHandle, KeyUsage keyUsage);
     void createSystemKey();
     CadErr importJwk(const Vuc& keyVuc, const base::Variant& algVar, bool extractable,
         const std::vector<KeyUsage>& keyUsage, uint32_t& keyHandle, KeyType& keyType);

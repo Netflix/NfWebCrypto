@@ -535,7 +535,7 @@ describe("encryptrsa", function () {
 			runs(function () {
 				try {
 					var genOp = nfCrypto.generateKey({
-						name: "RSASSA-PKCS1-v1_5",
+						name: "RSAES-PKCS1-v1_5",
 						params: {
 							//2048 bit RSA key can encrypt (n/8) - 11 bytes for PKCS
 							//With given 2048 bit key it can encrypt 245 bytes
@@ -562,7 +562,7 @@ describe("encryptrsa", function () {
 			runs(function () {
 				expect(error).toBeUndefined();
 				//Doing checks on keys to validate Public Key structure
-				expect(pubKey.algorithm.name).toEqual("RSASSA-PKCS1-v1_5");
+				expect(pubKey.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
 				//since all pub keys are extractable
 				expect(pubKey.extractable).toBeTruthy();
 				expect(pubKey.keyUsage.length).toEqual(0);
@@ -575,7 +575,7 @@ describe("encryptrsa", function () {
 				expect(pubKey.handle).not.toEqual(0);
 
 				//Doing checks on keys to validate Private Key structure
-				expect(privKey.algorithm.name).toEqual("RSASSA-PKCS1-v1_5");
+				expect(privKey.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
 				expect(privKey.extractable).toBeFalsy();
 				expect(privKey.keyUsage.length).toEqual(0);
 				//TODO: Re-enable this check when we know what default values should be
@@ -739,7 +739,7 @@ describe("decryptrsa", function () {
 			runs(function () {
 				try {
 					var genOp = nfCrypto.generateKey({
-						name: "RSASSA-PKCS1-v1_5",
+						name: "RSAES-PKCS1-v1_5",
 						params: {
 							//2048 bit RSA key can encrypt (n/8) - 11 bytes for PKCS
 							//With given 2048 bit key it can encrypt 245 bytes
@@ -766,7 +766,7 @@ describe("decryptrsa", function () {
 			runs(function () {
 				expect(error).toBeUndefined();
 				//Doing checks on keys to validate Public Key structure
-				expect(pubKey.algorithm.name).toEqual("RSASSA-PKCS1-v1_5");
+				expect(pubKey.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
 				//since all pub keys are extractable
 				expect(pubKey.extractable).toBeTruthy();
 				expect(pubKey.keyUsage.length).toEqual(0);
@@ -779,7 +779,7 @@ describe("decryptrsa", function () {
 				expect(pubKey.handle).not.toEqual(0);
 
 				//Doing checks on keys to validate Private Key structure
-				expect(privKey.algorithm.name).toEqual("RSASSA-PKCS1-v1_5");
+				expect(privKey.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
 				expect(privKey.extractable).toBeFalsy();
 				expect(privKey.keyUsage.length).toEqual(0);
 				//TODO: Re-enable this check when we know what default values should be

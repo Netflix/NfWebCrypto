@@ -54,7 +54,6 @@ Not Supported
 * The streaming/progressive processing model in not supported
 * Synchronous API's like getRandomValues() are not supported
 * Algorithm normalizing rules are not fully implemented
-* keyUsage is not currently enforced
 
 Moving forward, Netflix will continue to enhance this implementation and try to keep it as much in sync as possible
 with the latest draft Web Crypto API spec.
