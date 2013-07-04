@@ -113,7 +113,7 @@ describe("derive", function () {
             runs(function () {
             	try {
 	            	error = undefined;
-	                var op = nfCrypto.generateKey( {name: "DH", params: { prime: dhPrime, generator: dhGenerator } }, true, ["encrypt", "decrypt"] );
+	                var op = nfCrypto.generateKey( {name: "DH", params: { prime: dhPrime, generator: dhGenerator } }, true, ["derive", "decrypt"] );
 	                op.onerror = function (e) {
 	                    error = "ERROR";
 	                };

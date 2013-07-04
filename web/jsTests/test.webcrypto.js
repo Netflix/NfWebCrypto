@@ -2328,7 +2328,7 @@
                         }
                     },
                     false,
-                    ["encrypt", "decrypt"]
+                    ["derive"]
                 );
                 op.onerror = function (e) {
                     error = "ERROR";
