@@ -50,7 +50,7 @@ describe("encryptaes", function () {
 				var op = nfCrypto.importKey(
 						"raw",
 						new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
-						"AES-GCM",
+						"AES-CBC",
 						true,
 						["encrypt", "decrypt"]
 				);
@@ -195,7 +195,7 @@ describe("encryptrsa", function () {
 			var fermatF4 = new Uint8Array([0x00, 0x01]);
 			var error;
 			runs(function () {
-					var genOp = nfCrypto.generateKey({ name: "RSASSA-PKCS1-v1_5", params: {
+					var genOp = nfCrypto.generateKey({ name: "RSAES-PKCS1-v1_5", params: {
 							//2048 bit RSA key can encrypt (n/8) - 11 bytes for PKCS
 							//With given 2048 bit key it can encrypt 245 bytes
 							modulusLength: 2048,

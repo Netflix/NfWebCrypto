@@ -1274,48 +1274,88 @@
 
     describe("RSA operations", function () {
 
-        var pubKey,
-            privKey;
+        var pubKey_RSAES_PKCS1_v1_5,
+            privKey_RSAES_PKCS1_v1_5,
+            pubKey_RSASSA_PKCS1_v1_5,
+            privKey_RSASSA_PKCS1_v1_5;
 
         var initialized;
         beforeEach(function () {
             if (initialized) return;
             initialized = true;
-
-            // generate the keys before each test
             var error;
 
+            // generate the keys before each test
+
+            // RSAES-PKCS1-v1_5
             runs(function () {
+                error = undefined;
+                var genOp = cryptoSubtle.generateKey({ name: "RSAES-PKCS1-v1_5", params: { modulusLength: 512, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) } }, false);
+                genOp.onerror = function (e) {
+                    error = "ERROR";
+                };
+                genOp.oncomplete = function (e) {
+                    pubKey_RSAES_PKCS1_v1_5 = e.target.result.publicKey;
+                    privKey_RSAES_PKCS1_v1_5 = e.target.result.privateKey;
+                };
+            });
+            waitsFor(function () {
+                return pubKey_RSAES_PKCS1_v1_5 || privKey_RSAES_PKCS1_v1_5 || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(pubKey_RSAES_PKCS1_v1_5).toBeDefined();
+                expect(pubKey_RSAES_PKCS1_v1_5.extractable).toBeTruthy() // public key is forced extractable
+                expect(privKey_RSAES_PKCS1_v1_5).toBeDefined();
+                expect(privKey_RSAES_PKCS1_v1_5.extractable).toBeFalsy(); // private key takes the extractable input arg val
+            });
+            
+            // RSASSA-PKCS1-v1_5
+            runs(function () {
+                error = undefined;
                 var genOp = cryptoSubtle.generateKey({ name: "RSASSA-PKCS1-v1_5", params: { modulusLength: 512, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) } }, false);
                 genOp.onerror = function (e) {
                     error = "ERROR";
                 };
                 genOp.oncomplete = function (e) {
-                    pubKey = e.target.result.publicKey;
-                    privKey = e.target.result.privateKey;
+                    pubKey_RSASSA_PKCS1_v1_5 = e.target.result.publicKey;
+                    privKey_RSASSA_PKCS1_v1_5 = e.target.result.privateKey;
                 };
             });
-
             waitsFor(function () {
-                return pubKey || privKey || error;
+                return pubKey_RSASSA_PKCS1_v1_5 || privKey_RSASSA_PKCS1_v1_5 || error;
             });
-
             runs(function () {
                 expect(error).toBeUndefined();
-                expect(pubKey).toBeDefined();
-                expect(pubKey.extractable).toBeTruthy() // public key is forced extractable
-                expect(privKey).toBeDefined();
-                expect(privKey.extractable).toBeFalsy(); // private key takes the extractable input arg val
+                expect(pubKey_RSASSA_PKCS1_v1_5).toBeDefined();
+                expect(pubKey_RSASSA_PKCS1_v1_5.extractable).toBeTruthy() // public key is forced extractable
+                expect(privKey_RSASSA_PKCS1_v1_5).toBeDefined();
+                expect(privKey_RSASSA_PKCS1_v1_5.extractable).toBeFalsy(); // private key takes the extractable input arg val
+            });
+
+        });
+
+        it("generateKey RSAES-PKCS1-v1_5", function () {
+            // make sure proper keys are created via beforeEach
+            runs(function () {
+                expect(pubKey_RSAES_PKCS1_v1_5).toBeDefined();
+                expect(pubKey_RSAES_PKCS1_v1_5.type).toBe("public");
+                expect(privKey_RSAES_PKCS1_v1_5).toBeDefined();
+                expect(privKey_RSAES_PKCS1_v1_5.type).toBe("private");
+                // TODO: confirm that these checks are valid and add them
+                // expect(pubKey.algorithm.name).toBe("RSASSA-PKCS1-v1_5");
+                // expect(privKey.algorithm.name).toBe("RSASSA-PKCS1-v1_5");
+                // TODO: more key tests?
             });
         });
 
         it("generateKey RSASSA-PKCS1-v1_5", function () {
             // make sure proper keys are created via beforeEach
             runs(function () {
-                expect(pubKey).toBeDefined();
-                expect(pubKey.type).toBe("public");
-                expect(privKey).toBeDefined();
-                expect(privKey.type).toBe("private");
+                expect(pubKey_RSASSA_PKCS1_v1_5).toBeDefined();
+                expect(pubKey_RSASSA_PKCS1_v1_5.type).toBe("public");
+                expect(privKey_RSASSA_PKCS1_v1_5).toBeDefined();
+                expect(privKey_RSASSA_PKCS1_v1_5.type).toBe("private");
                 // TODO: confirm that these checks are valid and add them
                 // expect(pubKey.algorithm.name).toBe("RSASSA-PKCS1-v1_5");
                 // expect(privKey.algorithm.name).toBe("RSASSA-PKCS1-v1_5");
@@ -1332,7 +1372,7 @@
             // encrypt clearText with the public key
             runs(function () {
                 error = undefined;
-                var encryptOp = cryptoSubtle.encrypt({ name: "RSAES-PKCS1-v1_5" }, pubKey, clearText);
+                var encryptOp = cryptoSubtle.encrypt({ name: "RSAES-PKCS1-v1_5" }, privKey_RSAES_PKCS1_v1_5, clearText);
                 encryptOp.onerror = function (e) {
                     error = "ERROR";
                 };
@@ -1356,7 +1396,7 @@
             // decrypt cipherText with the private key, should get the same clearText back
             runs(function () {
                 error = undefined;
-                var encryptOp = cryptoSubtle.decrypt({ name: "RSAES-PKCS1-v1_5" }, privKey, encrypted);
+                var encryptOp = cryptoSubtle.decrypt({ name: "RSAES-PKCS1-v1_5" }, privKey_RSAES_PKCS1_v1_5, encrypted);
                 encryptOp.onerror = function (e) {
                     error = "ERROR";
                 };
@@ -1387,7 +1427,7 @@
             // sign data with the private key
             runs(function () {
                 error = undefined;
-                var signOp = cryptoSubtle.sign({ name: "RSASSA-PKCS1-v1_5", params: { hash: "SHA-256", }, }, privKey, data);
+                var signOp = cryptoSubtle.sign({ name: "RSASSA-PKCS1-v1_5", params: { hash: "SHA-256", }, }, privKey_RSASSA_PKCS1_v1_5, data);
                 signOp.onerror = function (e) {
                     error = "ERROR";
                 };
@@ -1411,7 +1451,7 @@
             // verify data with the public key
             runs(function () {
                 error = undefined;
-                var verifyOp = cryptoSubtle.verify({ name: "RSASSA-PKCS1-v1_5", params: { hash: "SHA-256", }, }, pubKey, signature, data);
+                var verifyOp = cryptoSubtle.verify({ name: "RSASSA-PKCS1-v1_5", params: { hash: "SHA-256", }, }, pubKey_RSASSA_PKCS1_v1_5, signature, data);
                 verifyOp.onerror = function (e) {
                     error = "ERROR";
                 };
@@ -1434,7 +1474,7 @@
                 error = undefined;
                 verified = undefined;
                 signature[10] = signature[10] ^ 0xFF;
-                var verifyOp = cryptoSubtle.verify({ name: "RSASSA-PKCS1-v1_5", params: { hash: "SHA-256", }, }, pubKey, signature, data);
+                var verifyOp = cryptoSubtle.verify({ name: "RSASSA-PKCS1-v1_5", params: { hash: "SHA-256", }, }, pubKey_RSASSA_PKCS1_v1_5, signature, data);
                 verifyOp.onerror = function (e) {
                     error = "ERROR";
                 };

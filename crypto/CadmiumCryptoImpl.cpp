@@ -387,6 +387,13 @@ bool CadmiumCrypto::CadmiumCryptoImpl::isUsageAllowed(uint32_t keyHandle, KeyUsa
     return std::find(key.keyUsage.begin(), key.keyUsage.end(), keyUsage) != key.keyUsage.end();
 }
 
+bool CadmiumCrypto::CadmiumCryptoImpl::isKeyAlgMatch(uint32_t keyHandle, Algorithm algorithm)
+{
+    assert(hasKey(keyHandle));
+    const Algorithm keyAlgorithm = toAlgorithm(keyMap_[keyHandle].algVar["name"].string());
+    return keyAlgorithm == algorithm;
+}
+
 CadErr CadmiumCrypto::CadmiumCryptoImpl::digest(Algorithm algorithm,
         const std::string& dataStr64, std::string& digestStr64)
 {
@@ -1207,6 +1214,13 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::aesCbc(uint32_t keyHandle,
         return CAD_ERR_KEY_USAGE;
     }
 
+    // verify the provided key is intended for this algorithm
+    if (!isKeyAlgMatch(keyHandle, AES_CBC))
+    {
+        DLOG() << "CadmiumCrypto::aesCbc: operation incompatible with key algorithm\n";
+        return CAD_ERR_KEY_USAGE;
+    }
+
     // convert iv
     const Vuc ivVec = str64toVuc(ivInStr64);
     if (ivVec.empty())
@@ -1260,6 +1274,13 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::hmac(uint32_t keyHandle, Algorithm shaA
         return CAD_ERR_BADKEYINDEX;
 
     // NOTE: keyUsage is not enforced here, since there is no appropriate spec value for HMAC usage
+
+    // verify the provided key is intended for this algorithm
+    if (!isKeyAlgMatch(keyHandle, HMAC))
+    {
+        DLOG() << "CadmiumCrypto::hmac: operation incompatible with key algorithm\n";
+        return CAD_ERR_KEY_USAGE;
+    }
 
     // Wes and Mark say that we must validate the hash associated with the key
     // matches that of the hmac requested
@@ -1388,6 +1409,13 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::rsaCrypt(uint32_t keyHandle,
         return CAD_ERR_KEY_USAGE;
     }
 
+    // verify the provided key is intended for this algorithm
+    if (!isKeyAlgMatch(keyHandle, RSAES_PKCS1_V1_5))
+    {
+        DLOG() << "CadmiumCrypto::rsaCrypt: operation incompatible with key algorithm\n";
+        return CAD_ERR_KEY_USAGE;
+    }
+
     // convert input data
     Vuc dataVec = str64toVuc(dataInStr64);
     if (dataVec.empty())
@@ -1434,6 +1462,13 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::rsaSign(uint32_t keyHandle, Algorithm s
         return CAD_ERR_KEY_USAGE;
     }
 
+    // verify the provided key is intended for this algorithm
+    if (!isKeyAlgMatch(keyHandle, RSASSA_PKCS1_V1_5))
+    {
+        DLOG() << "CadmiumCrypto::rsaSign: operation incompatible with key algorithm\n";
+        return CAD_ERR_KEY_USAGE;
+    }
+
     // decode input data
     const Vuc dataVec = str64toVuc(dataStr64);
     if (dataVec.empty())
@@ -1464,6 +1499,13 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::rsaVerify(uint32_t keyHandle,
     if (!isUsageAllowed(keyHandle, VERIFY))
     {
         DLOG() << "CadmiumCrypto::rsaCrypt: operation disallowed by keyUsage\n";
+        return CAD_ERR_KEY_USAGE;
+    }
+
+    // verify the provided key is intended for this algorithm
+    if (!isKeyAlgMatch(keyHandle, RSASSA_PKCS1_V1_5))
+    {
+        DLOG() << "CadmiumCrypto::rsaVerify: operation incompatible with key algorithm\n";
         return CAD_ERR_KEY_USAGE;
     }
 
@@ -1553,6 +1595,13 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::dhDerive(uint32_t baseKeyHandle,
     if (!isUsageAllowed(baseKeyHandle, DERIVE))
     {
         DLOG() << "CadmiumCrypto::rsaCrypt: operation disallowed by keyUsage\n";
+        return CAD_ERR_KEY_USAGE;
+    }
+
+    // verify the provided base key is intended for this algorithm
+    if (!isKeyAlgMatch(baseKeyHandle, DH))
+    {
+        DLOG() << "CadmiumCrypto::dhDerive: operation incompatible with key algorithm\n";
         return CAD_ERR_KEY_USAGE;
     }
 
