@@ -164,7 +164,7 @@ Sample Code
 Please see the javascript unit tests for examples of how to operate the
 Web Crypto API in detail.
 
-### Simple AES-CBC encryption ###
+### Simple AES-CBC Encryption / Decryption ###
 
     <script src='nfcrypto.js'></script>
 
