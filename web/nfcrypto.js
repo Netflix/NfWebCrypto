@@ -264,12 +264,18 @@ End of (PolyCrypt) License Terms and Conditions.
                 event.type = 'error';
                 setResult(data.errorMessage);
             } else {
-                if (data.payload.hasOwnProperty('buffer')) {
-                    var dataBin = b64decode(data.payload.buffer);
-                    data.payload = dataBin;
+                // when there is no deviceID, the plugin returns Base64-encoded, Base32-encoded zeros
+                if ( (data.method == "getDeviceId") && (data.payload.buffer == "QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQQ==") ) {
+                    event.type = 'error';
+                    setResult("device ID not found");
+                } else {
+                    if (data.payload.hasOwnProperty('buffer')) {
+                        var dataBin = b64decode(data.payload.buffer);
+                        data.payload = dataBin;
+                    }
+                    event.type = 'complete';
+                    setResult(data.payload);
                 }
-                event.type = 'complete';
-                setResult(data.payload);
             }
             that.dispatchEvent(event);
         };

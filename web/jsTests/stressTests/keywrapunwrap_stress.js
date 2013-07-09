@@ -39,6 +39,7 @@ describe("keywrapunwraprsa", function () {
 			wrapeeData = undefined;
 			
 			console.log("KeyWrapUnwrapRSAStress called this many times " + OPINDEX);
+			var output = "KeyWrapUnwrapRSAStress called this many times: " + OPINDEX + "^";
 			
 			function randomBytes(buffer) {
 				for (var i = 0; i < buffer.length; ++i) {
@@ -52,6 +53,7 @@ describe("keywrapunwraprsa", function () {
 			//Generating a random uint8 array of variable length from allowed wrapee lengths
 			var randBuffer = new Uint8Array(validWrapeeLen[Math.floor(Math.random() * validWrapeeLen.length)]);
 			console.log("The length of randBuffer for wrapee key is " + randBuffer.length);
+			output += "WrapeeKeyLength: " + randBuffer.length + "^";
 			randomBytes(randBuffer);
 
 
@@ -97,7 +99,8 @@ describe("keywrapunwraprsa", function () {
 			runs(function () {
 				expect(error).toBeUndefined();
 				expect(pubkeyData).not.toBeUndefined();
-				console.log("The RSA public key(wrappor) is " + abv2hex(pubkeyData));
+				console.log("The RSA public key(wrappor) is " + b64encode(pubkeyData));
+				output += "WrapporPublicKey: " + b64encode(pubkeyData) + "^";
 			});
 
 			runs(function () {
@@ -118,7 +121,8 @@ describe("keywrapunwraprsa", function () {
 			runs(function () {
 				expect(error).toBeUndefined();
 				expect(privkeyData).not.toBeUndefined();
-				console.log("The RSA private key(wrappor) is " + abv2hex(privkeyData));
+				console.log("The RSA private key(wrappor) is " + b64encode(privkeyData));
+				output += "WrapporPrivateKey: " + b64encode(privkeyData) + "^";
 			});
 			//END Export RSA key pair(wrappor keys)
 
@@ -161,7 +165,8 @@ describe("keywrapunwraprsa", function () {
 			runs(function () {
 				expect(error).toBeUndefined();
 				expect(wrapeeData).toBeDefined();
-				console.log("The wrapee key is " + abv2hex(wrapeeData));
+				console.log("The wrapee key is " + b64encode(wrapeeData));
+				output += "WrapeeKey: " + b64encode(wrapeeData) + "^";
 			});
 			//END OF EXPORT Wrapee key
 
@@ -185,6 +190,7 @@ describe("keywrapunwraprsa", function () {
 				expect(error).toBeUndefined();
 				expect(jweData).toBeDefined();
 				console.log("The output of wrap is " + abv2hex(jweData));
+				output += "WrapOutput: " + abv2hex(jweData) + "^";
 			});
 
 
@@ -228,6 +234,19 @@ describe("keywrapunwraprsa", function () {
 				expect(error).toBeUndefined();
 				expect(exportKeyData).toBeDefined();
 				expect(exportKeyData).toEqual(wrapeeData);	
+				output += "UnwrapOutput: " + abv2hex(exportKeyData) + "^";
+				var correctStrings = output.split("^");
+				var response = $.ajax({
+					type: "GET",
+			        url: "save_contents.php?filename="+"RSAKeyWrapUnwrap"+"&contents="+correctStrings,
+			        async: false,
+			        success: function(text, status) {
+			        	console.log(" Was able to post successfully " + text);
+			        },
+			        error: function (xhr, ajaxOptions, thrownError) {
+			        	console.log("Was NOT able to post successfully: xhr status " +  xhr.status + " error " + thrownError);
+			        }
+			    });
 			});
 		});//it
 	}//function wrapperForTest
@@ -256,6 +275,7 @@ describe("keywrapunwrapaes", function () {
 			wrapporkeyData = undefined;
 
 			console.log("WrapUnwrapAES_KWStress called this many times " + OPINDEX);
+			var output = "WrapUnwrapAES_KWStress called this many times: " + OPINDEX + "^";
 
 			// generate a key to be wrapped
 			runs(function () {
@@ -265,6 +285,7 @@ describe("keywrapunwrapaes", function () {
 				var specificSHA = validSHA[Math.floor(Math.random() * validSHA.length)];
 				var op = nfCrypto.generateKey({ name: "HMAC", params: { hash: {name: specificSHA} } }, true);
 				console.log("The SHA being used is " + specificSHA);
+				output += "WrapeeAlgo: " + specificSHA + "^";
 				op.onerror = function (e) {
 					error = "ERROR";
 				};
@@ -298,6 +319,7 @@ describe("keywrapunwrapaes", function () {
 				expect(error).toBeUndefined();
 				expect(wrapeeKeyData).toBeDefined();
 				console.log("The HMAC wrapee key is " + abv2hex(wrapeeKeyData));
+				output += "WrapeeKey: " + abv2hex(wrapeeKeyData) + "^";
 			});
 
 			// generate a wrapping key
@@ -310,6 +332,7 @@ describe("keywrapunwrapaes", function () {
 				var op = nfCrypto.generateKey({ name: "AES-KW", params: { length: 128 } }, true);
 				//var op = nfCrypto.generateKey({ name: "AES-KW", params: { length: specificLen } }, true);
 				console.log("The AES-KW key length being used is " + specificLen);
+				output += "WrapporLength: " + specificLen + "^";
 				op.onerror = function (e) {
 					error = "ERROR";
 				};
@@ -345,8 +368,9 @@ describe("keywrapunwrapaes", function () {
 				expect(error).toBeUndefined();
 				expect(wrapporkeyData).toBeDefined();
 				console.log("The AES-KW wrappor key is " + abv2hex(wrapporkeyData));
+				output += "WrapporKey: " + abv2hex(wrapporkeyData) + "^";
 			});
-			//END OF EXPORT Wrapee key
+			//END OF EXPORT wrappping  key
 
 			// wrap the wrap-ee using the wrap-or
 			runs(function () {
@@ -368,6 +392,7 @@ describe("keywrapunwrapaes", function () {
 				expect(error).toBeUndefined();
 				expect(wrappedKeyJwe).toBeDefined();
 				console.log("The output of wrap is " + abv2hex(wrappedKeyJwe));
+				output += "WrapOutput: " + abv2hex(wrappedKeyJwe) + "^";
 			});
 
 			// unwrap the resulting JWE
@@ -410,6 +435,19 @@ describe("keywrapunwrapaes", function () {
 				expect(error).toBeUndefined();
 				expect(unwrappedWrappeeKeyData).toBeDefined;
 				console.log("The output of unwrap is " + abv2hex(unwrappedWrappeeKeyData));
+				output += "UnwrapOutput: " + abv2hex(wrappedKeyJwe) + "^";
+				var correctStrings = output.split("^");
+				var response = $.ajax({
+					type: "GET",
+			        url: "save_contents.php?filename="+"AESKWKeyWrapUnwrap"+"&contents="+correctStrings,
+			        async: false,
+			        success: function(text, status) {
+			        	console.log(" Was able to post successfully " + text);
+			        },
+			        error: function (xhr, ajaxOptions, thrownError) {
+			        	console.log("Was NOT able to post successfully: xhr status " +  xhr.status + " error " + thrownError);
+			        }
+			    });
 			});
 		});//it
 	}//function wrapperForTest

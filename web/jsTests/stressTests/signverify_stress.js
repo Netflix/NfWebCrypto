@@ -98,8 +98,8 @@ describe("SignRSA", function () {
 			runs(function () {
 				expect(error).toBeUndefined();
 				expect(pubkeyData).not.toBeUndefined();
-				console.log("The RSA public key is " + abv2hex(pubkeyData));
-				output += "RSAPublicKey: " + abv2hex(pubkeyData) + "^";
+				console.log("The RSA public key is " + b64encode(pubkeyData));
+				output += "RSAPublicKey: " + b64encode(pubkeyData) + "^";
 			});
 			
 			runs(function () {
@@ -120,8 +120,8 @@ describe("SignRSA", function () {
 			runs(function () {
 				expect(error).toBeUndefined();
 				expect(privkeyData).not.toBeUndefined();
-				console.log("The RSA private key is " + abv2hex(privkeyData));
-				output += "RSAPrivateKey: " + abv2hex(privkeyData) + "^";
+				console.log("The RSA private key is " + b64encode(privkeyData));
+				output += "RSAPrivateKey: " + b64encode(privkeyData) + "^";
 			});
 			//END OF EXPORT KEY STUFF
 			
