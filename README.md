@@ -91,15 +91,15 @@ Directory Tour
         interfacing with the browser, bridging to the crypto thread, and decode/
         dispatch of JSON messages to and from the browser. Native devs will
         probably only be interested in the NativeBridge class here.
-    web/nfcrypt.js
+    web/nfcrypto.js
         The javascript front-end for the plugin. The bottom level of this code
         handles the transport of JSON-serialized messages to and from the
         plugin, while the top level implements the W3C WebCrypto interface.
         Native devs will need to change the bottom level to match their bridge
-        API. This source file borrows heavily from polycrypt (polycrypt.net)
+        API. This source file borrows heavily from polycrypt (polycrypto.net)
     web/test_qa.html
         The Jasmine HTML unit tests that exercise the javascript WebCrypto
-        API exposed to the javascript client by nfcrypt.js.
+        API exposed to the javascript client by nfcrypto.js.
         
 
 How to Build
@@ -162,8 +162,77 @@ Sample Code
 -----------
 
 Please see the javascript unit tests for examples of how to operate the
-Web Crypto API.
+Web Crypto API in detail.
 
-TODO - add some simple examples here
+### Simple AES-CBC encryption ###
+
+    <script src='nfcrypto.js'></script>
+
+    <script>
+        var cryptoSubtle = window.nfCrypto.subtle;
+            
+        var cleartext = "This is some cleartext to encrypt.";
+        var key;
+        var iv = new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                                 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]);
+        var ciphertext;
+        
+        // generate a non-extractable 128-bit AES key
+        function generateKey() {
+            var genKeyOp = cryptoSubtle.generateKey({ name: "AES-CBC", params: { length: 128 } }, false);
+            genKeyOp.oncomplete = function (e) {
+                key = e.target.result;
+                encryptData();
+            }
+        }
+        
+        // encrypt cleartext to get ciphertext
+        function encryptData() {
+            var encOp = cryptoSubtle.encrypt({
+                name: "AES-CBC",
+                params: { iv: iv }
+            }, key, text2ua(cleartext));
+            encOp.oncomplete = function (e) {
+                cipherText = e.target.result;
+                decryptData();
+            }
+        }
+        
+        // decrypt ciphertext to get cleartext
+        function decryptData() {
+            var encOp = cryptoSubtle.decrypt({
+                name: "AES-CBC",
+                params: { iv: iv }
+            }, key, cipherText);
+            encOp.oncomplete = function (e) {
+                var cleartext2 = ua2text(e.target.result);
+                if (cleartext2.valueOf() == cleartext.valueOf()) {
+                    window.alert("Round-trip encryption/decryption works!");
+                }
+            }
+        }
+    
+        // string to uint array
+        function text2ua(s) {
+            var ua = new Uint8Array(s.length);
+            for (var i = 0; i < s.length; i++) {
+                ua[i] = s.charCodeAt(i);
+            }
+            return ua;
+        }
+
+        // uint array to string
+        function ua2text(ua) {
+            var s = '';
+            for (var i = 0; i < ua.length; i++) {
+                s += String.fromCharCode(ua[i]);
+            }
+            return s;
+        }
+        
+        generateKey();
+
+    </script>
+
 
 
