@@ -356,7 +356,11 @@ function ua2text(ua) {
     
     // simulate peer encryption by encrypting clearText with the public key
     function encryptData() {
-        var encryptOp = cryptoSubtle.encrypt({ name: "RSAES-PKCS1-v1_5" }, pubKey, text2ua(clearText));
+        var encryptOp = cryptoSubtle.encrypt(
+            { name: "RSAES-PKCS1-v1_5" },
+            pubKey,
+            text2ua(clearText)
+        );
         encryptOp.oncomplete = function (e) {
             cipherText = e.target.result;
             decryptData();
