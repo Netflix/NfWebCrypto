@@ -222,7 +222,10 @@ function ua2text(ua) {
     
     // generate a non-extractable 128-bit AES key
     function generateKey() {
-        var genKeyOp = cryptoSubtle.generateKey({ name: "AES-CBC", params: { length: 128 } }, false);
+        var genKeyOp = cryptoSubtle.generateKey(
+            { name: "AES-CBC", params: { length: 128 } },
+            false
+        );
         genKeyOp.oncomplete = function (e) {
             key = e.target.result;
             encryptData();
