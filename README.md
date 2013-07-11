@@ -161,16 +161,49 @@ The unit tests will run automatically and all should pass.
 Sample Code
 -----------
 
-Please see the javascript unit tests for examples of how to operate the
-Web Crypto API in detail.
+Here are some examples of how to use the Web Cryptography API to perform typical
+crypto operations. These will work once the plugin is installed and enabled. More
+detailed usage examples may be found in the javascript unit tests.
+
+The examples below use the following utility functions to convert between string
+and Uint8Array:
+
+    // string to uint array
+    function text2ua(s) {
+        var ua = new Uint8Array(s.length);
+        for (var i = 0; i < s.length; i++) {
+            ua[i] = s.charCodeAt(i);
+        }
+        return ua;
+    }
+    
+    // uint array to string
+    function ua2text(ua) {
+        var s = '';
+        for (var i = 0; i < ua.length; i++) {
+            s += String.fromCharCode(ua[i]);
+        }
+        return s;
+    }
+
+### Compute SHA-1 hash ###
+
+    <script src='nfcrypto.js'></script>
+    <script>
+        var cryptoSubtle = window.nfCrypto.subtle;
+        var data = "This is some data to hash";    
+        var op = cryptoSubtle.digest({ name: "SHA-1" }, text2ua(data));
+        op.oncomplete = function (e) {
+            window.alert("SHA-1 of \"" + data + "\": " + btoa(e.target.result));
+        };
+    </script>
 
 ### Simple AES-CBC Encryption / Decryption ###
 
     <script src='nfcrypto.js'></script>
-
     <script>
+    
         var cryptoSubtle = window.nfCrypto.subtle;
-            
         var cleartext = "This is some cleartext to encrypt.";
         var key;
         var iv = new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
@@ -212,27 +245,108 @@ Web Crypto API in detail.
             }
         }
     
-        // string to uint array
-        function text2ua(s) {
-            var ua = new Uint8Array(s.length);
-            for (var i = 0; i < s.length; i++) {
-                ua[i] = s.charCodeAt(i);
-            }
-            return ua;
-        }
-
-        // uint array to string
-        function ua2text(ua) {
-            var s = '';
-            for (var i = 0; i < ua.length; i++) {
-                s += String.fromCharCode(ua[i]);
-            }
-            return s;
-        }
-        
         generateKey();
 
     </script>
 
+### Sign / Verify Data with HMAC SHA256 ###
 
+    <script src='nfcrypto.js'></script>
+    <script>
+    
+        var cryptoSubtle = window.nfCrypto.subtle;
+        var data = "This is some data to sign",
+            hmacKey,
+            signature;
+
+        function generateKey() {
+            var genOp = cryptoSubtle.generateKey({ name: "HMAC", params: { hash: {name: "SHA-256"} } });
+            genOp.oncomplete = function (e) {
+                hmacKey = e.target.result;
+                signData();
+            };
+        }
+        
+        function signData() {
+            var signOp = cryptoSubtle.sign({ name: "HMAC", params: { hash: "SHA-256" } }, hmacKey, text2ua(data));
+            signOp.oncomplete = function (e) {
+                signature = e.target.result;
+                verifyData();
+            };
+        }
+        
+        function verifyData() {
+            var verifyOp = cryptoSubtle.verify({ name: "HMAC", params: { hash: "SHA-256" } }, hmacKey, signature, text2ua(data));
+            verifyOp.oncomplete = function (e) {
+                if (e.target.result) {
+                    window.alert("Round-trip hmac sign/verify works!");
+                }
+            };
+        }
+    
+        generateKey();
+        
+    </script>
+    
+
+### Generate 1024-bit RSA Key Pair, Export Public Key, Encrypt/Decrypt Peer Data ###
+
+    <script src='nfcrypto.js'></script>
+    <script>
+
+        var cryptoSubtle = window.nfCrypto.subtle;
+        var clearText = "This is some data to encrypt";
+        var pubKey, privKey;
+        var cipherText;
+        
+        // generate a 1024-bit RSA key pair for encryption
+        function generateKey() {
+            var genOp = cryptoSubtle.generateKey({
+                name: "RSAES-PKCS1-v1_5",
+                params: {
+                    modulusLength: 1024,
+                    publicExponent: new Uint8Array([0x01, 0x00, 0x01]) // Fermat F4
+                }
+            }, false);
+            genOp.oncomplete = function (e) {
+                pubKey  = e.target.result.publicKey;
+                privKey = e.target.result.privateKey;
+                exportKey();
+            }
+        }
+        
+        // export the public key in SPKI format in order to send it to the peer
+        function exportKey() {
+            var exportOp = cryptoSubtle.exportKey("spki", pubKey);
+            exportOp.oncomplete = function (e) {
+                var pubKeySpki = e.target.result;
+                // here you would send pubKeySpki to peer
+                encryptData();
+            }
+        }
+        
+        // simulate peer encryption by encrypting clearText with the public key
+        function encryptData() {
+            var encryptOp = cryptoSubtle.encrypt({ name: "RSAES-PKCS1-v1_5" }, pubKey, text2ua(clearText));
+            encryptOp.oncomplete = function (e) {
+                cipherText = e.target.result;
+                decryptData();
+            }
+        }
+        
+        // pretend the cipherText was received from the peer, and decrypt it
+        // with the private key; should get the same clearText back
+        function decryptData() {
+            var decryptOp = cryptoSubtle.decrypt({ name: "RSAES-PKCS1-v1_5" }, privKey, cipherText);
+            decryptOp.oncomplete = function (e) {
+                var clearText2 = ua2text(e.target.result);
+                if (clearText2.valueOf() == clearText.valueOf()) {
+                    window.alert("Round-trip RSA encrypt/decrypt successful!");
+                }
+            }
+        }
+        
+        generateKey();
+        
+    </script>
 
