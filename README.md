@@ -282,7 +282,11 @@ function ua2text(ua) {
     }
     
     function signData() {
-        var signOp = cryptoSubtle.sign({ name: "HMAC", params: { hash: "SHA-256" } }, hmacKey, text2ua(data));
+        var signOp = cryptoSubtle.sign(
+            { name: "HMAC", params: { hash: "SHA-256" } },
+            hmacKey,
+            text2ua(data)
+        );
         signOp.oncomplete = function (e) {
             signature = e.target.result;
             verifyData();
@@ -290,7 +294,12 @@ function ua2text(ua) {
     }
     
     function verifyData() {
-        var verifyOp = cryptoSubtle.verify({ name: "HMAC", params: { hash: "SHA-256" } }, hmacKey, signature, text2ua(data));
+        var verifyOp = cryptoSubtle.verify(
+            { name: "HMAC", params: { hash: "SHA-256" } },
+            hmacKey,
+            signature,
+            text2ua(data)
+        );
         verifyOp.oncomplete = function (e) {
             if (e.target.result) {
                 window.alert("Round-trip hmac sign/verify works!");
