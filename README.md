@@ -206,7 +206,7 @@ function ua2text(ua) {
 
 ```
 
-### Simple AES-CBC Encryption / Decryption ###
+### AES-CBC Encryption / Decryption ###
 
 ```JavaScript
 
@@ -313,7 +313,7 @@ function ua2text(ua) {
 
 ```
 
-### Generate 1024-bit RSA Key Pair, Export Public Key, Encrypt/Decrypt Peer Data ###
+### RSA Encryption / Decryption ###
 
 ```JavaScript
 
