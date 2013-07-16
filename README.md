@@ -106,6 +106,10 @@ How to Build
 ------------
 The following has been verified on Ubunutu 12.04. cmake 2.8 or later is required.
 
+NOTE: The SYSTEM key mentioned above depends in part on a secret build-time key 
+SECRET\_SYSTEM\_KEY that for example purposes is hard-coded in linux_common.cmake.
+Actual deployments must change this key.
+
     $ mkdir buildDir
     $ cd buildDir
     $ cmake -DCMAKE_TOOLCHAIN_FILE=(repo)/cmake/toolchains/linux64.cmake -DCMAKE_BUILD_TYPE=[Debug|Release] (repo)
