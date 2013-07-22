@@ -193,12 +193,13 @@ bool AesGcmCipher::decrypt(const Vuc& cipherText, const Vuc& aad, const Vuc& mac
         return false;
     }
 
-    // size the output buffer
-    sizeOutput(cipherText.size(), clearText);
+    // size the output buffer; do not put result in output until auth passes
+    Vuc localClearText;
+    sizeOutput(cipherText.size(), localClearText);
 
     // do the decrypt now
     nBytes = 0;
-    ret = EVP_DecryptUpdate(pCtx.get(), &clearText[0], &nBytes, &cipherText[0], cipherText.size());
+    ret = EVP_DecryptUpdate(pCtx.get(), &localClearText[0], &nBytes, &cipherText[0], cipherText.size());
     if (!ret)
     {
         OPENSSLERROR_MSG("AesGcmCipher::decrypt: EVP_DecryptUpdate fail during decrypt");
@@ -209,7 +210,7 @@ bool AesGcmCipher::decrypt(const Vuc& cipherText, const Vuc& aad, const Vuc& mac
 
     // finalization and authentication; if ret != 1 authentication failed
     int nTotalBytes = nBytes;
-    ret = EVP_DecryptFinal(pCtx.get(), &clearText[0], &nBytes);
+    ret = EVP_DecryptFinal(pCtx.get(), &localClearText[0], &nBytes);
     if (!ret)
     {
         DLOG() << "AesGcmCipher::decrypt: authentication failed\n";
@@ -219,7 +220,7 @@ bool AesGcmCipher::decrypt(const Vuc& cipherText, const Vuc& aad, const Vuc& mac
 
     // the actual clearText size is in nTotalBytes
     assert(nTotalBytes);
-    Vuc(clearText.begin(), clearText.begin()+nTotalBytes).swap(clearText); // shrink to fit
+    Vuc(localClearText.begin(), localClearText.begin()+nTotalBytes).swap(clearText); // shrink to fit
     return true;
 }
 

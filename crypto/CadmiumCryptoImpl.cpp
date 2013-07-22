@@ -1195,10 +1195,9 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::getKeyInfo(uint32_t keyHandle,
     return CAD_ERR_OK;
 }
 
-
-CadErr CadmiumCrypto::CadmiumCryptoImpl::aesCbc(uint32_t keyHandle,
-        const string& ivInStr64, const string& dataInStr64, CipherOp cipherOp,
-        string& dataOutStr64)
+CadErr CadmiumCrypto::CadmiumCryptoImpl::aesPre(uint32_t keyHandle,
+        KeyUsage keyUsage, const string& ivInStr64, const string& dataInStr64,
+        Algorithm algorithm, Vuc& ivVec, Vuc& dataVec, Vuc& keyVec)
 {
     if (!isInited_)
         return CAD_ERR_NOT_INITIALIZED;
@@ -1207,48 +1206,62 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::aesCbc(uint32_t keyHandle,
         return CAD_ERR_BADKEYINDEX;
 
     // verify the provided key is permitted this usage
-    const KeyUsage keyUsage = (cipherOp == DOENCRYPT) ? ENCRYPT : DECRYPT;
     if (!isUsageAllowed(keyHandle, keyUsage))
     {
-        DLOG() << "CadmiumCrypto::aesCbc: operation disallowed by keyUsage\n";
+        DLOG() << "CadmiumCrypto::aes: operation disallowed by keyUsage\n";
         return CAD_ERR_KEY_USAGE;
     }
 
     // verify the provided key is intended for this algorithm
-    if (!isKeyAlgMatch(keyHandle, AES_CBC))
+    if (!isKeyAlgMatch(keyHandle, algorithm))
     {
-        DLOG() << "CadmiumCrypto::aesCbc: operation incompatible with key algorithm\n";
+        DLOG() << "CadmiumCrypto::aes: operation incompatible with key algorithm\n";
         return CAD_ERR_KEY_USAGE;
     }
 
     // convert iv
-    const Vuc ivVec = str64toVuc(ivInStr64);
+    ivVec = str64toVuc(ivInStr64);
     if (ivVec.empty())
         return CAD_ERR_BADENCODING;
-    if (ivVec.size() < AesCbcCipher::BLOCKSIZE)
+    if (ivVec.size() < AesCbcCipher::BLOCKSIZE) // same block size for all AES ciphers
     {
-        DLOG() << "CadmiumCrypto::aesCbc: IV too short, must be " <<
+        DLOG() << "CadmiumCrypto::aes: IV too short, must be " <<
                 AesCbcCipher::BLOCKSIZE << " bytes or longer\n";
         return CAD_ERR_BADIV;
     }
 
     // convert input data
-    const Vuc dataVec = str64toVuc(dataInStr64);
+    dataVec = str64toVuc(dataInStr64);
     if (dataVec.empty())
         return CAD_ERR_BADENCODING;
 
     // check the key
-    const Vuc key = keyMap_[keyHandle].key;
-    if (key.size() != AesCbcCipher::KL128 &&
-        key.size() != AesCbcCipher::KL192 &&
-        key.size() != AesCbcCipher::KL256)
+    keyVec = keyMap_[keyHandle].key;
+    if (keyVec.size() != AesCbcCipher::KL128 &&  // same key sizes for all AES ciphers
+        keyVec.size() != AesCbcCipher::KL192 &&
+        keyVec.size() != AesCbcCipher::KL256)
     {
         DLOG() << "CadmiumCrypto::aesCbc: incompatible key length, must be 128, 192, or 256\n";
         return CAD_ERR_BADIV;
     }
 
+    return CAD_ERR_OK;
+}
+
+CadErr CadmiumCrypto::CadmiumCryptoImpl::aesCbc(uint32_t keyHandle,
+        const string& ivInStr64, const string& dataInStr64, CipherOp cipherOp,
+        string& dataOutStr64)
+{
+    const KeyUsage keyUsage = (cipherOp == DOENCRYPT) ? ENCRYPT : DECRYPT;
+
+    Vuc ivVec, dataVec, keyVec;
+    CadErr err = aesPre(keyHandle, keyUsage, ivInStr64, dataInStr64,
+        AES_CBC, ivVec, dataVec, keyVec);
+    if (err != CAD_ERR_OK)
+        return err;
+
     // do the operation
-    AesCbcCipher cipher(key, ivVec);
+    AesCbcCipher cipher(keyVec, ivVec);
     Vuc resultVec;
     bool success;
     if (cipherOp == DOENCRYPT)
@@ -1260,6 +1273,68 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::aesCbc(uint32_t keyHandle,
 
     // encode results and return
     dataOutStr64 = vucToStr64(resultVec);
+
+    return CAD_ERR_OK;
+}
+
+CadErr CadmiumCrypto::CadmiumCryptoImpl::aesGcmEncrypt(uint32_t keyHandle,
+        const string& ivInStr64, const string& dataInStr64,
+        const string& aadInStr64, string& tagOutStr64, string& dataOutStr64)
+{
+    Vuc ivVec, dataVec, keyVec;
+    CadErr err = aesPre(keyHandle, ENCRYPT, ivInStr64, dataInStr64,
+        AES_GCM, ivVec, dataVec, keyVec);
+    if (err != CAD_ERR_OK)
+        return err;
+
+    // convert the aad
+    const Vuc aadVec = str64toVuc(aadInStr64);
+    if (aadVec.empty())
+        return CAD_ERR_BADENCODING;
+
+    // encrypt
+    AesGcmCipher cipher(keyVec, ivVec);
+    Vuc cipherTextVec, tagVec;
+    const bool success = cipher.encrypt(dataVec, aadVec, cipherTextVec, tagVec);
+    if (!success)
+        return CAD_ERR_CIPHERERROR;
+
+    // encode results and return
+    dataOutStr64 = vucToStr64(cipherTextVec);
+    tagOutStr64 = vucToStr64(tagVec);
+
+    return CAD_ERR_OK;
+}
+
+CadErr CadmiumCrypto::CadmiumCryptoImpl::aesGcmDecrypt(uint32_t keyHandle,
+        const string& ivInStr64, const string& dataInStr64,
+        const string& aadInStr64, const string& tagInStr64, string& dataOutStr64)
+{
+    Vuc ivVec, dataVec, keyVec;
+    CadErr err = aesPre(keyHandle, DECRYPT, ivInStr64, dataInStr64,
+        AES_GCM, ivVec, dataVec, keyVec);
+    if (err != CAD_ERR_OK)
+        return err;
+
+    // convert the aad
+    const Vuc aadVec = str64toVuc(aadInStr64);
+    if (aadVec.empty())
+        return CAD_ERR_BADENCODING;
+
+    // convert the tag
+    const Vuc tagVec = str64toVuc(tagInStr64);
+    if (tagVec.empty())
+        return CAD_ERR_BADENCODING;
+
+    // decrypt
+    AesGcmCipher cipher(keyVec, ivVec);
+    Vuc clearTextVec;
+    const bool success = cipher.decrypt(dataVec, aadVec, tagVec, clearTextVec);
+    if (!success)
+        return CAD_ERR_CIPHERERROR;
+
+    // encode results and return
+    dataOutStr64 = vucToStr64(clearTextVec);
 
     return CAD_ERR_OK;
 }

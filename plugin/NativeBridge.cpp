@@ -614,9 +614,17 @@ bool NativeBridge::encryptDecrypt(const string& cmdIndex, Variant& argsVar,
     //         algorithm: object; the encryption algorithm name, "RSAES-PKCS1-v1_5" only
     //         -- or --
     //         algorithm: {
-    //             name:    string; the encryption algorithm name, "AES-CBC" only
+    //             name:    string; the encryption algorithm name, "AES-CBC"
     //             params: {
     //                 iv:  string; the initialization vector, base64-encoded
+    //             }
+    //         }
+    //         -- or --
+    //         algorithm: {
+    //             name:    string; the encryption algorithm name, "AES-GCM" only
+    //             params: {
+    //                 iv:  string; the initialization vector, base64-encoded
+    //                 aad TODO
     //             }
     //         }
     //         keyHandle: string, the handle of the key to use

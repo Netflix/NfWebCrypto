@@ -154,8 +154,8 @@ public:
     //---------------- Encrypt / Decrypt -------------------------------------//
 
     /** AES-CBC encrypt data using a key in the key cache.
-     * This method encrypts input data with AES CBC, using a key in the key
-     * cache indicated by the input key handle.
+     * This method encrypts / decrypts input data with AES CBC, using a key in
+     * the key cache indicated by the input key handle.
      * @param keyHandle In. The handle of the desired key in the key cache.
      * @param ivIn In. The initialization vector, base64-encoded
      * @param dataIn In. The data to encrypt, base64-encoded
@@ -166,6 +166,42 @@ public:
     enum CipherOp {DOENCRYPT, DODECRYPT};
     CadErr aesCbc(uint32_t keyHandle, const std::string& ivIn,
             const std::string& dataIn, CipherOp cipherOp, std::string& dataOut);
+
+    /** AES-GCM encrypt data using a key in the key cache.
+     * This method encrypts input data with AES-GCM authenticated encryption,
+     * using the key in the key cache indicated by the input key handle. The
+     * input is cleartext to encrypt and additional data used when computing
+     * the authentication tag. The result is the tag and the ciphertext.
+     * @param keyHandle In. The handle of the key in the key cache.
+     * @param ivIn In. The initialization vector, base64-encoded
+     * @param dataIn In. The data to encrypt, base64-encoded
+     * @param aadIn In. Additional authenticated data, base64-encoded
+     * @param tagOut Out. The computed authentication tag, base64-encoded
+     * @param dataOut Out. The encrypted data, base64-encoded
+     * @return CadErr, CAD_ERR_OK if no error
+     */
+    CadErr aesGcmEncrypt(uint32_t keyHandle, const std::string& ivIn,
+            const std::string& dataIn, const std::string& aadIn,
+            std::string& tagOut, std::string& dataOut);
+
+    /** AES-GCM encrypt data using a key in the key cache.
+     * This method decrypts input data with AES-GCM authenticated decryption,
+     * using a key in the key cache indicated by the input key handle. The input
+     * ciphertext is decrypted and an authentication tag is computed with it
+     * plus the additional authentication data. The operation is a success only
+     * if the computed tag matches the input tag, and only then is the cleartext
+     * returned.
+     * @param keyHandle In. The handle of the key in the key cache.
+     * @param ivIn In. The initialization vector, base64-encoded
+     * @param dataIn In. The data to decrypt, base64-encoded
+     * @param aadIn In. Additional authenticated data, base64-encoded
+     * @param tagIn In. Authentication tag, base64-encoded
+     * @param dataOut Out. The decrypted data, base64-encoded
+     * @return CadErr, CAD_ERR_OK if no error
+     */
+    CadErr aesGcmDecrypt(uint32_t keyHandle, const std::string& ivIn,
+            const std::string& dataIn, const std::string& aadIn,
+            const std::string& tagIn, std::string& dataOut);
 
     /** RSAES-PKCS1-v1_5 encrypt data using a key in the key cache.
      * This method encrypts input data with RSAES-PKCS1-v1_5, using a key in the

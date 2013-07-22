@@ -31,8 +31,8 @@ public:
     ~AesGcmCipher();
     bool encrypt(const Vuc& clearText, const Vuc& aad, Vuc& cipherText, Vuc& mac);
     bool decrypt(const Vuc& cipherText, const Vuc& aad, const Vuc& mac, Vuc& clearText);
-private:
     enum KeyLength { KL128=16, KL192=24, KL256=32 };
+private:
     const EVP_CIPHER* getCipher() const;
 private:
     const Vuc key_;

@@ -46,6 +46,12 @@ public:
             base::Variant& algVar, std::vector<KeyUsage>& usage) const;
     CadErr aesCbc(uint32_t keyHandle, const std::string& ivIn,
             const std::string& dataIn, CipherOp cipherOp, std::string& dataOut);
+    CadErr aesGcmEncrypt(uint32_t keyHandle, const std::string& ivIn,
+            const std::string& dataIn, const std::string& aadIn,
+            std::string& tagOut, std::string& dataOut);
+    CadErr aesGcmDecrypt(uint32_t keyHandle, const std::string& ivIn,
+            const std::string& dataIn, const std::string& aadIn,
+            const std::string& tagIn, std::string& dataOut);
     CadErr rsaCrypt(uint32_t keyHandle, const std::string& dataIn,
             CipherOp cipherOp, std::string& dataOut);
     CadErr hmac(uint32_t keyHandle, Algorithm shaAlgo, const std::string& data,
@@ -102,6 +108,9 @@ private:
     CadErr unwrapJwe(const std::vector<std::string>& jweData, uint32_t wrappingKeyHandle,
             const base::Variant& algVar, bool extractable,
             const std::vector<KeyUsage>& keyUsage, uint32_t& keyHandle);
+    CadErr aesPre(uint32_t keyHandle, KeyUsage keyUsage, const std::string& ivInStr64,
+            const std::string& dataInStr64, Algorithm algorithm, Vuc& ivVec,
+            Vuc& dataVec, Vuc& keyVec);
 private:
     IDeviceInfo * const pDeviceInfo_;
     bool isInited_;
