@@ -265,7 +265,7 @@ uint32_t PpInstance::initOnBackgroundThread(uint32_t /*result*/)
     backgroundDispatcher_->start();
 
     // We are ready now
-    LogToBrowserConsole(pp_instance(), PP_LOGLEVEL_LOG, "PpInstance: Init complete, sending Ready message");
+    //LogToBrowserConsole(pp_instance(), PP_LOGLEVEL_LOG, "PpInstance: Init complete, sending Ready message");
     nativeBridge_->sendReady(0);    // 0 means success; fail is not an option!
 
     return 0;
