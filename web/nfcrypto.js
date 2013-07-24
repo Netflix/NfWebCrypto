@@ -538,14 +538,13 @@ End of (PolyCrypt) License Terms and Conditions.
 
         pluginObject.addEventListener('message', handleReadyMessage, false);
 
-        // When the plugin's 'ready' message is received, call this object's onready
-        // to notify the client we are open for business.
         function handleReadyMessage(message) {
             pluginObject.removeEventListener('message', handleReadyMessage);
             var obj = JSON.parse(message.data);
             if (obj.success && obj.method === 'ready') {
-                console.log('got ready message')
-                pluginIsReady(pluginObject);
+                setTimeout(function() {
+                    pluginIsReady(pluginObject);
+                }, 1);
             }
         }
 
