@@ -63,9 +63,6 @@ AesGcmCipher::~AesGcmCipher()
 bool AesGcmCipher::encrypt(const Vuc& clearText, const Vuc& aad, Vuc& cipherText,
         Vuc& mac)
 {
-    assert(!clearText.empty());
-    assert(!aad.empty());
-
     // create the cipher context; ScopedOpenSSL ensures deletion on scope exit
     ScopedOpenSSL<EVP_CIPHER_CTX, EVP_CIPHER_CTX_free> pCtx(EVP_CIPHER_CTX_new());
 
@@ -145,8 +142,6 @@ bool AesGcmCipher::encrypt(const Vuc& clearText, const Vuc& aad, Vuc& cipherText
 bool AesGcmCipher::decrypt(const Vuc& cipherText, const Vuc& aad, const Vuc& mac,
         Vuc& clearText)
 {
-    assert(!cipherText.empty());
-    assert(!aad.empty());
     assert(!mac.empty());
 
     // create the cipher context; ScopedOpenSSL ensures deletion on scope exit

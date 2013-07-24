@@ -102,10 +102,10 @@ CadErr CadmiumCrypto::rsaCrypt(uint32_t keyHandle, const string& dataIn,
     return impl_->rsaCrypt(keyHandle, dataIn, cipherOp, dataOut);
 }
 
-CadErr CadmiumCrypto::hmac(uint32_t keyHandle, Algorithm shaAlgo, const string& data,
-        string& hmac)
+CadErr CadmiumCrypto::hmac(uint32_t keyHandle, Algorithm shaAlgo, KeyUsage opUsage,
+        const string& data, string& hmac)
 {
-    return impl_->hmac(keyHandle, shaAlgo, data, hmac);
+    return impl_->hmac(keyHandle, shaAlgo, opUsage, data, hmac);
 }
 
 CadErr CadmiumCrypto::rsaKeyGen(const Variant& algVar, bool extractable,

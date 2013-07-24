@@ -29,8 +29,7 @@ describe("derive", function () {
     var genPubkey = undefined,
         genPrivkey = undefined;
    
-	var listofOperations = [
-	                        
+	var listofOperations = [                
 	    {
 			name: "DeriveDHKey",
 			algo: { name: "DH", params: { public: randPubkey } },
@@ -77,6 +76,15 @@ describe("derive", function () {
 			deriveKey: false
 		},	
 		
+		{   //Fails since derive algo DH does not match generate algo RSASSA-PKCS1-v1_5
+			name: "DeriveAlgoMismatchGenerate",
+			algo: { name: "DH", params: { public: randPubkey } },
+			derivedKeyAlgo: "AES-CBC",
+			extractable: true,
+			usages: ["encrypt", "decrypt"],
+			deriveKey: false
+		},	
+		
 		{   //Using a pubkey of all zeros
 			name: "DeriveDHKeyInvalidPublicKey",
 			algo: { name: "DH", params: { public: invalidPubKey } },
@@ -95,7 +103,8 @@ describe("derive", function () {
 			extractable: true,
 			usages: ["encrypt", "decrypt"],
 			result: "pass"
-		},	
+		},
+
 	];
 	var opIndex = 0;
 	var indexValue = 0;
@@ -107,14 +116,27 @@ describe("derive", function () {
 			    pubkeyData = undefined;
 			var sharedKey = undefined;
 			    
-			
 			//Generate key pair first then derive
 			//This is because the generate creates a "secret" in crypto context which is required for derive key 
             runs(function () {
             	try {
-	            	error = undefined;
-	                var op = nfCrypto.generateKey( {name: "DH", params: { prime: dhPrime, generator: dhGenerator } }, true, ["derive", "decrypt"] );
-	                op.onerror = function (e) {
+            		error = undefined;
+            		genPubkey = undefined;
+            		genPrivkey = undefined;
+            		var op = undefined;
+            		if (indexValue.name == "DeriveAlgoMismatchGenerate") {
+            			var fermatF4 = new Uint8Array([0x01, 0x00, 0x01]);
+            			op = nfCrypto.generateKey({
+							name: "RSASSA-PKCS1-v1_5",
+							params: {
+								modulusLength: 512,
+								publicExponent: fermatF4,
+							},
+						});
+            		} else {
+    	                op = nfCrypto.generateKey( {name: "DH", params: { prime: dhPrime, generator: dhGenerator } }, true, ["derive", "decrypt"] );
+    	            }
+            		op.onerror = function (e) {
 	                    error = "ERROR";
 	                };
 	                op.oncomplete = function (e) {
@@ -137,6 +159,7 @@ describe("derive", function () {
 			runs(function () {
 				try {
 					error = undefined;
+					sharedKey = undefined;
 					//invalidating the basekey
 					if(indexValue.name == "DeriveDHKeyInvalidBaseKey") {
 						//rand characters
@@ -185,6 +208,7 @@ describe("derive", function () {
 			runs(function () {
 				try {
 					error = undefined;
+					pubkeyData = undefined;
 					var op = nfCrypto.exportKey("raw", sharedKey);
 					op.onerror = function (e) {
 						error = "ERROR";

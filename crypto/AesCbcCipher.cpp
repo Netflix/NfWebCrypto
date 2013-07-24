@@ -40,8 +40,6 @@ AesCbcCipher::~AesCbcCipher()
 
 bool AesCbcCipher::encrypt(const Vuc& in, Vuc& out)
 {
-    assert(!in.empty());
-
     // according to the openssl docs:
     // the amount of data written may be as large as (in.size() + cipher_block_size - 1)
     size_t outSize = in.size() + AES_BLOCK_SIZE - 1;
@@ -69,10 +67,6 @@ bool AesCbcCipher::encrypt(const Vuc& in, Vuc& out)
 
 bool AesCbcCipher::decrypt(const Vuc& in, Vuc& out)
 {
-    assert(!in.empty());
-    assert(!key_.empty());
-    assert(!iv_.empty());
-
     // according to the openssl docs:
     // the amount of data written may be as large as (in.size() + cipher_block_size - 1)
     size_t outSize = in.size() + AES_BLOCK_SIZE - 1;

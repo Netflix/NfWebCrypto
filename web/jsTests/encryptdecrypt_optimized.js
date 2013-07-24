@@ -29,12 +29,20 @@ describe("encryptaes", function () {
 	var LARGE_CLEARTEXT_NOTHEX = "eyJtZXNzYWdlaWQiOjQ2MDQwODM3Niwibm9ucmVwbGF5YWJsZSI6ZmFsc2UsInJlbmV3YWJsZSI6dHJ1ZSwiY2FwYWJpbGl0aWVzIjp7ImNvbXByZXNzaW9uYWxnb3MiOlsiTFpXIl19LCJrZXlyZXF1ZXN0ZGF0YSI6W3sic2NoZW1lIjoiQVNZTU1FVFJJQ19XUkFQUEVEIiwia2V5ZGF0YSI6eyJrZXlwYWlyaWQiOiJyc2FLZXlwYWlySWQiLCJtZWNoYW5pc20iOiJSU0EiLCJwdWJsaWNrZXkiOiJUVWxIU2tGdlIwSkJUMWxYVXpZMk5ubEhjazU1U0Vkbk4yMHZaMlJuYjBKMVJGaHpLM0JOU1dWTGNVNVBkMlZKYW5selRYSjRTVTk0WjJ4TVMzRkVOa2xsV2pkd01VSmlVRVY0V0ZoS2EzTlpOR2RUVGtNM01FTmxRVUpFVVRkRmIzRmlXR1V3UkRsVVZFNU9MMHBOVW01SmNtVnVaWFU1TldOeE5ucGhNSGcxVjFkemEzWkxTRTh6Y21GVk9YZEZjQzlaUlZNM2JWVnphMmx5V2s1QkswWlVUVlJhT1RKalUxaDZXUzlyTUZFMlpHVTNRV2ROUWtGQlJUMD0ifX1dfQ==",
 		LARGE_CLEARTEXT = base64.parse(LARGE_CLEARTEXT_NOTHEX);
 
-	var LISTOFOPERATIONS = [
+	var LISTOFOPERATIONS = [                  
 	    {                    	
 	    	name: "AESEncryptDecryptHappyPath",
 	    	algo: {	name: "AES-CBC", params: { iv: IV } },
 	        clearText: CLEARTEXT,
 	        result: "pass"
+	    },
+	    
+	    {   //Encryption algo(AES-CBC) does not match import key(AES-GCM)               	
+	    	name: "AESMismatchedEncryptionAlgoImportKey",
+	    	algo: {	name: "AES-CBC", params: { iv: IV } },
+	        clearText: CLEARTEXT,
+	        disableDecrypt: true,
+	        encrypt: false
 	    },
 	    
 	    {                    	
@@ -73,7 +81,7 @@ describe("encryptaes", function () {
 	    	algo: {	name: "AES-CBC", params: { iv: IV } },
 	    	clearText: new Uint8Array([]),
 	        disableDecrypt: true,
-	        encrypt: false
+	        encrypt: true
 	    },
 	    
 	    {                    	
@@ -109,6 +117,14 @@ describe("encryptaes", function () {
 	        encrypt: false
 	    },
 	    
+	    {   //Fails since encryption is done with a key where usage is incorrectly specified
+	    	//as decrypt only
+	    	name: "AESEncryptUsingKeyWithInvalidUsage",
+	    	algo: {	name: "AES-CBC", params: { iv: IV } },
+	        clearText: CLEARTEXT,
+	        disableDecrypt: true,
+	        encrypt: false
+	    }
 	    
 	];
 /*
@@ -165,13 +181,33 @@ describe("encryptaes", function () {
 */
 			runs(function () {
 				try {
-					var op = nfCrypto.importKey(
-							"raw",
-							new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
-							"AES-CBC",
-							true,
-							["encrypt", "decrypt"]
-					);
+					var op = undefined;
+					if(INDEXVALUE.name == "AESMismatchedEncryptionAlgoImportKey") {
+						op = nfCrypto.importKey(
+								"raw",
+								new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
+								"AES-GCM",
+								true,
+								["encrypt", "decrypt"]
+						);
+						
+					} else if (INDEXVALUE.name == "AESEncryptUsingKeyWithInvalidUsage") {
+						op = nfCrypto.importKey(
+								"raw",
+								new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
+								"AES-CBC",
+								true,
+								["decrypt"]
+						);
+					} else {
+						op = nfCrypto.importKey(
+								"raw",
+								new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
+								"AES-CBC",
+								true,
+								["encrypt", "decrypt"]
+						);
+					}
 					op.onerror = function (e) {
 						error = "ERROR :: " + e.target.result
 					};
@@ -330,6 +366,14 @@ describe("decryptaes", function () {
 		    	algo: {	name: "AES-CBC", params: { iv: SHORT_IV } },     
 	   	        decrypt: false
 		    },
+		    
+		    {   //Imported key has usage as only encrypt so decrypt should fail since 
+		    	//key does not support decrypt
+	   	    	name: "AESDecryptUsingKeyWithInvalidUsage",
+	   	    	algo: {	name: "AES-CBC", params: { iv: IV_DECRYPT } },	   	        
+	   	        decrypt: false
+	   	    },
+	   	    
 	];
 	function wrapperForTest(OPINDEX) {	
 		it(LISTOFOPERATIONS[OPINDEX].name, function () {
@@ -342,13 +386,24 @@ describe("decryptaes", function () {
 
 			runs(function () {
 				try {
-					var op = nfCrypto.importKey(
+					var op = undefined;
+					if(INDEXVALUE.name == "AESDecryptUsingKeyWithInvalidUsage") {
+						op = nfCrypto.importKey(
+								"raw",
+								new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
+								"AES-CBC",
+								true,
+								["encrypt"]
+							);
+					} else {
+						op = nfCrypto.importKey(
 							"raw",
 							new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
 							"AES-CBC",
 							true,
 							["encrypt", "decrypt"]
-					);
+						);
+					}
 					op.onerror = function (e) {
 						error = "ERROR :: " + e.target.result
 					};
@@ -457,6 +512,14 @@ describe("encryptrsa", function () {
 	        result: "pass"
 	    },
 	    
+	    {   //Encryption algo(RSAES-PKCS1-v1_5) does not match import key(RSASSA-PKCS1-v1_5)               	
+	    	name: "RSAMismatchedEncryptionAlgoGenerateKey",
+	    	algo: "RSAES-PKCS1-v1_5",
+	        clearText: CLEARTEXT,
+	        clearTextStr: CLEARTEXT_HEX,
+	        encrypt: false
+	    },
+	    
 	    {                    	
 	    	name: "RSAEncryptLargeData",
 	    	algo: "RSAES-PKCS1-v1_5",
@@ -487,7 +550,7 @@ describe("encryptrsa", function () {
 	    	algo: "RSAES-PKCS1-v1_5",
 	        clearText: CLEARTEXT,
 	        clearTextStr: CLEARTEXT_HEX,
-	        encrypt: false
+	        encrypt: true
 	    },
 	    
 	    {   //Expect to fail since algo does not exist                 	
@@ -515,6 +578,14 @@ describe("encryptrsa", function () {
 	        encrypt: false
 	    },
 	    
+	    {   //Fails since the generated key only support decrypt           	
+	    	name: "RSAEncryptUsingKeyWithInvalidUsage",
+	    	algo: "RSAES-PKCS1-v1_5",
+	        clearText: CLEARTEXT,
+	        clearTextStr: CLEARTEXT_HEX,
+	        encrypt: false
+	    },
+	    
 	];
 		
 	function wrapperForTest(OPINDEX) {	
@@ -534,15 +605,39 @@ describe("encryptrsa", function () {
 			var error;
 			runs(function () {
 				try {
-					var genOp = nfCrypto.generateKey({
-						name: "RSAES-PKCS1-v1_5",
-						params: {
-							//2048 bit RSA key can encrypt (n/8) - 11 bytes for PKCS
-							//With given 2048 bit key it can encrypt 245 bytes
-							modulusLength: 2048,
-							publicExponent: fermatF4,
-						},
-					});
+					var genOp = undefined;
+					if(INDEXVALUE.name == "RSAMismatchedEncryptionAlgoGenerateKey") {
+						genOp = nfCrypto.generateKey({
+							name: "RSASSA-PKCS1-v1_5",
+							params: {
+								//2048 bit RSA key can encrypt (n/8) - 11 bytes for PKCS
+								//With given 2048 bit key it can encrypt 245 bytes
+								modulusLength: 2048,
+								publicExponent: fermatF4,
+							}
+						});
+					} else if (INDEXVALUE.name == "RSAEncryptUsingKeyWithInvalidUsage")  {
+						genOp = nfCrypto.generateKey({
+							name: "RSAES-PKCS1-v1_5",
+							params: {
+								//2048 bit RSA key can encrypt (n/8) - 11 bytes for PKCS
+								//With given 2048 bit key it can encrypt 245 bytes
+								modulusLength: 2048,
+								publicExponent: fermatF4,
+							} },
+							false,
+							["decrypt"]);
+					} else {
+						genOp = nfCrypto.generateKey({
+							name: "RSAES-PKCS1-v1_5",
+							params: {
+								//2048 bit RSA key can encrypt (n/8) - 11 bytes for PKCS
+								//With given 2048 bit key it can encrypt 245 bytes
+								modulusLength: 2048,
+								publicExponent: fermatF4,
+							}
+						});
+					}
 					genOp.onerror = function (e) {
 						error = "ERROR :: " + e.target.result;
 					};
@@ -562,10 +657,19 @@ describe("encryptrsa", function () {
 			runs(function () {
 				expect(error).toBeUndefined();
 				//Doing checks on keys to validate Public Key structure
-				expect(pubKey.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
+				if(INDEXVALUE.name == "RSAMismatchedEncryptionAlgoGenerateKey") {
+					expect(pubKey.algorithm.name).toEqual("RSASSA-PKCS1-v1_5");
+				}
+				else  {
+					expect(pubKey.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
+				}
 				//since all pub keys are extractable
 				expect(pubKey.extractable).toBeTruthy();
-				expect(pubKey.keyUsage.length).toEqual(0);
+				if (INDEXVALUE.name == "RSAEncryptUsingKeyWithInvalidUsage") {
+					expect(pubKey.keyUsage.length).toEqual(1);
+				} else {
+					expect(pubKey.keyUsage.length).toEqual(0);
+				}
 				//TODO: Re-enable this check when we know what default values should be
 				//expect(pubKey.keyUsage[0]).toEqual("verify");
 				expect(pubKey.keyUsage).not.toBeNull();
@@ -575,9 +679,18 @@ describe("encryptrsa", function () {
 				expect(pubKey.handle).not.toEqual(0);
 
 				//Doing checks on keys to validate Private Key structure
-				expect(privKey.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
+				if(INDEXVALUE.name == "RSAMismatchedEncryptionAlgoGenerateKey") {
+					expect(pubKey.algorithm.name).toEqual("RSASSA-PKCS1-v1_5");
+				}
+				else  {
+					expect(privKey.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
+				}
 				expect(privKey.extractable).toBeFalsy();
-				expect(privKey.keyUsage.length).toEqual(0);
+				if (INDEXVALUE.name == "RSAEncryptUsingKeyWithInvalidUsage") {
+					expect(privKey.keyUsage.length).toEqual(1);
+				} else {
+					expect(privKey.keyUsage.length).toEqual(0);
+				}
 				//TODO: Re-enable this check when we know what default values should be
 				//expect(privKey.keyUsage[0]).toEqual("sign");
 				expect(privKey.type).toEqual("private");
@@ -650,6 +763,9 @@ describe("encryptrsa", function () {
 					if(INDEXVALUE.name == "RSAMangledEncryptionData") {
 						expect(error).toBeDefined();
 						expect(decrypted).toBeUndefined();
+					} else if (INDEXVALUE.name == "RSAEncryptEmptyData") {
+                        expect(error).toBeUndefined();
+                        expect(decrypted).toBeDefined();
 					} else {
 						expect(error).toBeUndefined();
 						expect(decrypted).toBeDefined();
@@ -665,7 +781,6 @@ for(OPINDEX = 0; OPINDEX < LISTOFOPERATIONS.length; OPINDEX++) {
 }
 });//describe("encryptrsa")
 
-
 describe("decryptrsa", function () {
 
 	var OPINDEX = 0;
@@ -677,7 +792,6 @@ describe("decryptrsa", function () {
 	    LARGE_CLEARTEXT = base64.parse(LARGE_CLEARTEXT_NOTHEX);
 
 	var LISTOFOPERATIONS = [
-	    
 	    {                    	
 	    	name: "RSADecryptNullData",
 	    	algo: "RSAES-PKCS1-v1_5",
@@ -709,7 +823,7 @@ describe("decryptrsa", function () {
 	        clearTextStr: CLEARTEXT_HEX,
 	        decrypt: false
 	    },
-	    
+	   
 	    {   //!!!!NOTE THIS TEST WILL NOT WORK WHEN REAL WEBCRYPTO COMES ALONG!!!!!!!                  	
 	    	name: "RSADecryptInvalidKeyHandle",
 	    	//manipulation will happen later on in the code
@@ -719,6 +833,13 @@ describe("decryptrsa", function () {
 	        decrypt: false
 	    },
 	    
+	    {   //Fails since the generated key only supports encrypt              	
+	    	name: "RSADecryptUsingKeyWithInvalidUsage",
+	    	algo: "RSAES-PKCS1-v1_5",
+	        clearText: CLEARTEXT,
+	        clearTextStr: CLEARTEXT_HEX,
+	        decrypt: false
+	    },
 	];
 		
 	function wrapperForTest(OPINDEX) {	
@@ -735,18 +856,31 @@ describe("decryptrsa", function () {
 			// equivalent to 257 
 			//www.rsa.com/rsalabs/node.asp?id=2148
 			var fermatF4 = new Uint8Array([0x00, 0x01]);
-			var error;
 			runs(function () {
 				try {
-					var genOp = nfCrypto.generateKey({
-						name: "RSAES-PKCS1-v1_5",
-						params: {
-							//2048 bit RSA key can encrypt (n/8) - 11 bytes for PKCS
-							//With given 2048 bit key it can encrypt 245 bytes
-							modulusLength: 2048,
-							publicExponent: fermatF4,
-						},
-					});
+					var genOp = undefined;
+					if(INDEXVALUE.name == "RSADecryptUsingKeyWithInvalidUsage") {
+						genOp = nfCrypto.generateKey({
+							name: "RSAES-PKCS1-v1_5",
+					 	    params: {
+					 	    	//2048 bit RSA key can encrypt (n/8) - 11 bytes for PKCS
+					 	    	//With given 2048 bit key it can encrypt 245 bytes
+					 	    	modulusLength: 2048,
+					 	    	publicExponent: fermatF4,
+						    } },
+						    false,
+						    ["encrypt"]);
+					} else {
+						genOp = nfCrypto.generateKey({
+							name: "RSAES-PKCS1-v1_5",
+							params: {
+								//2048 bit RSA key can encrypt (n/8) - 11 bytes for PKCS
+								//With given 2048 bit key it can encrypt 245 bytes
+								modulusLength: 2048,
+								publicExponent: fermatF4,
+							},
+						});
+					}
 					genOp.onerror = function (e) {
 						error = "ERROR :: " + e.target.result;
 					};
@@ -769,7 +903,11 @@ describe("decryptrsa", function () {
 				expect(pubKey.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
 				//since all pub keys are extractable
 				expect(pubKey.extractable).toBeTruthy();
-				expect(pubKey.keyUsage.length).toEqual(0);
+				if(INDEXVALUE.name == "RSADecryptUsingKeyWithInvalidUsage") {	
+					expect(pubKey.keyUsage.length).toEqual(1);
+				} else {
+					expect(pubKey.keyUsage.length).toEqual(0);
+				}
 				//TODO: Re-enable this check when we know what default values should be
 				//expect(pubKey.keyUsage[0]).toEqual("verify");
 				expect(pubKey.keyUsage).not.toBeNull();
@@ -781,7 +919,12 @@ describe("decryptrsa", function () {
 				//Doing checks on keys to validate Private Key structure
 				expect(privKey.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
 				expect(privKey.extractable).toBeFalsy();
-				expect(privKey.keyUsage.length).toEqual(0);
+				if(INDEXVALUE.name == "RSADecryptUsingKeyWithInvalidUsage") {	
+					expect(privKey.keyUsage.length).toEqual(1);
+				} else {
+					expect(privKey.keyUsage.length).toEqual(0);
+				}
+				
 				//TODO: Re-enable this check when we know what default values should be
 				//expect(privKey.keyUsage[0]).toEqual("sign");
 				expect(privKey.type).toEqual("private");
@@ -853,3 +996,4 @@ for(OPINDEX = 0; OPINDEX < LISTOFOPERATIONS.length; OPINDEX++) {
 	wrapperForTest(OPINDEX);
 }
 });//describe("decryptrsa")
+

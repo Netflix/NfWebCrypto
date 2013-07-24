@@ -59,10 +59,24 @@ describe("SignHMAC", function () {
 	        sign: false
 	    },	
 	    
+	    {   //Error since signing is using HMAC import key is using AES-CBC
+	       	test: "SignAlgoMismatchImportAlgo",
+	        algo: { name: "HMAC", params: { hash: "SHA-256" }},
+	        testData: DATA,
+	        sign: false
+	    },	
+	    
 	    {
 	    	//!!!!NOTE THIS TEST WILL NOT WORK WHEN REAL WEBCRYPTO COMES ALONG!!!!!!!
 	       	test: "SignInvalidSignKey",
 	       	//key manipulation happens just before import
+	        algo: { name: "HMAC", params: { hash: "SHA-256" }},
+	        testData: DATA,
+	        sign: false
+	    },	
+	    
+	    {   //Fails since import key only supports verify
+	       	test: "SignUsingKeyWithInvalidUsage",
 	        algo: { name: "HMAC", params: { hash: "SHA-256" }},
 	        testData: DATA,
 	        sign: false
@@ -87,7 +101,14 @@ describe("SignHMAC", function () {
 			runs(function () {
 				try {
 					error = undefined;
-					var op = nfCrypto.importKey("raw", keyData, { name: "HMAC", params: { hash: "SHA-256" } }, true, ["sign", "verify"]);
+					var op = undefined;
+					if (INDEXVALUE.test == "SignAlgoMismatchImportAlgo") {
+						op = nfCrypto.importKey("raw", keyData, { name: "AES-CBC", params: { hash: "SHA-256" } }, true);
+					} else if (INDEXVALUE.test == "SignUsingKeyWithInvalidUsage") {
+						op = nfCrypto.importKey("raw", keyData, { name: "HMAC", params: { hash: "SHA-256" } }, true, ["verify"]);
+					} else {
+						op = nfCrypto.importKey("raw", keyData, { name: "HMAC", params: { hash: "SHA-256" } }, true, ["sign", "verify"]);
+					}
 					op.onerror = function (e) {
 						error = "ERROR";
 					};
@@ -145,36 +166,33 @@ describe("SignHMAC", function () {
 				}
 			});
 
-			runs(function () {
-				try {
-					error = undefined;
-					//initalized testKey value with importkey
-					//INDEXVALUE.testKey = importKey;
-					var signOp = nfCrypto.verify(INDEXVALUE.algo, INDEXVALUE.testKey, signature, INDEXVALUE.testData);
-					signOp.onerror = function (e) {
+			if (INDEXVALUE.sign != false) {
+				runs(function () {
+					try {
+						error = undefined;
+						//initalized testKey value with importkey
+						//INDEXVALUE.testKey = importKey;
+						var signOp = nfCrypto.verify(INDEXVALUE.algo, INDEXVALUE.testKey, signature, INDEXVALUE.testData);
+						signOp.onerror = function (e) {
+							error = "ERROR";
+						};
+						signOp.oncomplete = function (e) {
+							verified = e.target.result;
+						};
+					} catch(e) {
 						error = "ERROR";
-					};
-					signOp.oncomplete = function (e) {
-						verified = e.target.result;
-					};
-				} catch(e) {
-					error = "ERROR";
-				}					
-			});
+					}					
+				});
 
-			waitsFor(function () {
-				return verified !== undefined || error;
-			});
+				waitsFor(function () {
+					return verified !== undefined || error;
+				});
 
-			runs(function () {
-				if (INDEXVALUE.sign == false) {
-					expect(error).toBeDefined();
-					expect(verified).toBeUndefined();
-				} else {
+				runs(function () {
 					expect(error).toBeUndefined();
 					expect(verified).toBe(true);
-				}
-			});
+				});
+			}//if (INDEXVALUE.sign == false)
 		});//it
 	}//function wrapperForTest
 	for(OPINDEX = 0; OPINDEX < LISTOFTESTS.length; OPINDEX++) {	
@@ -233,7 +251,14 @@ describe("VerifyHMAC", function () {
 	        algo: { name: "HMAC", params: { hash: "SHA-256" }},
 	        testData: GOOD_DATA,
 	        verify: false
-	    }
+	    },
+	    
+	    {   //Fails since imported key only supports sign usage
+	       	test: "VerifyUsingKeyWithInvalidUsage",
+	        algo: { name: "HMAC", params: { hash: "SHA-256" }},
+	        testData: hex2abv(""),
+	        verify: false
+	    },
 	    
 	];
 	
@@ -254,7 +279,12 @@ describe("VerifyHMAC", function () {
 			runs(function () {
 				try {
 					error = undefined;
-					var op = nfCrypto.importKey("raw", keyData, { name: "HMAC", params: { hash: "SHA-256" } }, true, ["sign", "verify"]);
+					var op = undefined;
+					if (INDEXVALUE.test == "VerifyUsingKeyWithInvalidUsage" ) {
+						op = nfCrypto.importKey("raw", keyData, { name: "HMAC", params: { hash: "SHA-256" } }, true, ["sign"]);
+					} else {
+						op = nfCrypto.importKey("raw", keyData, { name: "HMAC", params: { hash: "SHA-256" } }, true, ["sign", "verify"]);
+					} 
 					op.onerror = function (e) {
 						error = "ERROR";
 					};

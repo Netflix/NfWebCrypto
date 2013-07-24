@@ -782,8 +782,7 @@ bool NativeBridge::signVerify(const string& cmdIndex, Variant& argsVar,
 
     // get the data
     string dataStr64;
-    if (!getVal<string>(argsVar, "buffer", cmdIndex, dataStr64))
-        return false;
+    getVal<string>(argsVar, "buffer", cmdIndex, dataStr64, false);
     DLOG() << "\tbuffer: " << truncateLong(dataStr64) << endl;
 
     if (argsVar.mapValue<bool>("doSign"))
@@ -809,7 +808,7 @@ bool NativeBridge::doSign(const string& cmdIndex, int keyHandle,
     string sigStr64;
     CadErr err = CAD_ERR_OK;
     if (algType == CadmiumCrypto::HMAC)
-        err = cadmiumCrypto_->hmac(keyHandle, hashType, dataStr64, sigStr64);
+        err = cadmiumCrypto_->hmac(keyHandle, hashType, CadmiumCrypto::SIGN, dataStr64, sigStr64);
     else if (algType == CadmiumCrypto::RSASSA_PKCS1_V1_5)
         err = cadmiumCrypto_->rsaSign(keyHandle, hashType, dataStr64, sigStr64);
     else
@@ -834,7 +833,7 @@ bool NativeBridge::doVerify(const string& cmdIndex, int keyHandle,
     {
         // compute the HMAC
         string hashStr64;
-        CadErr err = cadmiumCrypto_->hmac(keyHandle, hashType, dataStr64, hashStr64);
+        CadErr err = cadmiumCrypto_->hmac(keyHandle, hashType, CadmiumCrypto::VERIFY, dataStr64, hashStr64);
         if (isError(err, cmdIndex))
             return false;
         isVerified = (hashStr64 == sigStr64);

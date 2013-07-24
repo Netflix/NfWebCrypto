@@ -17,6 +17,7 @@
  */
 #include "CadmiumCryptoImpl.h"
 #include <assert.h>
+#include <set>
 #include <algorithm>
 #include <base/Base64.h>
 #include <base/DebugUtil.h>
@@ -119,61 +120,45 @@ inline string toB64String(const CadmiumCrypto::Vuc& vuc)
 bool reconcileAlgVsUsage(CadmiumCrypto::Algorithm algorithm,
         const vector<CadmiumCrypto::KeyUsage>& keyUsage)
 {
-    // empty usage means default usage, so we are fine
+    // empty usage means default usage, so always ok
     if (keyUsage.empty())
         return true;
-    if (algorithm == CadmiumCrypto::HMAC || algorithm == CadmiumCrypto::RSASSA_PKCS1_V1_5)
+
+    set<CadmiumCrypto::KeyUsage> allowedKeyUsage;
+    switch (algorithm)
     {
-        // only sign/verify usage allowed for these algorithms
-        for (vector<CadmiumCrypto::KeyUsage>::const_iterator it = keyUsage.begin();
-                it != keyUsage.end(); ++it)
-        {
-            if (*it != CadmiumCrypto::SIGN && *it != CadmiumCrypto::VERIFY)
-                return false;
-        }
+        case CadmiumCrypto::HMAC:
+        case CadmiumCrypto::RSASSA_PKCS1_V1_5:
+            allowedKeyUsage.insert(CadmiumCrypto::SIGN);
+            allowedKeyUsage.insert(CadmiumCrypto::VERIFY);
+            break;
+        case CadmiumCrypto::RSAES_PKCS1_V1_5:
+        case CadmiumCrypto::AES_CBC:
+        case CadmiumCrypto::AES_GCM:
+        case CadmiumCrypto::AES_CTR:
+            allowedKeyUsage.insert(CadmiumCrypto::ENCRYPT);
+            allowedKeyUsage.insert(CadmiumCrypto::DECRYPT);
+            break;
+        case CadmiumCrypto::RSA_OAEP:
+            allowedKeyUsage.insert(CadmiumCrypto::ENCRYPT);
+            allowedKeyUsage.insert(CadmiumCrypto::DECRYPT);
+            allowedKeyUsage.insert(CadmiumCrypto::WRAP);
+            allowedKeyUsage.insert(CadmiumCrypto::UNWRAP);
+            break;
+        case CadmiumCrypto::AES_KW:
+            allowedKeyUsage.insert(CadmiumCrypto::WRAP);
+            allowedKeyUsage.insert(CadmiumCrypto::UNWRAP);
+            break;
+        default:
+            assert(false);
     }
-    else if (algorithm == CadmiumCrypto::RSAES_PKCS1_V1_5 ||
-             isAlgorithmAes(algorithm))
+    for (vector<CadmiumCrypto::KeyUsage>::const_iterator it = keyUsage.begin();
+            it != keyUsage.end(); ++it)
     {
-        // only encrypt/decrypt usage allowed for these algorithms
-        for (vector<CadmiumCrypto::KeyUsage>::const_iterator it = keyUsage.begin();
-                it != keyUsage.end(); ++it)
-        {
-            if (*it != CadmiumCrypto::ENCRYPT && *it != CadmiumCrypto::DECRYPT)
-                return false;
-        }
+        if (!allowedKeyUsage.count(*it))
+            return false;
     }
-    else if (algorithm == CadmiumCrypto::RSA_OAEP)
-    {
-        // only encrypt/decrypt or wrap/unwrap usage allowed for these algorithms
-        for (vector<CadmiumCrypto::KeyUsage>::const_iterator it = keyUsage.begin();
-                it != keyUsage.end(); ++it)
-        {
-            if (*it != CadmiumCrypto::ENCRYPT && *it != CadmiumCrypto::DECRYPT &&
-                *it != CadmiumCrypto::WRAP && *it != CadmiumCrypto::UNWRAP)
-                return false;
-        }
-    }
-    else if (algorithm == CadmiumCrypto::AES_KW)
-    {
-        // only wrap/unwrap usage allowed for these algorithms
-        for (vector<CadmiumCrypto::KeyUsage>::const_iterator it = keyUsage.begin();
-                it != keyUsage.end(); ++it)
-        {
-            if (*it != CadmiumCrypto::WRAP && *it != CadmiumCrypto::UNWRAP)
-                return false;
-        }
-    }
-    else if (algorithm == CadmiumCrypto::DH)
-    {
-        // only derive usage allowed for these algorithms
-        for (vector<CadmiumCrypto::KeyUsage>::const_iterator it = keyUsage.begin();
-                it != keyUsage.end(); ++it)
-        {
-            if (*it != CadmiumCrypto::DERIVE)
-                return false;
-        }
-    }
+
     return true;
 }
 
@@ -438,14 +423,6 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importKey(KeyFormat keyFormat,
     if (!isInited_)
         return CAD_ERR_NOT_INITIALIZED;
 
-    const Algorithm algType = toAlgorithm(algVar["name"].string());
-
-    if (!reconcileAlgVsUsage(algType, keyUsage))
-    {
-        DLOG() << "CadmiumCrypto::importKey: ERROR: inconsistent algorithm vs usage\n";
-        return CAD_ERR_INTERNAL;    // FIXME better error
-    }
-
     // keydata is always base64-encoded
     Vuc keyVuc(str64toVuc(keyData));
     if (keyVuc.empty())
@@ -456,6 +433,14 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importKey(KeyFormat keyFormat,
     // a separate handler now.
     if (keyFormat == JWK)
         return importJwk(keyVuc, algVar, extractable, keyUsage, keyHandle, keyType);
+
+    const Algorithm algType = toAlgorithm(algVar["name"].string());
+
+    if (!reconcileAlgVsUsage(algType, keyUsage))
+    {
+        DLOG() << "CadmiumCrypto::importKey: ERROR: inconsistent algorithm vs usage\n";
+        return CAD_ERR_INTERNAL;    // FIXME better error
+    }
 
     shared_ptr<RsaContext> pRsaContext(new RsaContext());
     switch (algType)
@@ -769,6 +754,13 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
     else
     {
         myKeyUsage = keyUsage;
+    }
+
+    // verify key usage
+    if (!reconcileAlgVsUsage(toAlgorithm(myAlgVar["name"].string()), myKeyUsage))
+    {
+        DLOG() << "CadmiumCrypto::importJwk: ERROR: inconsistent algorithm vs usage\n";
+        return CAD_ERR_INTERNAL;    // FIXME better error
     }
 
     // extract / make the key material
@@ -1232,8 +1224,6 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::aesPre(uint32_t keyHandle,
 
     // convert input data
     dataVec = str64toVuc(dataInStr64);
-    if (dataVec.empty())
-        return CAD_ERR_BADENCODING;
 
     // check the key
     keyVec = keyMap_[keyHandle].key;
@@ -1340,7 +1330,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::aesGcmDecrypt(uint32_t keyHandle,
 }
 
 CadErr CadmiumCrypto::CadmiumCryptoImpl::hmac(uint32_t keyHandle, Algorithm shaAlgo,
-        const string& dataStr64, string& hmacStr64)
+        KeyUsage opUsage, const string& dataStr64, string& hmacStr64)
 {
     if (!isInited_)
         return CAD_ERR_NOT_INITIALIZED;
@@ -1348,7 +1338,11 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::hmac(uint32_t keyHandle, Algorithm shaA
     if (!hasKey(keyHandle))
         return CAD_ERR_BADKEYINDEX;
 
-    // NOTE: keyUsage is not enforced here, since there is no appropriate spec value for HMAC usage
+    if (!isUsageAllowed(keyHandle, opUsage))
+    {
+        DLOG() << "CadmiumCrypto::rsaCrypt: operation disallowed by keyUsage\n";
+        return CAD_ERR_KEY_USAGE;
+    }
 
     // verify the provided key is intended for this algorithm
     if (!isKeyAlgMatch(keyHandle, HMAC))
@@ -1493,8 +1487,6 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::rsaCrypt(uint32_t keyHandle,
 
     // convert input data
     Vuc dataVec = str64toVuc(dataInStr64);
-    if (dataVec.empty())
-        return CAD_ERR_BADENCODING;
 
     DLOG() << "CadmiumCrypto::rsaCrypt: inData = " << truncateLong(dataInStr64) << endl;
 
@@ -1546,8 +1538,6 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::rsaSign(uint32_t keyHandle, Algorithm s
 
     // decode input data
     const Vuc dataVec = str64toVuc(dataStr64);
-    if (dataVec.empty())
-        return CAD_ERR_BADENCODING;
 
     Vuc resultVec;
     bool success = keyMap_[keyHandle].pRsaContext->privateSign(dataVec, xShaAlgo(shaAlgo), resultVec);
@@ -1586,8 +1576,6 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::rsaVerify(uint32_t keyHandle,
 
     // decode input data
     const Vuc dataVec = str64toVuc(dataStr64);
-    if (dataVec.empty())
-        return CAD_ERR_BADENCODING;
 
     // decode input sig
     const Vuc sigVec = str64toVuc(sigStr64);
@@ -2196,7 +2184,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::symKeyGen(const Variant& algVar,
 
     if (!reconcileAlgVsUsage(algType, keyUsage))
     {
-        DLOG() << "CadmiumCrypto::rsaKeyGen: ERROR: inconsistent algorithm vs usage\n";
+        DLOG() << "CadmiumCrypto::symKeyGen: ERROR: inconsistent algorithm vs usage\n";
         return CAD_ERR_INTERNAL;    // FIXME better error
     }
 

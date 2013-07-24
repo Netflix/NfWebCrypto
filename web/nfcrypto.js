@@ -64,7 +64,11 @@ End of (PolyCrypt) License Terms and Conditions.
         plugin;
 
     if (!navPlugin) {
-        throw ('NfWebCrypto plugin not found, unable to create nfCrypt');
+        // don't throw inline, not to block further scripts from executing
+        window.setTimeout(function () {
+            throw new Error('NfWebCrypto plugin not found, unable to create nfCrypt');
+        }, 0);
+        return;
     }
 
     // public api root

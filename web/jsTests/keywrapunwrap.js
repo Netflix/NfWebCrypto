@@ -172,6 +172,14 @@ describe("keywrapunwraprsa", function () {
 	        unwrap: false
 	    },
 	    
+	    {   //Fails since the wrapping key usage is only for unwrap
+	    	name: "WrapUsingKeyWithIvalidUsage",
+	    	wrapAlgo: { name: "RSA-OAEP" },
+	    	unwrapAlgo: null, 
+	    	disableUnwrap: true,
+			wrap: false
+	    },
+	    
 	];
 	var OPINDEX = 0;
 	var INDEXVALUE = 0;
@@ -195,10 +203,18 @@ describe("keywrapunwraprsa", function () {
 
 			// generate RSA pub/priv key pair for wrapping with
 			runs(function () {
-				var genOp = nfCrypto.generateKey({name: "RSA-OAEP", params: { modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01])}},
-						false,
-						["wrap", "unwrap"]
-				);
+				var genOp = undefined;
+				if(INDEXVALUE.name == "WrapUsingKeyWithIvalidUsage") {
+					genOp = nfCrypto.generateKey({name: "RSA-OAEP", params: { modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01])}},
+							false,
+							["unwrap"]
+					);
+				} else {
+					genOp = nfCrypto.generateKey({name: "RSA-OAEP", params: { modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01])}},
+							false,
+							["wrap", "unwrap"]
+					);
+				}
 				genOp.onerror = function (e) {
 					error = "ERROR";
 				};
@@ -516,6 +532,14 @@ describe("keywrapunwrapaes", function () {
 	    	unwrapExtractable: true,
 	        unwrap: false
 	    },
+	    
+	    {   //Fails since the wrapping key usage is only for unwrap
+	    	name: "AESWrapUsingKeyWithInvalidUsage",
+	    	wrapAlgo: { name: "AES-KW" },
+	    	unwrapAlgo: null, 
+	    	disableUnwrap: true,
+			wrap: false
+	    },
     ];
 	var OPINDEX = 0;
 	var INDEXVALUE = 0;
@@ -579,7 +603,13 @@ describe("keywrapunwrapaes", function () {
             // generate a wrapping key
             runs(function () {
                 error = undefined;
-                var op = nfCrypto.generateKey({ name: "AES-KW", params: { length: 128 } });
+                var op = undefined;
+                if(INDEXVALUE.name == "AESWrapUsingKeyWithInvalidUsage") {
+                	 op = nfCrypto.generateKey({ name: "AES-KW", params: { length: 128 } }, false, ["unwrap"]);
+                } else {
+                	 op = nfCrypto.generateKey({ name: "AES-KW", params: { length: 128 } });
+                }
+             
                 op.onerror = function (e) {
                     error = "ERROR";
                 };

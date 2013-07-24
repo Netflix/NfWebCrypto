@@ -54,8 +54,8 @@ public:
             const std::string& tagIn, std::string& dataOut);
     CadErr rsaCrypt(uint32_t keyHandle, const std::string& dataIn,
             CipherOp cipherOp, std::string& dataOut);
-    CadErr hmac(uint32_t keyHandle, Algorithm shaAlgo, const std::string& data,
-            std::string& hmac);
+    CadErr hmac(uint32_t keyHandle, Algorithm shaAlgo, KeyUsage opUsage,
+            const std::string& data, std::string& hmac);
     CadErr rsaKeyGen(const base::Variant& algVar, bool extractable,
             std::vector<KeyUsage> keyUsage, uint32_t& pubKeyHandle,
             uint32_t& privKeyHandle);

@@ -222,12 +222,13 @@ public:
      * SHA inner hash and using the key indicated by the provided key handle.
      * @param keyHandle In. The handle of the key to use when computing the HMAC
      * @param shaAlgo In. The inner hash algorithm to use
+     * @param opUsage In. The usage of the operation to be performed (SIGN or VERIFY)
      * @param data In. The data to HMAC, base64-encoded
      * @param hmac Out. The result of the HMAC operation, base64-encoded
      * @return CadErr, CAD_ERR_OK if no error
      */
-    CadErr hmac(uint32_t keyHandle, Algorithm shaAlgo, const std::string& data,
-            std::string& hmac);
+    CadErr hmac(uint32_t keyHandle, Algorithm shaAlgo, KeyUsage opUsage,
+            const std::string& data, std::string& hmac);
 
     //---------------- RSA ---------------------------------------------------//
 

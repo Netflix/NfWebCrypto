@@ -96,7 +96,7 @@ Directory Tour
         handles the transport of JSON-serialized messages to and from the
         plugin, while the top level implements the W3C WebCrypto interface.
         Native devs will need to change the bottom level to match their bridge
-        API. This source file borrows heavily from polycrypt (polycrypto.net)
+        API. This source file borrows heavily from PolyCrypt (polycrypt.net)
     web/test_qa.html
         The Jasmine HTML unit tests that exercise the javascript WebCrypto
         API exposed to the javascript client by nfcrypto.js.
