@@ -44,14 +44,14 @@ describe("SignRSA", function () {
 	       	test: "SignRSAEmptyData",
 	        algo: {name: "RSASSA-PKCS1-v1_5", params: { hash: "SHA-256" }},
 	        testData: hex2abv(""),
-	        sign: false
+	        sign: true
 	    },	
 	    
 	    {
 	       	test: "SignRSANullData",
 	        algo: {name: "RSASSA-PKCS1-v1_5", params: { hash: "SHA-256" }},
 	        testData: null,
-	        sign: false
+	        sign: true
 	    },	
 	    
 	    {
@@ -68,6 +68,13 @@ describe("SignRSA", function () {
 	        sign: false
 	    },	
 	    
+	    {   //Error since signing is using RSASSA-PKCS1-v1_5 import key uses RSAES-PKCS1-v1_5
+	    	test: "RSASignMismatchImportAlgo",
+	        algo: {name: "RSASSA-PKCS1-v1_5", params: { hash: "SHA-256" }},
+	        testData: DATA,
+	        sign: false
+	    },	
+	    
 	    {   //!!!!NOTE THIS TEST WILL NOT WORK WHEN REAL WEBCRYPTO COMES ALONG!!!!!!!
 	       	test: "SignRSAInvalidSignKey",
 	        //key manipulation happens just before sign
@@ -75,6 +82,14 @@ describe("SignRSA", function () {
 	        testData: DATA,
 	        sign: false
 	    },	
+	    
+	    {   //Fails since the generated key only supports verify
+	       	test: "SignUsingKeyWithInvalidUsage",
+	        algo: {name: "RSASSA-PKCS1-v1_5", params: { hash: "SHA-256" }},
+	        testData: DATA,
+	        sign: false
+	    },	
+	    
 	];
 	
 	function wrapperForTest(OPINDEX) {	
@@ -93,15 +108,36 @@ describe("SignRSA", function () {
 
 			runs(function () {
 				try {
-					var genOp = nfCrypto.generateKey({
-						name: "RSASSA-PKCS1-v1_5",
-						params: {
-							modulusLength: 512,
-							publicExponent: fermatF4,
-						},
-						//TODO: Add specific tests to check default values and see that 
-						//they hold true wrt C++
-					});
+					if (INDEXVALUE.test == "RSASignMismatchImportAlgo" ) {
+						var genOp = nfCrypto.generateKey({
+							name: "RSAES-PKCS1-v1_5",
+							params: {
+								//2048 bit RSA key can encrypt (n/8) - 11 bytes for PKCS
+								//With given 2048 bit key it can encrypt 245 bytes
+								modulusLength: 2048,
+								publicExponent: fermatF4,
+							},
+						});
+					} else if (INDEXVALUE.test == "SignUsingKeyWithInvalidUsage" ) {
+						var genOp = nfCrypto.generateKey({
+							name: "RSASSA-PKCS1-v1_5",
+							params: {
+								modulusLength: 512,
+								publicExponent: fermatF4,
+							} },
+							false,
+							["verify"]);
+					} else {
+						var genOp = nfCrypto.generateKey({
+							name: "RSASSA-PKCS1-v1_5",
+							params: {
+								modulusLength: 512,
+								publicExponent: fermatF4,
+							},
+							//TODO: Add specific tests to check default values and see that 
+							//they hold true wrt C++
+						});
+					}
 					genOp.onerror = function (e) {
 						error = "ERROR :: " + e.target.result;
 					};
@@ -120,10 +156,18 @@ describe("SignRSA", function () {
 			runs(function () {
 				expect(error).toBeUndefined();
 				//Doing checks on keys to validate Public Key structure
-				expect(pubKey.algorithm.name).toEqual("RSASSA-PKCS1-v1_5");
-				//Even thoug default value is extractable: false public keys are always extractable
+				if (INDEXVALUE.test == "RSASignMismatchImportAlgo" ) {
+					expect(pubKey.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
+				} else {
+					expect(pubKey.algorithm.name).toEqual("RSASSA-PKCS1-v1_5");
+				}
+				//Even though default value is extractable: false public keys are always extractable
 				expect(pubKey.extractable).toBeTruthy();
-				expect(pubKey.keyUsage.length).toEqual(0);
+				if (INDEXVALUE.test == "SignUsingKeyWithInvalidUsage" ) {
+					expect(pubKey.keyUsage.length).toEqual(1);
+				} else {
+					expect(pubKey.keyUsage.length).toEqual(0);
+				}
 				//TODO: Re-enable this check when we know what default values should be
 				//expect(pubKey.keyUsage[0]).toEqual("verify");
 				expect(pubKey.keyUsage).not.toBeNull();
@@ -133,9 +177,17 @@ describe("SignRSA", function () {
 				expect(pubKey.handle).not.toEqual(0);
 
 				//Doing checks on keys to validate Private Key structure
-				expect(privKey.algorithm.name).toEqual("RSASSA-PKCS1-v1_5");
+				if (INDEXVALUE.test == "RSASignMismatchImportAlgo" ) {
+					expect(privKey.algorithm.name).toEqual("RSAES-PKCS1-v1_5");
+				} else {
+					expect(privKey.algorithm.name).toEqual("RSASSA-PKCS1-v1_5");
+				}
 				expect(privKey.extractable).toBeFalsy();
-				expect(privKey.keyUsage.length).toEqual(0);
+				if (INDEXVALUE.test == "SignUsingKeyWithInvalidUsage" ) {
+					expect(privKey.keyUsage.length).toEqual(1);
+				} else {
+					expect(privKey.keyUsage.length).toEqual(0);
+				}
 				//TODO: Re-enable this check when we know what default values should be
 				//expect(privKey.keyUsage[0]).toEqual("sign");
 				expect(privKey.type).toEqual("private");
@@ -176,37 +228,38 @@ describe("SignRSA", function () {
 					expect(signature).toBeDefined();
 				}
 			});
+          
+			if (INDEXVALUE.sign == false) {
+				// verify data with the public key
+				runs(function () {
+					try {
+						error = undefined;
+						var verifyOp = nfCrypto.verify(INDEXVALUE.algo, pubKey, signature, INDEXVALUE.testData);
+						verifyOp.onerror = function (e) {
+							error = "ERROR :: " + e.target.result;
+						};
+						verifyOp.oncomplete = function (e) {
+							verified = e.target.result;
+						};
+					} catch(e) {
+						error = "ERROR";
+					}
+				});
 
-			// verify data with the public key
-			runs(function () {
-				try {
-					error = undefined;
-					var verifyOp = nfCrypto.verify(INDEXVALUE.algo, pubKey, signature, INDEXVALUE.testData);
-					verifyOp.onerror = function (e) {
-						error = "ERROR :: " + e.target.result;
-					};
-					verifyOp.oncomplete = function (e) {
-						verified = e.target.result;
-					};
-				} catch(e) {
-					error = "ERROR";
-				}
-			});
+				waitsFor(function () {
+					return verified || error;
+				});
 
-			waitsFor(function () {
-				return verified || error;
-			});
-
-			runs(function () {
-				if (INDEXVALUE.sign == false) {
-					expect(error).toBeDefined();
-					expect(verified).toBeUndefined();
-				} else {
-					expect(error).toBeUndefined();
-					expect(verified).toBe(true);
-				}
-			});
-
+				runs(function () {
+	                if (INDEXVALUE.sign == false) {
+	                    expect(error).toBeDefined();
+	                    expect(signature).toBeUndefined();
+	                } else {
+	                    expect(error).toBeUndefined();
+	                    expect(signature).toBeDefined();
+	                }
+				});
+			}//if (INDEXVALUE.sign == false) 
 		});//it
 	}//function wrapperForTest
 	for(OPINDEX = 0; OPINDEX < LISTOFTESTS.length; OPINDEX++) {	
@@ -266,6 +319,13 @@ describe("VerifyRSA", function () {
 	        testData: DATA,
 	        verify: false
 	    },	
+	    
+	    {   //Fails since the generated key only supports sign
+	       	test: "VerifyUsingKeyWithInvalidUsage",
+	        algo: {name: "RSASSA-PKCS1-v1_5", params: { hash: "SHA-256" }},
+	        testData: hex2abv(""),
+	        verify: false
+	    },	
 	];
 	
 	function wrapperForTest(OPINDEX) {	
@@ -284,15 +344,25 @@ describe("VerifyRSA", function () {
 
 			runs(function () {
 				try {
-					var genOp = nfCrypto.generateKey({
+					var genOp = undefined;
+					if (INDEXVALUE.test == "VerifyUsingKeyWithInvalidUsage" ) {
+						genOp = nfCrypto.generateKey({
 						name: "RSASSA-PKCS1-v1_5",
 						params: {
 							modulusLength: 512,
 							publicExponent: fermatF4,
-						},
-						//TODO: Add specific tests to check default values and see that 
-						//they hold true wrt C++
-					});
+						} },
+						false,
+						["sign"]);
+					} else {
+						genOp = nfCrypto.generateKey({
+							name: "RSASSA-PKCS1-v1_5",
+							params: {
+								modulusLength: 512,
+								publicExponent: fermatF4,
+							},
+						});
+					}
 					genOp.onerror = function (e) {
 						error = "ERROR :: " + e.target.result;
 					};
@@ -314,7 +384,11 @@ describe("VerifyRSA", function () {
 				expect(pubKey.algorithm.name).toEqual("RSASSA-PKCS1-v1_5");
 				//Even thoug default value is extractable: false public keys are always extractable
 				expect(pubKey.extractable).toBeTruthy();
-				expect(pubKey.keyUsage.length).toEqual(0);
+				if (INDEXVALUE.test == "VerifyUsingKeyWithInvalidUsage" ) {
+					expect(pubKey.keyUsage.length).toEqual(1);
+				} else {
+					expect(pubKey.keyUsage.length).toEqual(0);
+				}
 				//TODO: Re-enable this check when we know what default values should be
 				//expect(pubKey.keyUsage[0]).toEqual("verify");
 				expect(pubKey.keyUsage).not.toBeNull();
@@ -326,7 +400,11 @@ describe("VerifyRSA", function () {
 				//Doing checks on keys to validate Private Key structure
 				expect(privKey.algorithm.name).toEqual("RSASSA-PKCS1-v1_5");
 				expect(privKey.extractable).toBeFalsy();
-				expect(privKey.keyUsage.length).toEqual(0);
+				if (INDEXVALUE.test == "VerifyUsingKeyWithInvalidUsage" ) {
+					expect(privKey.keyUsage.length).toEqual(1);
+				} else {
+					expect(privKey.keyUsage.length).toEqual(0);
+				}
 				//TODO: Re-enable this check when we know what default values should be
 				//expect(privKey.keyUsage[0]).toEqual("sign");
 				expect(privKey.type).toEqual("private");
@@ -387,12 +465,15 @@ describe("VerifyRSA", function () {
 
 			runs(function () {
 				if (INDEXVALUE.verify == false) {
-				    if (INDEXVALUE.test == "VerifyRSAInvalidSignature") {
+				    if (INDEXVALUE.test == "VerifyRSAInvalidSignature" ||
+	                    INDEXVALUE.test == "VerifyRSAEmptyData"        ||
+                        INDEXVALUE.test == "VerifyRSANullData"           )
+				    {
 	                    expect(error).toBeUndefined();
 	                    expect(verified).toBe(false);
 				    } else {
 				        expect(error).toBeDefined();
-				        expect(verified).toBeUndefined(false);
+				        expect(verified).toBeUndefined();
 				    }
 				} else {
 					expect(error).toBeUndefined();

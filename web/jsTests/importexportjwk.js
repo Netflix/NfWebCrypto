@@ -46,7 +46,7 @@ describe("importexportjwk", function () {
 		   	test: "ImportJWKInvalidUsage",
 		   	keyFormat: "jwk",
 	        algo: { name: "RSAES-PKCS1-v1_5" },
-	        usages: ["derive"],
+	        usages: ["derive"],    // note that this usage is ignored in favor of 'use' inside the jwk
 	        extractable: true,
 	        type: "public",
 		    importKey: false
@@ -144,6 +144,24 @@ describe("importexportjwk", function () {
 	                    use: "enc"
 					}));
 					op = nfCrypto.importKey(INDEXVALUE.keyFormat, jwkBadData, INDEXVALUE.algo, INDEXVALUE.extractable, INDEXVALUE.usages);
+				} else if (INDEXVALUE.test == "ImportJWKInvalidUsage") {
+                    // key data is Uint8Array which is Latin1 encoded "{n: base64, e: base64}" json string
+                    jwkKeyData = latin1.parse(JSON.stringify({
+                            alg: "RSA1_5",
+                            kty: "RSA",
+                            use: "sig",     // use is invalid here, not compatible with RSA1_5
+                            extractable: true,
+                            n: base64.stringifyUrlSafe(base16.parse(
+                                    "a8b3b284af8eb50b387034a860f146c4919f318763cd6c55" +
+                                    "98c8ae4811a1e0abc4c7e0b082d693a5e7fced675cf46685" +
+                                    "12772c0cbc64a742c6c630f533c8cc72f62ae833c40bf258" +
+                                    "42e984bb78bdbf97c0107d55bdb662f5c4e0fab9845cb514" +
+                                    "8ef7392dd3aaff93ae1e6b667bb3d4247616d4f5ba10d4cf" +
+                                    "d226de88d39f16fb"
+                            )),
+                            e: base64.stringifyUrlSafe(base16.parse("010001")),
+                    }));
+                    op = nfCrypto.importKey(INDEXVALUE.keyFormat, jwkKeyData, INDEXVALUE.algo, INDEXVALUE.extractable, INDEXVALUE.usages);
 				} else {
 					// key data is Uint8Array which is Latin1 encoded "{n: base64, e: base64}" json string
 					jwkKeyData = latin1.parse(JSON.stringify({
@@ -160,8 +178,6 @@ describe("importexportjwk", function () {
 		                            "d226de88d39f16fb"
 		                    )),
 		                    e: base64.stringifyUrlSafe(base16.parse("010001")),
-		                    
-		                    
 		            }));
 					op = nfCrypto.importKey(INDEXVALUE.keyFormat, jwkKeyData, INDEXVALUE.algo, INDEXVALUE.extractable, INDEXVALUE.usages);
 				}
@@ -509,7 +525,7 @@ describe("jwkdifferentalgos", function () {
 		    	 //Algo equivalent in webcrypto
 		    	 algoTranslation: "AES-KW",
 		    	 kty: "oct",
-		    	 use: "enc",
+		    	 use: "wrap",
 		    	 extract: true,
 		    	 key: base64.stringifyUrlSafe(KEY128)
 		    },
@@ -520,7 +536,7 @@ describe("jwkdifferentalgos", function () {
 		    	 //Algo equivalent in webcrypto
 		    	 algoTranslation: "AES-KW",
 		    	 kty: "oct",
-		    	 use: "enc",
+		    	 use: "wrap",
 		    	 extract: true,
 		    	 key: base64.stringifyUrlSafe(KEY256)
 		     },
