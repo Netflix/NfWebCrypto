@@ -1267,64 +1267,57 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::aesCbc(uint32_t keyHandle,
     return CAD_ERR_OK;
 }
 
-CadErr CadmiumCrypto::CadmiumCryptoImpl::aesGcmEncrypt(uint32_t keyHandle,
-        const string& ivInStr64, const string& dataInStr64,
-        const string& aadInStr64, string& tagOutStr64, string& dataOutStr64)
+CadErr CadmiumCrypto::CadmiumCryptoImpl::aesGcm(uint32_t keyHandle,
+        const string& ivInStr64, const string& dataInStr64, const string& aadInStr64,
+        uint8_t taglenBits, CipherOp cipherOp, string& dataOutStr64)
 {
-    Vuc ivVec, dataVec, keyVec;
+    Vuc ivVuc, dataVuc, keyVuc;
     CadErr err = aesPre(keyHandle, ENCRYPT, ivInStr64, dataInStr64,
-        AES_GCM, ivVec, dataVec, keyVec);
+        AES_GCM, ivVuc, dataVuc, keyVuc);
     if (err != CAD_ERR_OK)
         return err;
 
     // convert the aad
-    const Vuc aadVec = str64toVuc(aadInStr64);
-    if (aadVec.empty())
+    const Vuc aadVuc = str64toVuc(aadInStr64);
+    if (aadVuc.empty())
         return CAD_ERR_BADENCODING;
 
-    // encrypt
-    AesGcmCipher cipher(keyVec, ivVec);
-    Vuc cipherTextVec, tagVec;
-    const bool success = cipher.encrypt(dataVec, aadVec, cipherTextVec, tagVec);
-    if (!success)
-        return CAD_ERR_CIPHERERROR;
+    AesGcmCipher cipher(keyVuc, ivVuc);
+    Vuc tagVuc, outVuc;
+    // round tagLenBits to a multiple of 8, to avoid padding issues
+    taglenBits += (7 - ((taglenBits - 1) % 8));
+    const uint8_t tagLenBytes = taglenBits / 8;
+    if (cipherOp == DODECRYPT)
+    {
+        // extract the tag and trim the input data
+        const uint32_t dataLenBytes = dataVuc.size() - tagLenBytes;
+        const Vuc::iterator tagIt = dataVuc.begin() + dataLenBytes + 1;
+        Vuc(tagIt, dataVuc.end()).swap(tagVuc);
+        assert(tagVuc.size() == tagLenBytes);
+        Vuc(dataVuc.begin(), dataVuc.begin() + dataLenBytes).swap(dataVuc);
+        assert(dataVuc.size() == dataLenBytes);
+
+        // decrypt
+        Vuc clearText;
+        // ignore bool return value; clearText will be empty if auth fails
+        cipher.decrypt(dataVuc, aadVuc, tagVuc, outVuc);
+    }
+    else // cipherOp == DOENCRYPT
+    {
+        // encrypt
+        const bool success = cipher.encrypt(dataVuc, aadVuc, outVuc, tagVuc);
+        if (!success)
+            return CAD_ERR_CIPHERERROR;
+
+        // truncate the auth tag and concatenate it to the output ciphertext
+        if (tagVuc.size() != tagLenBytes)
+            Vuc(tagVuc.begin(), tagVuc.begin() + tagLenBytes).swap(tagVuc);
+        assert(tagVuc.size() == tagLenBytes);
+        outVuc.insert(outVuc.end(), tagVuc.begin(), tagVuc.end());
+    }
 
     // encode results and return
-    dataOutStr64 = vucToStr64(cipherTextVec);
-    tagOutStr64 = vucToStr64(tagVec);
-
-    return CAD_ERR_OK;
-}
-
-CadErr CadmiumCrypto::CadmiumCryptoImpl::aesGcmDecrypt(uint32_t keyHandle,
-        const string& ivInStr64, const string& dataInStr64,
-        const string& aadInStr64, const string& tagInStr64, string& dataOutStr64)
-{
-    Vuc ivVec, dataVec, keyVec;
-    CadErr err = aesPre(keyHandle, DECRYPT, ivInStr64, dataInStr64,
-        AES_GCM, ivVec, dataVec, keyVec);
-    if (err != CAD_ERR_OK)
-        return err;
-
-    // convert the aad
-    const Vuc aadVec = str64toVuc(aadInStr64);
-    if (aadVec.empty())
-        return CAD_ERR_BADENCODING;
-
-    // convert the tag
-    const Vuc tagVec = str64toVuc(tagInStr64);
-    if (tagVec.empty())
-        return CAD_ERR_BADENCODING;
-
-    // decrypt
-    AesGcmCipher cipher(keyVec, ivVec);
-    Vuc clearTextVec;
-    const bool success = cipher.decrypt(dataVec, aadVec, tagVec, clearTextVec);
-    if (!success)
-        return CAD_ERR_CIPHERERROR;
-
-    // encode results and return
-    dataOutStr64 = vucToStr64(clearTextVec);
+    dataOutStr64 = vucToStr64(outVuc);
 
     return CAD_ERR_OK;
 }

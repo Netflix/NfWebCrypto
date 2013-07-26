@@ -84,16 +84,10 @@ CadErr CadmiumCrypto::aesCbc(uint32_t keyHandle, const string& ivIn,
     return impl_->aesCbc(keyHandle, ivIn, dataIn, cipherOp, dataOut);
 }
 
-CadErr CadmiumCrypto::aesGcmEncrypt(uint32_t keyHandle, const string& ivIn,
-        const string& dataIn, const string& aadIn, string& tagOut, string& dataOut)
+CadErr CadmiumCrypto::aesGcm(uint32_t keyHandle, const string& ivIn, const string& dataIn,
+        const string& aadIn, uint8_t taglen, CipherOp cipherOp, string& dataOut)
 {
-    return impl_->aesGcmEncrypt(keyHandle, ivIn, dataIn, aadIn, tagOut, dataOut);
-}
-
-CadErr CadmiumCrypto::aesGcmDecrypt(uint32_t keyHandle, const string& ivIn,
-        const string& dataIn, const string& aadIn, const string& tagIn, string& dataOut)
-{
-    return impl_->aesGcmDecrypt(keyHandle, ivIn, dataIn, aadIn, tagIn, dataOut);
+    return impl_->aesGcm(keyHandle, ivIn, dataIn, aadIn, taglen, cipherOp, dataOut);
 }
 
 CadErr CadmiumCrypto::rsaCrypt(uint32_t keyHandle, const string& dataIn,

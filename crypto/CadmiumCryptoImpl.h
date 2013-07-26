@@ -46,12 +46,9 @@ public:
             base::Variant& algVar, std::vector<KeyUsage>& usage) const;
     CadErr aesCbc(uint32_t keyHandle, const std::string& ivIn,
             const std::string& dataIn, CipherOp cipherOp, std::string& dataOut);
-    CadErr aesGcmEncrypt(uint32_t keyHandle, const std::string& ivIn,
-            const std::string& dataIn, const std::string& aadIn,
-            std::string& tagOut, std::string& dataOut);
-    CadErr aesGcmDecrypt(uint32_t keyHandle, const std::string& ivIn,
-            const std::string& dataIn, const std::string& aadIn,
-            const std::string& tagIn, std::string& dataOut);
+    CadErr aesGcm(uint32_t keyHandle, const std::string& ivIn, const std::string& dataIn,
+            const std::string& aadIn, uint8_t taglenBits, CipherOp cipherOp,
+            std::string& dataOut);
     CadErr rsaCrypt(uint32_t keyHandle, const std::string& dataIn,
             CipherOp cipherOp, std::string& dataOut);
     CadErr hmac(uint32_t keyHandle, Algorithm shaAlgo, KeyUsage opUsage,

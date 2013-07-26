@@ -593,6 +593,7 @@ bool NativeBridge::exportKey(const string& cmdIndex, Variant& argsVar,
 bool NativeBridge::encrypt(const string& cmdIndex, Variant& argsVar,
         VariantMap& returnVarMap)
 {
+    // ------------ encrypt --------------
     argsVar["doEncrypt"] = true;
     return encryptDecrypt(cmdIndex, argsVar, returnVarMap);
 }
@@ -600,6 +601,7 @@ bool NativeBridge::encrypt(const string& cmdIndex, Variant& argsVar,
 bool NativeBridge::decrypt(const string& cmdIndex, Variant& argsVar,
         VariantMap& returnVarMap)
 {
+    // ------------ decrypt --------------
     argsVar["doEncrypt"] = false;
     return encryptDecrypt(cmdIndex, argsVar, returnVarMap);
 }
@@ -607,8 +609,7 @@ bool NativeBridge::decrypt(const string& cmdIndex, Variant& argsVar,
 bool NativeBridge::encryptDecrypt(const string& cmdIndex, Variant& argsVar,
         VariantMap& returnVarMap)
 {
-    // ------------ encrypt --------------
-    // Encrypt a block of data
+    // Encrypt or Decrypt a block of data
     // Input:
     //     argsObj: {
     //         algorithm: object; the encryption algorithm name, "RSAES-PKCS1-v1_5" only
@@ -624,7 +625,8 @@ bool NativeBridge::encryptDecrypt(const string& cmdIndex, Variant& argsVar,
     //             name:    string; the encryption algorithm name, "AES-GCM" only
     //             params: {
     //                 iv:  string; the initialization vector, base64-encoded
-    //                 aad TODO
+    //                 additionalData: string; additional authentication data to include, base64-encoded
+    //                 tagLength: string; desired length of the authentication tag. May be 0 - 128.
     //             }
     //         }
     //         keyHandle: string, the handle of the key to use
@@ -671,7 +673,7 @@ bool NativeBridge::encryptDecrypt(const string& cmdIndex, Variant& argsVar,
         if (isError(err, cmdIndex))
             return false;
     }
-    else if (algType == CadmiumCrypto::AES_CBC)
+    else if (algType == CadmiumCrypto::AES_CBC || algType == CadmiumCrypto::AES_GCM)
     {
         // get initialization vector
         if (!algObj.contains("params") && !algObj["params"].contains("iv"))
@@ -685,14 +687,53 @@ bool NativeBridge::encryptDecrypt(const string& cmdIndex, Variant& argsVar,
             return false;
         DLOG() << "\tiv: " << truncateLong(ivStr64) << endl;
 
-        // do the operation
-        CadErr err;
-        if (doEncrypt)
-            err = cadmiumCrypto_->aesCbc(keyHandle, ivStr64, dataStr64, CadmiumCrypto::DOENCRYPT, resultData64);
-        else
-            err = cadmiumCrypto_->aesCbc(keyHandle, ivStr64, dataStr64, CadmiumCrypto::DODECRYPT, resultData64);
-        if (isError(err, cmdIndex))
-            return false;
+        if (algType == CadmiumCrypto::AES_CBC)
+        {
+            // do the operation
+            CadErr err =
+                cadmiumCrypto_->aesCbc(keyHandle, ivStr64, dataStr64,
+                    doEncrypt ? CadmiumCrypto::DOENCRYPT : CadmiumCrypto::DODECRYPT,
+                    resultData64);
+            if (isError(err, cmdIndex))
+                return false;
+        }
+        else // algType == CadmiumCrypto::AES_GCM
+        {
+            // get the additional authentication data
+            if (!algObj["params"].contains("additionalData"))
+            {
+                DLOG() << "ERROR: algorithm missing additionalData algorithm param\n";
+                sendError(cmdIndex, CAD_ERR_UNKNOWN_ALGO);  // FIXME: better error
+                return false;
+            }
+            string aadStr64;
+            if (!getVal<string>(algObj["params"], "additionalData", cmdIndex, aadStr64))
+                return false;
+            DLOG() << "\tadditionalData: " << truncateLong(aadStr64) << endl;
+
+            // get the taglength
+            int taglenBytes;
+            if (!getVal<int>(argsVar, "taglength", cmdIndex, taglenBytes))
+                return false;
+            if (taglenBytes < 0 || taglenBytes > 128)
+            {
+                DLOG() << "ERROR: taglength outside valid range\n";
+                sendError(cmdIndex, CAD_ERR_BADARG);  // FIXME: better error
+            }
+            DLOG() << "\ttaglength: " << taglenBytes << endl;
+
+            // do the operation
+            // Note: authentication tag is the last taglenBytes of resultData
+            // (encrypt), or dataStr (encrypt)
+            // Note: if doing decrypt but authentication fails, aesGcm() still
+            // returns CAD_ERR_OK but resultData64 will be empty
+            CadErr err =
+                cadmiumCrypto_->aesGcm(keyHandle, ivStr64, dataStr64, aadStr64,
+                    taglenBytes, doEncrypt ? CadmiumCrypto::DOENCRYPT : CadmiumCrypto::DODECRYPT,
+                    resultData64);
+            if (isError(err, cmdIndex))
+                return false;
+        }
     }
     else
     {
