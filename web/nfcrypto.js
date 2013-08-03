@@ -467,12 +467,18 @@ End of (PolyCrypt) License Terms and Conditions.
         if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("iv")) {
             algorithm.params.iv = b64encode(algorithm.params.iv);
         }
+        if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("additionalData")) {
+            algorithm.params.additionalData = b64encode(algorithm.params.additionalData);
+        }
         return createCryptoOp('encrypt', algorithm, key, null, buffer);
     };
 
     that.decrypt = function (algorithm, key, buffer) {
         if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("iv")) {
             algorithm.params.iv = b64encode(algorithm.params.iv);
+        }
+        if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("additionalData")) {
+            algorithm.params.additionalData = b64encode(algorithm.params.additionalData);
         }
         return createCryptoOp('decrypt', algorithm, key, null, buffer);
     };
