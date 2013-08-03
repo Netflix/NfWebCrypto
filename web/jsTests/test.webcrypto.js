@@ -469,7 +469,7 @@
 
     // --------------------------------------------------------------------------------
 
-    describe("AES", function () {
+    describe("AES-CBC", function () {
 
         it("importKey/exportKey raw AES-CBC", function () {
             var error;
@@ -763,6 +763,106 @@
             runs(function () {
                 error = undefined;
                 var decryptOp = cryptoSubtle.decrypt({ name: "AES-CBC", params: { iv: iv } }, key, encrypted);
+                decryptOp.onerror = function (e) {
+                    error = "ERROR";
+                };
+                decryptOp.oncomplete = function (e) {
+                    decrypted = e.target.result;
+                };
+            });
+
+            waitsFor(function () {
+                return decrypted || error;
+            });
+
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(decrypted).toBeDefined();
+                expect(base16.stringify(decrypted)).toBe(clearText_hex);
+            });
+
+        });
+
+    });
+
+    // --------------------------------------------------------------------------------
+
+    describe("AES-GCM", function () {
+
+        it("encrypt/decrypt AES-GCM", function () {
+
+            var error;
+
+            var key,
+                keyData = new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
+                iv = base16.parse("562e17996d093d28ddb3ba695a2e6f58"),
+                clearText_hex = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+                clearText = base16.parse(clearText_hex),
+                additionalData = base16.parse("a0b0c0d0e0f10111213141516"),
+                encrypted,
+                decrypted;
+
+            runs(function () {
+                var op = cryptoSubtle.importKey("raw", keyData,{ name: "AES-GCM" }, true, ["encrypt", "decrypt"]);
+                op.onerror = function (e) {
+                    error = "ERROR";
+                };
+                op.oncomplete = function (e) {
+                    key = e.target.result;
+                };
+            });
+
+            waitsFor(function () {
+                return key || error;
+            });
+
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(key).toBeDefined();
+            });
+
+            runs(function () {
+                error = undefined;
+                var encryptOp = cryptoSubtle.encrypt(
+                {
+                	name: "AES-GCM",
+                	params: {
+                		iv: iv,
+                        additionalData: additionalData,
+                        tagLength: 128
+                    }
+                }, key, clearText);
+                encryptOp.onerror = function (e) {
+                    error = "ERROR";
+                };
+                encryptOp.oncomplete = function (e) {
+                    encrypted = e.target.result;
+                };
+            });
+
+            waitsFor(function () {
+                return encrypted || error;
+            });
+
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(encrypted).toBeDefined();
+                expect(base16.stringify(encrypted)).not.toBe(clearText);
+            });
+
+            runs(function () {
+                error = undefined;
+                var decryptOp = cryptoSubtle.decrypt(
+                    {
+                        name: "AES-GCM",
+                        params: {
+                            iv: iv,
+                            additionalData: additionalData,
+                            tagLength: 128
+                        }
+                    },
+                    key,
+                    encrypted);
                 decryptOp.onerror = function (e) {
                     error = "ERROR";
                 };

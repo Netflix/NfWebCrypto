@@ -1291,7 +1291,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::aesGcm(uint32_t keyHandle,
     {
         // extract the tag and trim the input data
         const uint32_t dataLenBytes = dataVuc.size() - tagLenBytes;
-        const Vuc::iterator tagIt = dataVuc.begin() + dataLenBytes + 1;
+        const Vuc::iterator tagIt = dataVuc.begin() + dataLenBytes;
         Vuc(tagIt, dataVuc.end()).swap(tagVuc);
         assert(tagVuc.size() == tagLenBytes);
         Vuc(dataVuc.begin(), dataVuc.begin() + dataLenBytes).swap(dataVuc);

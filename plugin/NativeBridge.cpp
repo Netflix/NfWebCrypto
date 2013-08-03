@@ -700,21 +700,23 @@ bool NativeBridge::encryptDecrypt(const string& cmdIndex, Variant& argsVar,
         else // algType == CadmiumCrypto::AES_GCM
         {
             // get the additional authentication data
-            if (!algObj["params"].contains("additionalData"))
+            string aadStr64;
+            if (!getVal<string>(algObj["params"], "additionalData", cmdIndex, aadStr64))
             {
                 DLOG() << "ERROR: algorithm missing additionalData algorithm param\n";
                 sendError(cmdIndex, CAD_ERR_UNKNOWN_ALGO);  // FIXME: better error
                 return false;
             }
-            string aadStr64;
-            if (!getVal<string>(algObj["params"], "additionalData", cmdIndex, aadStr64))
-                return false;
             DLOG() << "\tadditionalData: " << truncateLong(aadStr64) << endl;
 
             // get the taglength
             int taglenBytes;
-            if (!getVal<int>(argsVar, "taglength", cmdIndex, taglenBytes))
+            if (!getVal<int>(algObj["params"], "tagLength", cmdIndex, taglenBytes))
+            {
+                DLOG() << "ERROR: algorithm missing tagLength algorithm param\n";
+                sendError(cmdIndex, CAD_ERR_UNKNOWN_ALGO);  // FIXME: better error
                 return false;
+            }
             if (taglenBytes < 0 || taglenBytes > 128)
             {
                 DLOG() << "ERROR: taglength outside valid range\n";
