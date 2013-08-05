@@ -788,19 +788,18 @@
     // --------------------------------------------------------------------------------
 
     describe("AES-GCM", function () {
-
-        it("encrypt/decrypt AES-GCM", function () {
-
+    	
+    	var key,
+            iv = base16.parse("562e17996d093d28ddb3ba695a2e6f58"),
+            clearText_hex = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+            clearText = base16.parse(clearText_hex),
+            additionalData = base16.parse("a0b0c0d0e0f10111213141516");
+    	
+    	beforeEach(function() {
             var error;
-
-            var key,
-                keyData = new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
-                iv = base16.parse("562e17996d093d28ddb3ba695a2e6f58"),
-                clearText_hex = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
-                clearText = base16.parse(clearText_hex),
-                additionalData = base16.parse("a0b0c0d0e0f10111213141516"),
-                encrypted,
-                decrypted;
+            var keyData = new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
+                                          0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B,
+                                          0x0C, 0x0D, 0x0E, 0x0F]);
 
             runs(function () {
                 var op = cryptoSubtle.importKey("raw", keyData,{ name: "AES-GCM" }, true, ["encrypt", "decrypt"]);
@@ -820,69 +819,217 @@
                 expect(error).toBeUndefined();
                 expect(key).toBeDefined();
             });
+    		
+    	});
+    	
+    	// round-trip valid taglengths
+    	
+    	function encdec(tagLength) {
 
-            runs(function () {
-                error = undefined;
-                var encryptOp = cryptoSubtle.encrypt(
-                {
-                	name: "AES-GCM",
-                	params: {
-                		iv: iv,
-                        additionalData: additionalData,
-                        tagLength: 128
-                    }
-                }, key, clearText);
-                encryptOp.onerror = function (e) {
-                    error = "ERROR";
-                };
-                encryptOp.oncomplete = function (e) {
-                    encrypted = e.target.result;
-                };
-            });
+	        it("encrypt/decrypt AES-GCM, tagLength " + tagLength, function () {
+	
+	            var encrypted,
+	                decrypted,
+	                error;
+	
+	            runs(function () {
+	                var encryptOp = cryptoSubtle.encrypt(
+	                {
+	                	name: "AES-GCM",
+	                	params: {
+	                		iv: iv,
+	                        additionalData: additionalData,
+	                        tagLength: tagLength
+	                    }
+	                }, key, clearText);
+	                encryptOp.onerror = function (e) {
+	                    error = "ERROR";
+	                };
+	                encryptOp.oncomplete = function (e) {
+	                    encrypted = e.target.result;
+	                };
+	            });
+	
+	            waitsFor(function () {
+	                return encrypted || error;
+	            });
+	
+	            runs(function () {
+	                expect(error).toBeUndefined();
+	                expect(encrypted).toBeDefined();
+	                expect(base16.stringify(encrypted)).not.toBe(clearText);
+	            });
+	
+	            runs(function () {
+	                error = undefined;
+	                var decryptOp = cryptoSubtle.decrypt(
+	                    {
+	                        name: "AES-GCM",
+	                        params: {
+	                            iv: iv,
+	                            additionalData: additionalData,
+	                            tagLength: tagLength
+	                        }
+	                    },
+	                    key,
+	                    encrypted);
+	                decryptOp.onerror = function (e) {
+	                    error = "ERROR";
+	                };
+	                decryptOp.oncomplete = function (e) {
+	                    decrypted = e.target.result;
+	                };
+	            });
+	
+	            waitsFor(function () {
+	                return decrypted || error;
+	            });
+	
+	            runs(function () {
+	                expect(error).toBeUndefined();
+	                expect(decrypted).toBeDefined();
+	                expect(base16.stringify(decrypted)).toBe(clearText_hex);
+	            });
+	
+	        });
+	        
+    	}
+    	
+    	var taglengths = [0, 1, 95, 96, 97, 127, 128];
+    	for(var idx = 0; idx < taglengths.length; idx++) {
+    		encdec(taglengths[idx]);
+    	}
+    	
+    	// illegal taglengths fail
+    	
+    	function encfail(tagLength) {
 
-            waitsFor(function () {
-                return encrypted || error;
-            });
+	        it("encrypt/decrypt AES-GCM, invalid tagLength " + tagLength, function () {
+	
+	            var encrypted,
+	                error;
+	
+	            runs(function () {
+	                var encryptOp = cryptoSubtle.encrypt(
+	                {
+	                	name: "AES-GCM",
+	                	params: {
+	                		iv: iv,
+	                        additionalData: additionalData,
+	                        tagLength: tagLength
+	                    }
+	                }, key, clearText);
+	                encryptOp.onerror = function (e) {
+	                    error = "ERROR";
+	                };
+	                encryptOp.oncomplete = function (e) {
+	                    encrypted = e.target.result;
+	                };
+	            });
+	
+	            waitsFor(function () {
+	                return encrypted || error;
+	            });
+	
+	            runs(function () {
+	                expect(error).toBeDefined();
+	                expect(encrypted).toBeUndefined();
+	            });
+	        });
+    	}
+    	
+    	taglengths = [-10, 129];
+    	for(var idx = 0; idx < taglengths.length; idx++) {
+    		encfail(taglengths[idx]);
+    	}
 
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(encrypted).toBeDefined();
-                expect(base16.stringify(encrypted)).not.toBe(clearText);
-            });
+    	// mismatched aad fail
+    	// corrupt tag fail
+    	// corrupt data fail
+    	function encdec_authfail(tagLength, spec) {
 
-            runs(function () {
-                error = undefined;
-                var decryptOp = cryptoSubtle.decrypt(
-                    {
-                        name: "AES-GCM",
-                        params: {
-                            iv: iv,
-                            additionalData: additionalData,
-                            tagLength: 128
-                        }
-                    },
-                    key,
-                    encrypted);
-                decryptOp.onerror = function (e) {
-                    error = "ERROR";
-                };
-                decryptOp.oncomplete = function (e) {
-                    decrypted = e.target.result;
-                };
-            });
-
-            waitsFor(function () {
-                return decrypted || error;
-            });
-
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(decrypted).toBeDefined();
-                expect(base16.stringify(decrypted)).toBe(clearText_hex);
-            });
-
-        });
-
+	        it("encrypt/decrypt AES-GCM detect auth fail, " + spec, function () {
+	
+	            var encrypted,
+	                decrypted,
+	                error;
+	
+	            runs(function () {
+	                var encryptOp = cryptoSubtle.encrypt(
+	                {
+	                	name: "AES-GCM",
+	                	params: {
+	                		iv: iv,
+	                        additionalData: additionalData,
+	                        tagLength: tagLength
+	                    }
+	                }, key, clearText);
+	                encryptOp.onerror = function (e) {
+	                    error = "ERROR";
+	                };
+	                encryptOp.oncomplete = function (e) {
+	                    encrypted = e.target.result;
+	                };
+	            });
+	
+	            waitsFor(function () {
+	                return encrypted || error;
+	            });
+	
+	            runs(function () {
+	                expect(error).toBeUndefined();
+	                expect(encrypted).toBeDefined();
+	                expect(base16.stringify(encrypted)).not.toBe(clearText);
+	            });
+	
+	            runs(function () {
+	                error = undefined;
+	                var aad = additionalData;
+	                var encData = encrypted;
+	                if (spec == "MISMATCH_AAD") {
+	                	aad[0] ^= 0x1;
+	                } else if (spec == "CORRUPT_TAG") {
+	                	encData[encData.length - tagLength/8/2] ^= 0x1;
+	                } else if (spec == "CORRUPT_DATA") {
+	                	encData[(encData.length - tagLength/8)/2] ^= 0x1;
+	                }
+	                var decryptOp = cryptoSubtle.decrypt(
+	                    {
+	                        name: "AES-GCM",
+	                        params: {
+	                            iv: iv,
+	                            additionalData: aad,
+	                            tagLength: tagLength
+	                        }
+	                    },
+	                    key,
+	                    encData);
+	                decryptOp.onerror = function (e) {
+	                    error = "ERROR";
+	                };
+	                decryptOp.oncomplete = function (e) {
+	                    decrypted = e.target.result;
+	                };
+	            });
+	
+	            waitsFor(function () {
+	                return decrypted || error;
+	            });
+	
+	            runs(function () {
+	                expect(error).toBeDefined();
+	                expect(decrypted).toBeUndefined();
+	            });
+	
+	        });
+    	}
+    	
+    	// mismatched aad fail
+    	encdec_authfail(128, "MISMATCH_AAD");
+    	// corrupt tag fail
+    	encdec_authfail(128, "CORRUPT_TAG");
+    	// corrupt data fail
+    	encdec_authfail(128, "CORRUPT_DATA");
     });
 
     // --------------------------------------------------------------------------------

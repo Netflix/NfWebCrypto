@@ -41,6 +41,7 @@ Supported
   + Diffie-Hellman: generateKey, deriveKey
   + RSA-OAEP: wrapKey, unwrapKey
   + AES-KW: wrapKey, unwrapKey
+  + AES-GCM: encrypt, decrypt
 
 *A special SYSTEM key bound to the plugin binary and script origin can be used with (un)wrapKey to export/import
 opaque key representations for persistence in HTML5 local storage or equivalent.

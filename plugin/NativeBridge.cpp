@@ -721,14 +721,13 @@ bool NativeBridge::encryptDecrypt(const string& cmdIndex, Variant& argsVar,
             {
                 DLOG() << "ERROR: taglength outside valid range\n";
                 sendError(cmdIndex, CAD_ERR_BADARG);  // FIXME: better error
+                return false;
             }
             DLOG() << "\ttaglength: " << taglenBytes << endl;
 
             // do the operation
             // Note: authentication tag is the last taglenBytes of resultData
             // (encrypt), or dataStr (encrypt)
-            // Note: if doing decrypt but authentication fails, aesGcm() still
-            // returns CAD_ERR_OK but resultData64 will be empty
             CadErr err =
                 cadmiumCrypto_->aesGcm(keyHandle, ivStr64, dataStr64, aadStr64,
                     taglenBytes, doEncrypt ? CadmiumCrypto::DOENCRYPT : CadmiumCrypto::DODECRYPT,

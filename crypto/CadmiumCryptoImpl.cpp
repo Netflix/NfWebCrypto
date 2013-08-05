@@ -1299,8 +1299,9 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::aesGcm(uint32_t keyHandle,
 
         // decrypt
         Vuc clearText;
-        // ignore bool return value; clearText will be empty if auth fails
-        cipher.decrypt(dataVuc, aadVuc, tagVuc, outVuc);
+        const bool success = cipher.decrypt(dataVuc, aadVuc, tagVuc, outVuc);
+        if (!success)
+            return CAD_ERR_CIPHERERROR;
     }
     else // cipherOp == DOENCRYPT
     {
