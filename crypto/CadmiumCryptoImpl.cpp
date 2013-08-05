@@ -177,7 +177,7 @@ bool doesLeftSideOfStringMatch(const string& str, const string& matchStr)
 // Returns true if the right side of the string is exactly match.
 // For example, for "foobar", "bar" would return true but "oba" would not.
 
-bool doesRightSideOfStringMatch(const std::string& str, const std::string& matchStr)
+bool doesRightSideOfStringMatch(const string& str, const string& matchStr)
 {
     assert(!str.empty());
     assert(!matchStr.empty());
@@ -215,7 +215,7 @@ bool isHashSpecPresent(const base::Variant& algVar)
     return true;
 }
 
-int extractIntFromString(const std::string& str)
+int extractIntFromString(const string& str)
 {
     int number = 0;
     string temp;
@@ -380,7 +380,7 @@ bool CadmiumCrypto::CadmiumCryptoImpl::isKeyAlgMatch(uint32_t keyHandle, Algorit
 }
 
 CadErr CadmiumCrypto::CadmiumCryptoImpl::digest(Algorithm algorithm,
-        const std::string& dataStr64, std::string& digestStr64)
+        const string& dataStr64, string& digestStr64)
 {
     if (!isInited_)
         return CAD_ERR_NOT_INITIALIZED;
@@ -415,8 +415,8 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::digest(Algorithm algorithm,
 }
 
 CadErr CadmiumCrypto::CadmiumCryptoImpl::importKey(KeyFormat keyFormat,
-    const std::string& keyData, const Variant& algVar, bool extractable,
-    const std::vector<KeyUsage>& keyUsage, uint32_t& keyHandle, KeyType& keyType)
+    const string& keyData, const Variant& algVar, bool extractable,
+    const vector<KeyUsage>& keyUsage, uint32_t& keyHandle, KeyType& keyType)
 {
     keyHandle = kInvalidKeyHandle;
 
@@ -532,7 +532,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importKey(KeyFormat keyFormat,
 }
 
 CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
-    const Variant& algVar, bool extractable, const std::vector<KeyUsage>& keyUsage,
+    const Variant& algVar, bool extractable, const vector<KeyUsage>& keyUsage,
     uint32_t& keyHandle, KeyType& keyType)
 {
     // NOTE: the input parms algVar, extractable, and keyUsage are used only if
@@ -728,7 +728,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
     //    Wes  - If present, the JWE value should override the API value completely
     // Below I have implemented Wes's behavior since it was the most recently
     // provided and backed by his implementation.
-    std::vector<KeyUsage> myKeyUsage;
+    vector<KeyUsage> myKeyUsage;
     if (jwkUse.size())
     {
         if (jwkUse == "sig")
@@ -1169,7 +1169,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::exportJwk(const Key& key, string& jwkSt
 
 CadErr CadmiumCrypto::CadmiumCryptoImpl::getKeyInfo(uint32_t keyHandle,
         KeyType& type, bool& extractable, Variant& algVar,
-        std::vector<KeyUsage>& usage) const
+        vector<KeyUsage>& usage) const
 {
     if (!isInited_)
         return CAD_ERR_NOT_INITIALIZED;
@@ -1382,7 +1382,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::hmac(uint32_t keyHandle, Algorithm shaA
 }
 
 CadErr CadmiumCrypto::CadmiumCryptoImpl::rsaKeyGen(const Variant& algVar,
-        bool extractable, std::vector<KeyUsage> keyUsage, uint32_t& pubKeyHandle,
+        bool extractable, vector<KeyUsage> keyUsage, uint32_t& pubKeyHandle,
         uint32_t& privKeyHandle)
 {
     if (!isInited_)
@@ -2240,6 +2240,15 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::symKeyGen(const Variant& algVar,
     Key key(randBytes, shared_ptr<RsaContext>(), SECRET, extractable, algVar, keyUsage);
     keyMap_[keyHandle] = key;
     return CAD_ERR_OK;
+}
+
+CadErr CadmiumCrypto::CadmiumCryptoImpl::pbkdf2Derive(const string& salt,
+        uint32_t iterations, const base::Variant& prf, const string& password,
+        const base::Variant& derivedAlgObj, bool extractable,
+        const vector<KeyUsage> usage, uint32_t &keyHandle)
+{
+    // TODO
+    return CAD_ERR_NOMETHOD;
 }
 
 CadErr CadmiumCrypto::CadmiumCryptoImpl::getDeviceId(string& deviceId) const

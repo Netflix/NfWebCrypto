@@ -27,11 +27,38 @@ using namespace base;
 
 namespace crypto {
 
+namespace //anonymous
+{
+
+map<string, CadmiumCrypto::Algorithm> gStr2AlgTab;
+void initStr2AlgTab()
+{
+    gStr2AlgTab["HMAC"]              = CadmiumCrypto::HMAC;
+    gStr2AlgTab["AES-CBC"]           = CadmiumCrypto::AES_CBC;
+    gStr2AlgTab["AES-CTR"]           = CadmiumCrypto::AES_CTR;
+    gStr2AlgTab["AES-GCM"]           = CadmiumCrypto::AES_GCM;
+    gStr2AlgTab["RSAES-PKCS1-v1_5"]  = CadmiumCrypto::RSAES_PKCS1_V1_5;
+    gStr2AlgTab["RSASSA-PKCS1-v1_5"] = CadmiumCrypto::RSASSA_PKCS1_V1_5;
+    gStr2AlgTab["RSA-OAEP"]          = CadmiumCrypto::RSA_OAEP;
+    gStr2AlgTab["SHA-1"]             = CadmiumCrypto::SHA1;
+    gStr2AlgTab["SHA-224"]           = CadmiumCrypto::SHA224;
+    gStr2AlgTab["SHA-256"]           = CadmiumCrypto::SHA256;
+    gStr2AlgTab["SHA-384"]           = CadmiumCrypto::SHA384;
+    gStr2AlgTab["SHA-512"]           = CadmiumCrypto::SHA512;
+    gStr2AlgTab["AES-KW"]            = CadmiumCrypto::AES_KW;
+    gStr2AlgTab["DH"]                = CadmiumCrypto::DH;
+    gStr2AlgTab["PBKDF2"]            = CadmiumCrypto::PBKDF2;
+    gStr2AlgTab["SYSTEM"]            = CadmiumCrypto::SYSTEM;
+}
+
+}   // anonymous namespace
+
 // CadmiumCrypto is "compiler firewall" in front of CadmiumCryptoImpl
 
 CadmiumCrypto::CadmiumCrypto(IDeviceInfo * pDeviceInfo)
 :   impl_(new CadmiumCryptoImpl(pDeviceInfo))
 {
+    initStr2AlgTab();
 }
 
 CadmiumCrypto::~CadmiumCrypto()
@@ -67,7 +94,7 @@ CadErr CadmiumCrypto::exportKey(uint32_t keyHandle, KeyFormat format, string& ke
 }
 
 CadErr CadmiumCrypto::getKeyInfo(uint32_t keyHandle, KeyType& type, bool& extractable,
-        Variant& algVar, std::vector<KeyUsage>& usage) const
+        Variant& algVar, vector<KeyUsage>& usage) const
 {
     return impl_->getKeyInfo(keyHandle, type, extractable, algVar, usage);
 }
@@ -149,6 +176,15 @@ CadErr CadmiumCrypto::wrapJwe(uint32_t toBeWrappedKeyHandle, uint32_t wrappingKe
             jweEncMethod, wrappedKeyJcs);
 }
 
+CadErr CadmiumCrypto::pbkdf2Derive(const string& salt, uint32_t iterations,
+        const base::Variant& prf, const string& password,
+        const base::Variant& derivedAlgObj, bool extractable,
+        const vector<KeyUsage> usage, uint32_t &keyHandle)
+{
+    return impl_->pbkdf2Derive(salt, iterations, prf, password, derivedAlgObj,
+            extractable, usage, keyHandle);
+}
+
 CadErr CadmiumCrypto::getDeviceId(string& deviceId) const
 {
     return impl_->getDeviceId(deviceId);
@@ -177,6 +213,7 @@ string toString(CadmiumCrypto::Algorithm algorithm)
         case CadmiumCrypto::SHA512:            return "SHA-512";
         case CadmiumCrypto::AES_KW:            return "AES-KW";
         case CadmiumCrypto::DH:                return "DH";
+        case CadmiumCrypto::PBKDF2:            return "PBKDF2";
         case CadmiumCrypto::SYSTEM:            return "SYSTEM";
         case CadmiumCrypto::INVALID_ALGORITHM:
         default:                               return "invalid";
@@ -257,43 +294,22 @@ bool isAlgorithmSha(CadmiumCrypto::Algorithm algorithm)
              algorithm == CadmiumCrypto::SHA512    );
 }
 
-CadmiumCrypto::Algorithm toAlgorithm(const string& algorithmStr)
-{
-    if (algorithmStr == "HMAC")
-        return CadmiumCrypto::HMAC;
-    else if (algorithmStr == "AES-CBC")
-        return CadmiumCrypto::AES_CBC;
-    else if (algorithmStr == "AES-GCM")
-        return CadmiumCrypto::AES_GCM;
-    else if (algorithmStr == "RSAES-PKCS1-v1_5")
-        return CadmiumCrypto::RSAES_PKCS1_V1_5;
-    else if (algorithmStr == "RSASSA-PKCS1-v1_5")
-        return CadmiumCrypto::RSASSA_PKCS1_V1_5;
-    else if (algorithmStr == "RSA-OAEP")
-        return CadmiumCrypto::RSA_OAEP;
-    else if (algorithmStr == "SHA-1")
-        return CadmiumCrypto::SHA1;
-    else if (algorithmStr == "SHA-224")
-        return CadmiumCrypto::SHA224;
-    else if (algorithmStr == "SHA-256")
-        return CadmiumCrypto::SHA256;
-    else if (algorithmStr == "SHA-384")
-        return CadmiumCrypto::SHA384;
-    else if (algorithmStr == "SHA-512")
-        return CadmiumCrypto::SHA512;
-    else if (algorithmStr == "AES-KW")
-        return CadmiumCrypto::AES_KW;
-    else if (algorithmStr == "DH")
-        return CadmiumCrypto::DH;
-    else if (algorithmStr == "SYSTEM")
-        return CadmiumCrypto::SYSTEM;
-    else
-        return CadmiumCrypto::INVALID_ALGORITHM;
-}
-
 bool isAlgorithmDh(CadmiumCrypto::Algorithm algorithm)
 {
     return ( algorithm == CadmiumCrypto::DH );
+}
+
+bool isAlgorithmPbkdf2(CadmiumCrypto::Algorithm algorithm)
+{
+    return ( algorithm == CadmiumCrypto::PBKDF2 );
+}
+
+CadmiumCrypto::Algorithm toAlgorithm(const string& algorithmStr)
+{
+    assert(gStr2AlgTab.size());
+    if (!gStr2AlgTab.count(algorithmStr))
+        return CadmiumCrypto::INVALID_ALGORITHM;
+    return gStr2AlgTab[algorithmStr];
 }
 
 }} // namespace cadmium::crypto

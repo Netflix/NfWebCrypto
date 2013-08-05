@@ -109,6 +109,7 @@ public:
         SHA512,
         AES_KW,
         DH,
+        PBKDF2,
         SYSTEM,
         INVALID_ALGORITHM
     };
@@ -292,16 +293,36 @@ public:
             const base::Variant& derivedAlgObj, bool extractable,
             std::vector<KeyUsage> keyUsage, uint32_t& keyHandle);
 
-    //---------------- Symmnetric Key Generation -----------------------------//
+    //---------------- Symmetric Key Generation -----------------------------//
     /** Generate a symmetric key
      * This method generates a single random key and places it in the key store.
      * @param algVar In. The full details about the key generation algorithm.
      * @param extractable In. Whether the key should be marked as extractable
-     * @param usage In. The intended uses of the key
+     * @param usage In. The intended uses of the generated key
      * @param jeyHandle Out. The handle of the resulting key in the key store.
      */
     CadErr symKeyGen(const base::Variant& algVar, bool extractable,
             const std::vector<KeyUsage> keyUsage, uint32_t &keyHandle);
+
+    //---------------- Password-Based Key Derivation -------------------------//
+    /** Generate a symmetric key based on a password/phrase
+     * This method generates a single key from a password/phrase and places it
+     * in the key store.
+     * @param salt In. Cryptographic salt, base64-encoded
+     * @param iterations In. The number of iterations desired
+     * @param prf In. A pseudorandom function of two parameters, only HMAC allowed
+     * @param password In. The passphrase, base64-encoded
+     * @param derivedAlgObj In. The full details about the algorithm to be
+     *   associated with the derived key
+     * @param extractable In. Whether or not the raw key material of the derived
+     *   key may be exported
+     * @param usage In. The intended uses of the derived key
+     * @param keyHandle Out. The handle of the resulting key in the key store.
+     */
+    CadErr pbkdf2Derive(const std::string& salt, uint32_t iterations,
+            const base::Variant& prf, const std::string& password,
+            const base::Variant& derivedAlgObj, bool extractable,
+            const std::vector<KeyUsage> usage, uint32_t &keyHandle);
 
     //---------------- Key Wrapping-------------------------------------------//
 

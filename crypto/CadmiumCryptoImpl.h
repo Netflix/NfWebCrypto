@@ -74,6 +74,10 @@ public:
             std::string& wrappedKeyJcs);
     CadErr symKeyGen(const base::Variant& algVar, bool extractable,
             const std::vector<KeyUsage> keyUsage, uint32_t &keyHandle);
+    CadErr pbkdf2Derive(const std::string& salt, uint32_t iterations,
+            const base::Variant& prf, const std::string& password,
+            const base::Variant& derivedAlgObj, bool extractable,
+            const std::vector<KeyUsage> usage, uint32_t &keyHandle);
     CadErr getDeviceId(std::string& deviceId) const;
     CadErr getSystemKeyHandle(uint32_t& systemKeyHandle) const;
 private:
