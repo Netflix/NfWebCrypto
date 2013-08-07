@@ -88,6 +88,9 @@ private:
     bool isUsageAllowed(uint32_t keyHandle, KeyUsage keyUsage);
     bool isKeyAlgMatch(uint32_t keyHandle, Algorithm algorithm);
     void createSystemKey();
+    CadErr importKeyInternal(KeyFormat format, const std::string& keyData,
+        const base::Variant& algVar, bool extractable,
+        const std::vector<KeyUsage>& keyUsage, uint32_t& keyHandle);
     CadErr importJwk(const Vuc& keyVuc, const base::Variant& algVar, bool extractable,
         const std::vector<KeyUsage>& keyUsage, uint32_t& keyHandle);
     CadErr exportJwk(const Key& key, std::string& keyData);

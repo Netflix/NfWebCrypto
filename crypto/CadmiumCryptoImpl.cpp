@@ -296,7 +296,7 @@ void CadmiumCrypto::CadmiumCryptoImpl::importPreSharedKeys()
             continue;
         }
         uint32_t keyHandle;
-        CadErr err = importKey(RAW, vucToStr64(nk.key), nk.algVar, nk.extractable,
+        CadErr err = importKeyInternal(RAW, vucToStr64(nk.key), nk.algVar, nk.extractable,
                 nk.keyUsage, keyHandle);
         if (err != CAD_ERR_OK)
         {
@@ -451,10 +451,16 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importKey(KeyFormat keyFormat,
     const string& keyData, const Variant& algVar, bool extractable,
     const vector<KeyUsage>& keyUsage, uint32_t& keyHandle)
 {
-    keyHandle = kInvalidKeyHandle;
+    if (!isInited_)
+        return CAD_ERR_NOT_INITIALIZED;
+    return importKeyInternal(keyFormat, keyData, algVar, extractable, keyUsage, keyHandle);
+}
 
-//    if (!isInited_)
-//        return CAD_ERR_NOT_INITIALIZED;
+CadErr CadmiumCrypto::CadmiumCryptoImpl::importKeyInternal(KeyFormat keyFormat,
+    const string& keyData, const Variant& algVar, bool extractable,
+    const vector<KeyUsage>& keyUsage, uint32_t& keyHandle)
+{
+    keyHandle = kInvalidKeyHandle;
 
     // keydata is always base64-encoded
     Vuc keyVuc(str64toVuc(keyData));
