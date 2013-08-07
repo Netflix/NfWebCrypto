@@ -238,18 +238,19 @@ NativeBridge::NativeBridge(pp::InstancePrivate * pInstance, CadmiumCrypto * cadm
 
     // Fill the function dispatch table. These are the javascript methods that
     // can be handled by invoke().
-    jsFunctionMap_["digest"]     = &NativeBridge::digest;
-    jsFunctionMap_["import"]     = &NativeBridge::importKey;
-    jsFunctionMap_["export"]     = &NativeBridge::exportKey;
-    jsFunctionMap_["encrypt"]    = &NativeBridge::encrypt;
-    jsFunctionMap_["decrypt"]    = &NativeBridge::decrypt;
-    jsFunctionMap_["sign"]       = &NativeBridge::sign;
-    jsFunctionMap_["verify"]     = &NativeBridge::verify;
-    jsFunctionMap_["generate"]   = &NativeBridge::generate;
-    jsFunctionMap_["derive"]     = &NativeBridge::derive;
-    jsFunctionMap_["unwrapKey"]  = &NativeBridge::unwrapKey;
-    jsFunctionMap_["wrapKey"]    = &NativeBridge::wrapKey;
-    jsFunctionMap_["getDeviceId"]= &NativeBridge::getDeviceId;
+    jsFunctionMap_["digest"]      = &NativeBridge::digest;
+    jsFunctionMap_["import"]      = &NativeBridge::importKey;
+    jsFunctionMap_["export"]      = &NativeBridge::exportKey;
+    jsFunctionMap_["encrypt"]     = &NativeBridge::encrypt;
+    jsFunctionMap_["decrypt"]     = &NativeBridge::decrypt;
+    jsFunctionMap_["sign"]        = &NativeBridge::sign;
+    jsFunctionMap_["verify"]      = &NativeBridge::verify;
+    jsFunctionMap_["generate"]    = &NativeBridge::generate;
+    jsFunctionMap_["derive"]      = &NativeBridge::derive;
+    jsFunctionMap_["unwrapKey"]   = &NativeBridge::unwrapKey;
+    jsFunctionMap_["wrapKey"]     = &NativeBridge::wrapKey;
+    jsFunctionMap_["getDeviceId"] = &NativeBridge::getDeviceId;
+    jsFunctionMap_["getKeyByName"]= &NativeBridge::getKeyByName;
 }
 
 NativeBridge::~NativeBridge()
@@ -519,9 +520,8 @@ bool NativeBridge::importKey(const string& cmdIndex, Variant& argsVar,
 
     // import the key
     uint32_t keyHandle;
-    CadmiumCrypto::KeyType keyType;
     CadErr err = cadmiumCrypto_->importKey(keyFormat, keyData, algObj,
-            extractable, keyUsageVec, keyHandle, keyType);
+            extractable, keyUsageVec, keyHandle);
     if (isError(err, cmdIndex))
         return false;
     DLOG() << "\tkeyHandle: " << keyHandle << endl;
@@ -1335,6 +1335,58 @@ bool NativeBridge::getDeviceId(const string& cmdIndex, Variant& argsVar,
     return true;
 }
 
+bool NativeBridge::getKeyByName(const string& cmdIndex, Variant& argsVar,
+        VariantMap& returnVarMap)
+{
+    // return createKeyOp('getKeyByName', null,   null,    null,      null,        null,     null,    null,           null, keyName);
+    // var createKeyOp = (type,           format, keyData, algorithm, extractable, keyUsage, baseKey, derivedKeyType, key,  keyName)
+
+    // Return a pre-provisioned NamedKey. Fails if the named key is not present.
+    // Input:
+    //     argsObj: {
+    //         keyName: string; the name of the pre-provisioned key
+    //     }
+    // Output:
+    //     payload: {
+    //         handle:      the handle of the derived key in the key store
+    //         type:        string; one of "secret", "public", "private"
+    //         algorithm:   object; set to input derivedKeyAlgorithm
+    //         extractable: boolean; set to input extractable
+    //         keyUsage:    Array of strings; set to input keyUsage
+    //         name:        A local identifier for the key, same as input
+    //         id:          A global identifier associated with the key, base64-encoded.
+    //                        Usually this is something like an ESN.
+    //     }
+
+    // get the input key name
+    string name;;
+    if (!getVal<string>(argsVar, "keyName", cmdIndex, name))
+        return false;
+    DLOG() << "\tname: " << name << endl;
+
+    // get the handle and metadata of this named key
+    uint32_t keyHandle;
+    string metadata;
+    CadErr err = cadmiumCrypto_->getKeyByName(name, keyHandle, metadata);
+    if (isError(err, cmdIndex))
+        return false;
+
+    // build a NamedKey object
+    VariantMap keyObj;
+    if (!keyHandleToKeyVarMap(keyHandle, keyObj))
+    {
+        sendError(cmdIndex, CAD_ERR_INTERNAL);  // FIXME better error
+        return false;
+    }
+    keyObj["name"] = name;
+    keyObj["id"] = metadata;
+
+    // return the result
+    returnVarMap["payload"] = keyObj;
+    setSuccess(returnVarMap);
+    return true;
+}
+
 template <typename T>
 bool NativeBridge::getVal(const Variant& args, const char * varName,
         const string& cmdIndex, T& out, bool doSendErr)
@@ -1396,7 +1448,7 @@ bool NativeBridge::keyHandleToKeyVarMap(uint32_t keyHandle, VariantMap& keyVarMa
     keyVarMap["type"]        = toString(keyType);
     keyVarMap["extractable"] = extractable;
     keyVarMap["algorithm"]   = algVar;
-    keyVarMap["keyUsage"]   = toKeyUsageVarAry(keyUsageVec);
+    keyVarMap["keyUsage"]    = toKeyUsageVarAry(keyUsageVec);
     return true;
 }
 

@@ -161,6 +161,6 @@ std::string decodeUrlSafe(std::string const& s);
 std::vector<unsigned char> encodeUrlSafe(std::vector<unsigned char> const& v);
 std::vector<unsigned char> decodeUrlSafe(std::vector<unsigned char> const& v);
 
-}}} // namespace netflix::base::Base64
+}}} // namespace cadmium::base::Base64
 
 #endif // Netflix_Base_Base64_h_

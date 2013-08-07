@@ -82,10 +82,10 @@ CadErr CadmiumCrypto::digest(Algorithm algorithm, const string& data, string& di
 
 CadErr CadmiumCrypto::importKey(KeyFormat format, const string& keyData,
     const Variant& algVar, bool extractable, const vector<KeyUsage>& keyUsage,
-    uint32_t& keyHandle, KeyType& keyType)
+    uint32_t& keyHandle)
 {
     return impl_->importKey(format, keyData, algVar, extractable, keyUsage,
-            keyHandle, keyType);
+            keyHandle);
 }
 
 CadErr CadmiumCrypto::exportKey(uint32_t keyHandle, KeyFormat format, string& keyData)
@@ -183,6 +183,11 @@ CadErr CadmiumCrypto::pbkdf2Derive(const string& salt, uint32_t iterations,
 {
     return impl_->pbkdf2Derive(salt, iterations, prf, password, derivedAlgObj,
             extractable, usage, keyHandle);
+}
+
+CadErr CadmiumCrypto::getKeyByName(const string keyName, uint32_t &keyHandle, string& metadata)
+{
+    return impl_->getKeyByName(keyName, keyHandle, metadata);
 }
 
 CadErr CadmiumCrypto::getDeviceId(string& deviceId) const

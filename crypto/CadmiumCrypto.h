@@ -53,7 +53,7 @@ public:
      * This method performs internal initialization of the CadmiumCrypto
      * instance. It must be called after construction, before any other methods
      * are used.
-     * @param prngSeed Vector of random bytes with which to seed OpenSSL's PRNG.
+     * @param[in] prngSeed Vector of random bytes with which to seed OpenSSL's PRNG.
      *   Must be of length MIN_SEED_LEN or greater.
      * @return CadErr, CAD_ERR_OK if no error
      */
@@ -67,7 +67,7 @@ public:
      * to manually add entropy after the instance is constructed to make up for
      * that deficiency. For example, with PPAPI entropy to add can be obtained
      * with a mainthread call to PPB_Crypto_Dev::GetRandomBytes().
-     * @param entropyBytes vector of entropy bytes, base64-encoded
+     * @param[in] entropyBytes vector of entropy bytes, base64-encoded
      */
     void addEntropy(const std::string& entropyBytes);
 
@@ -75,15 +75,14 @@ public:
 
     /** Import a key
      * This method imports a key into the local key store.
-     * @param format In. The format of the keyData containing the key
-     * @param keyData In. The data containing the key, base64-encoded.
-     * @param algObj In. The full details about the key generation algorithm.
-     * @param extractable In. Whether or not the raw keying material may be
+     * @param[in] format The format of the keyData containing the key
+     * @param[in] keyData The data containing the key, base64-encoded.
+     * @param[in] algObj The full details about the key generation algorithm.
+     * @param[in] extractable In. Whether or not the raw keying material may be
      *     exported by the application.
-     * @param keyUsage In. A vector of KeyUsage, indicating what operations may
+     * @param[in] keyUsage A vector of KeyUsage, indicating what operations may
      *     be used with this key.
-     * @param keyHandle Out. The handle of the imported key in the key store.
-     * @param keyType Out. The type of the key, deduced from format and keyData
+     * @param[out] keyHandle The handle of the imported key in the key store.
      */
     enum KeyFormat
     {
@@ -113,31 +112,30 @@ public:
         SYSTEM,
         INVALID_ALGORITHM
     };
-    enum KeyType {SECRET, PUBLIC, PRIVATE};
     enum KeyUsage {ENCRYPT, DECRYPT, SIGN, VERIFY, DERIVE, WRAP, UNWRAP};
     CadErr importKey(KeyFormat format, const std::string& keyData,
         const base::Variant& algVar, bool extractable,
-        const std::vector<KeyUsage>& keyUsage,
-        uint32_t& keyHandle, KeyType& keyType);
+        const std::vector<KeyUsage>& keyUsage, uint32_t& keyHandle);
 
     /** Export a key
      * This method exports a key from the local key store. Only keys that are
      * marked extractable may be exported.
-     * @param keyHandle In. The handle of the key to export.
-     * @param format In. The desired format of the exported key data.
-     * @param keyData Out. The data containing the key in the desired format,
+     * @param[in] keyHandle The handle of the key to export.
+     * @param[in] format The desired format of the exported key data.
+     * @param[out] keyData The data containing the key in the desired format,
      *     base64-encoded.
      */
     CadErr exportKey(uint32_t keyHandle, KeyFormat format, std::string& keyData);
 
     /** Get key info
      * This method reports information about a key in the local key store.
-     * @param keyHandle In. The handle of the key
-     * @param type Out. The key type
-     * @param extractable Out. Whether the key is marked as extractable
-     * @param algVar Out. The full details about the key algorithm
-     * @param usage Out. The intended uses of the key, may be empty
+     * @param[in] keyHandle The handle of the key
+     * @param[out] type The key type
+     * @param[in] extractable Whether the key is marked as extractable
+     * @param[out] algVar The full details about the key algorithm
+     * @param[out] usage The intended uses of the key, may be empty
      */
+    enum KeyType {SECRET, PUBLIC, PRIVATE};
     CadErr getKeyInfo(uint32_t keyHandle, KeyType& type, bool& extractable,
             base::Variant& algVar, std::vector<KeyUsage>& usage) const;
 
@@ -145,9 +143,9 @@ public:
 
     /** Compute the message digest of the input data.
      * This method computes a SHA hash of the input data.
-     * @param algorithm In. The SHA algorithm to use
-     * @param data In. The data to hash, base64-encoded
-     * @param digest Out. The result of the SHA computation, base64-encoded
+     * @param[in] algorithm The SHA algorithm to use
+     * @param[in] data The data to hash, base64-encoded
+     * @param[out] digest The result of the SHA computation, base64-encoded
      * @return CadErr, CAD_ERR_OK if no error
      */
     CadErr digest(Algorithm algorithm, const std::string& data, std::string& digest);
@@ -157,11 +155,11 @@ public:
     /** AES-CBC encrypt data using a key in the key cache.
      * This method encrypts / decrypts input data with AES CBC, using a key in
      * the key cache indicated by the input key handle.
-     * @param keyHandle In. The handle of the desired key in the key cache.
-     * @param ivIn In. The initialization vector, base64-encoded
-     * @param dataIn In. Input data, base64-encoded
-     * @param cipherOp In. Which operation to perform
-     * @param dataOut Out. Output data, base64-encoded
+     * @param[in] keyHandle The handle of the desired key in the key cache.
+     * @param[in] ivIn The initialization vector, base64-encoded
+     * @param[in] dataIn Input data, base64-encoded
+     * @param[in] cipherOp Which operation to perform
+     * @param[out] dataOut Output data, base64-encoded
      * @return CadErr, CAD_ERR_OK if no error
      */
     enum CipherOp {DOENCRYPT, DODECRYPT};
@@ -174,13 +172,13 @@ public:
      * The authentication tag is concatenated to the end of the ciphertext. When
      * decrypting if authentication fails, this method returns CAD_ERR_CIPHERERROR
      * and dataOut will be empty.
-     * @param keyHandle In. The handle of the key in the key cache.
-     * @param ivIn In. The initialization vector, base64-encoded
-     * @param dataIn In. Input data, base64-encoded
-     * @param aadIn In. Additional authenticated data, base64-encoded
-     * @param taglen In. The length in bits of the computed authentication tag, 0-128
-     * @param cipherOp In. Which operation to perform
-     * @param dataOut Out. Output data, base64-encoded
+     * @paramp[in] keyHandle The handle of the key in the key cache.
+     * @param[in] ivIn The initialization vector, base64-encoded
+     * @param[in] dataIn Input data, base64-encoded
+     * @param[in] aadIn Additional authenticated data, base64-encoded
+     * @param[in] taglen The length in bits of the computed authentication tag, 0-128
+     * @param[in] cipherOp Which operation to perform
+     * @param[out] dataOut Output data, base64-encoded
      * @return CadErr, CAD_ERR_OK if no error
      */
     CadErr aesGcm(uint32_t keyHandle, const std::string& ivIn, const std::string& dataIn,
@@ -190,10 +188,10 @@ public:
     /** RSAES-PKCS1-v1_5 encrypt data using a key in the key cache.
      * This method encrypts input data with RSAES-PKCS1-v1_5, using a key in the
      * key cache indicated by the input key handle. The key must be an RSA key.
-     * @param keyHandle In. The handle of the desired RSA key in the key cache.
-     * @param dataIn In. The data to encrypt, base64-encoded
-     * @param cipherOp In. Which operation to perform
-     * @param dataOut Out. The encrypted data, base64-encoded
+     * @param[in] keyHandle The handle of the desired RSA key in the key cache.
+     * @param[in] dataIn The data to encrypt, base64-encoded
+     * @param[in] cipherOp Which operation to perform
+     * @param[out] dataOut The encrypted data, base64-encoded
      * @return CadErr, CAD_ERR_OK if no error
      */
     CadErr rsaCrypt(uint32_t keyHandle, const std::string& dataIn,
@@ -204,11 +202,11 @@ public:
     /** Compute the HMAC signature of the input data
      * This method computes the HMAC of the input data, using the specified
      * SHA inner hash and using the key indicated by the provided key handle.
-     * @param keyHandle In. The handle of the key to use when computing the HMAC
-     * @param shaAlgo In. The inner hash algorithm to use
-     * @param opUsage In. The usage of the operation to be performed (SIGN or VERIFY)
-     * @param data In. The data to HMAC, base64-encoded
-     * @param hmac Out. The result of the HMAC operation, base64-encoded
+     * @param[in] keyHandle The handle of the key to use when computing the HMAC
+     * @param[in] shaAlgo The inner hash algorithm to use
+     * @param[in] opUsage The usage of the operation to be performed (SIGN or VERIFY)
+     * @param[in] data The data to HMAC, base64-encoded
+     * @param[out] hmac The result of the HMAC operation, base64-encoded
      * @return CadErr, CAD_ERR_OK if no error
      */
     CadErr hmac(uint32_t keyHandle, Algorithm shaAlgo, KeyUsage opUsage,
@@ -220,10 +218,10 @@ public:
      * This method computes an RSA public/private key pair
      * @param algVar In. The full details about the key gen algorithm, including
      *     the public exponent and modulus length.
-     * @param extractable In. Whether or not the raw key material may be exported
-     * @param keyUsage In. The allowed usages of the keys
-     * @param pubKeyHandle Out. The handle of the generated public key in the key map
-     * @param privKeyHandle Out. The handle of the generated private key in the key map
+     * @param[in] extractable Whether or not the raw key material may be exported
+     * @param[in] keyUsage The allowed usages of the keys
+     * @param[out] pubKeyHandle The handle of the generated public key in the key map
+     * @param[out] privKeyHandle The handle of the generated private key in the key map
      * @return CadErr, CAD_ERR_OK if no error
      */
     CadErr rsaKeyGen(const base::Variant& algVar, bool extractable,
@@ -233,10 +231,10 @@ public:
     /** RSA sign a block of data
      * This method computes the RSASSA-PKCS1-v1_5 signature of a block of data,
      * using the specified key and inner hash.
-     * @param keyHandle In. The handle of the key to use
-     * @param shaAlgo In. The inner message digest algorithm to use
-     * @param data In. The data over which to compute the signature, base64-encoded
-     * @param sig Out. The computed signature, base64-encoded
+     * @param[in] keyHandle The handle of the key to use
+     * @param[in] shaAlgo The inner message digest algorithm to use
+     * @param[in] data The data over which to compute the signature, base64-encoded
+     * @param[out] sig The computed signature, base64-encoded
      * @return CadErr, CAD_ERR_OK if no error
      */
     CadErr rsaSign(uint32_t keyHandle, Algorithm shaAlgo, const std::string& data,
@@ -246,12 +244,12 @@ public:
      * This method computes the RSASSA-PKCS1-v1_5 signature of a block of data,
      * using the specified key and inner hash, and compares it to the provided
      * signature.
-     * @param keyHandle In. The handle of the key to use
-     * @param shaAlgo In. The inner message digest algorithm to use
-     * @param data In. The data over which to compute the signature, base64-encoded
-     * @param sig In. The data signature, base64-encoded
-     * @param isVerified Out. True if the computed signature of the data matched
-     * the provided signature, otherwise false
+     * @param[in] keyHandle The handle of the key to use
+     * @param[in] shaAlgo The inner message digest algorithm to use
+     * @param[in] data The data over which to compute the signature, base64-encoded
+     * @param[in] sig The data signature, base64-encoded
+     * @param[out] isVerified True if the computed signature of the data matched
+     *   the provided signature, otherwise false
      * @return CadErr, CAD_ERR_OK if no error
      */
     CadErr rsaVerify(uint32_t keyHandle, Algorithm shaAlgo, const std::string& data,
@@ -261,12 +259,12 @@ public:
 
     /** Generate a Diffie-Hellman public/private key pair
      * This method computes DH public/private key pair
-     * @param algVar In. The full details about the key gen algorithm, including
+     * @param[in] algVar The full details about the key gen algorithm, including
      *     the prime and generator values
-     * @param extractable In. Whether or not the raw key material may be exported
-     * @param keyUsage In. The allowed usages of the keys
-     * @param pubKeyHandle Out. The handle of the generated public key in the key map
-     * @param privKeyHandle Out. The handle of the generated private key in the key map
+     * @param[in] extractable Whether or not the raw key material may be exported
+     * @param[in] keyUsage The allowed usages of the keys
+     * @param[out] pubKeyHandle The handle of the generated public key in the key map
+     * @param[out] privKeyHandle The handle of the generated private key in the key map
      * @return CadErr, CAD_ERR_OK if no error
      */
     CadErr dhKeyGen(const base::Variant& algVar, bool extractable,
@@ -277,16 +275,16 @@ public:
      * This method computes a shared private key using a baseKey produced by
      * dhKeyGen() plus the public key from the remote peer who has previously
      * obtained the public baseKey.
-     * @param baseKeyHandle In. The handle of the key that started the DH
+     * @param[in] baseKeyHandle The handle of the key that started the DH
      *   exchange, produced by a call to dhKeyGen
-     * @param peerPublicKeyData In. The raw public key received from the remote
+     * @param[in] peerPublicKeyData The raw public key received from the remote
      *   peer, base64-encoded
-     * @param derivedAlgObj In. The full details about the algorithm to be
+     * @param[in] derivedAlgObj The full details about the algorithm to be
      *   associated with the derived key
-     * @param extractable In. Whether or not the raw key material of the derived
+     * @param[in] extractable Whether or not the raw key material of the derived
      *   key may be exported
-     * @param keyUsage In. The allowed usages of the derived key
-     * @param keyHandle Out. The handle of the derived key in the key map
+     * @param[in] keyUsage The allowed usages of the derived key
+     * @param[out] keyHandle The handle of the derived key in the key map
      * @return CadErr, CAD_ERR_OK if no error
      */
     CadErr dhDerive(uint32_t baseKeyHandle, const std::string& peerPublicKeyData,
@@ -296,10 +294,11 @@ public:
     //---------------- Symmetric Key Generation -----------------------------//
     /** Generate a symmetric key
      * This method generates a single random key and places it in the key store.
-     * @param algVar In. The full details about the key generation algorithm.
-     * @param extractable In. Whether the key should be marked as extractable
-     * @param usage In. The intended uses of the generated key
-     * @param jeyHandle Out. The handle of the resulting key in the key store.
+     * @param[in] algVar The full details about the key generation algorithm.
+     * @param[in] extractable Whether the key should be marked as extractable
+     * @param[in] usage The intended uses of the generated key
+     * @param[out] jeyHandle The handle of the resulting key in the key store.
+     * @return CadErr, CAD_ERR_OK if no error
      */
     CadErr symKeyGen(const base::Variant& algVar, bool extractable,
             const std::vector<KeyUsage> keyUsage, uint32_t &keyHandle);
@@ -308,21 +307,36 @@ public:
     /** Generate a symmetric key based on a password/phrase
      * This method generates a single key from a password/phrase and places it
      * in the key store.
-     * @param salt In. Cryptographic salt, base64-encoded
-     * @param iterations In. The number of iterations desired
-     * @param prf In. A pseudorandom function of two parameters, only HMAC allowed
-     * @param password In. The passphrase, base64-encoded
-     * @param derivedAlgObj In. The full details about the algorithm to be
+     * @param[in] salt Cryptographic salt, base64-encoded
+     * @param[in] iterations The number of iterations desired
+     * @param[in] prf A pseudorandom function of two parameters, only HMAC allowed
+     * @param[in] password The passphrase, base64-encoded
+     * @param[in] derivedAlgObj The full details about the algorithm to be
      *   associated with the derived key
-     * @param extractable In. Whether or not the raw key material of the derived
+     * @param[in] extractable Whether or not the raw key material of the derived
      *   key may be exported
-     * @param usage In. The intended uses of the derived key
-     * @param keyHandle Out. The handle of the resulting key in the key store.
+     * @param[in] usage The intended uses of the derived key
+     * @param[out] keyHandle The handle of the resulting key in the key store.
+     * @return CadErr, CAD_ERR_OK if no error
      */
     CadErr pbkdf2Derive(const std::string& salt, uint32_t iterations,
             const base::Variant& prf, const std::string& password,
             const base::Variant& derivedAlgObj, bool extractable,
             const std::vector<KeyUsage> usage, uint32_t &keyHandle);
+
+    //---------------- Key Discovery -----------------------------------------//
+    /** Get a pre-provisioned named symmetric key
+     * This method retrieves a pre-provisioned symmetric key by name from the
+     * key store. Note that pre-provisioned keys are associated with a script
+     * origin, so a key will not be present in the key store if the current
+     * origin and origin of the pre-provisioned key are inconsistent.
+     * see http://www.w3.org/TR/webcrypto-key-discovery/
+     * @param[in] keyName The name of the key to retrieve
+     * @param[in] keyHandle The handle of the resulting key in the key store.
+     * @param[out] metadata Meta data associated with the named key
+     * @return CadErr, CAD_ERR_OK if no error
+     */
+    CadErr getKeyByName(const std::string keyName, uint32_t &keyHandle, std::string& metadata);
 
     //---------------- Key Wrapping-------------------------------------------//
 
@@ -333,7 +347,7 @@ public:
      * in the key store, which is referred to by the output keyHandle when later
      * performing other crypto operations. This method will report an error if
      * the unwrap fails for any reason, including failing the integrity check.
-     * @param jweData In. The base64-encoded wrapped key in JWE-JS or JWE-CS
+     * @param[in] jweData The base64-encoded wrapped key in JWE-JS or JWE-CS
      * format. Specifically, a wrapped key contains the following components
      *       Base64Url-encoded JWE Header,
      *       Base64Url-encoded JWE Encrypted Content Master Key (CMK),
@@ -343,18 +357,19 @@ public:
      *     Encoding used in this string is URL-SAFE base64 UTF8 as mandated by
      *     the JWE spec. Note that this differs from the standard base64
      *     encoding used by the rest of this API.
-     * @param wrappingKeyHandle In. Handle of the key in the keystore with
+     * @param[in] wrappingKeyHandle Handle of the key in the keystore with
      *     which to decrypt the CMK. This will be typically the RSA private key
      *     corresponding to the public key that encrypted the CMK.
-     * @param algVar In. In case the unwrapped JDK does not have the 'alg'
+     * @param[in] algVar In case the unwrapped JDK does not have the 'alg'
      *     field inside it, use this value; otherwise ignore
-     * @param extractable In. In case the unwrapped JWK does not have the
+     * @param[in] extractable In case the unwrapped JWK does not have the
      *     'extractable' field inside it, use this value; otherwise the
      *     unwrapped key will have its extractable value set to a logical OR
      *     this and the extractable value inside the JWK.
-     * @param keyUsage In. In case the unwrapped JDK does not have the 'use'
+     * @param[in] keyUsage In case the unwrapped JDK does not have the 'use'
      *     field inside it, use this value; otherwise ignore
-     * @param keyHandle Out. The handle of the unwrapped key in the keystore.
+     * @param[out] keyHandle The handle of the unwrapped key in the keystore.
+     * @return CadErr, CAD_ERR_OK if no error
      */
     CadErr unwrapJwe(const std::string& jweData, uint32_t wrappingKeyHandle,
             const base::Variant& algVar, bool extractable,
@@ -364,18 +379,19 @@ public:
      * This method wraps an existing key in the keystore according to the rules
      * in draft-ietf-jose-json-web-encryption-08, using an existing wrapping key
      * also in the keystore. The result is a base-64 encoded JWE-JS string.
-     * @param toBeWrappedKeyHandle In. The handle of the key to be wrapped
-     * @param wrappingKeyHandle In. The handle of the key to use in during the
+     * @param[in] toBeWrappedKeyHandle The handle of the key to be wrapped
+     * @param[in] wrappingKeyHandle The handle of the key to use in during the
      *     key wrap process.
-     * @param wrappingAlgoObj In. The encryption algorithm to be applied to the
+     * @param[in] wrappingAlgoObj The encryption algorithm to be applied to the
      *    Content Master Key (CMK) during the wrapping process. This must be
      *    consistent with the algorithm associated with wrappingKeyHandle.
      *    Only RSA-OAEP and AES-KW algorithms are supported.
-     * @param wrappingEnc In. The algorithm to apply cleartext data. For AES-KW,
+     * @param[in] wrappingEnc The algorithm to apply cleartext data. For AES-KW,
      *    only A128GCM is supported, while RSA-OAEP supports only A128GCM and
      *    A256GCM.
-     * @param wrappedKeyJcs Out. The base64-encoded wrapped key in the specific
+     * @param[out] wrappedKeyJcs The base64-encoded wrapped key in the specific
      *    format described in JWE-JS spec
+     * @return CadErr, CAD_ERR_OK if no error
      */
     enum JweEncMethod {A128GCM, A256GCM};
     CadErr wrapJwe(uint32_t toBeWrappedKeyHandle, uint32_t wrappingKeyHandle,

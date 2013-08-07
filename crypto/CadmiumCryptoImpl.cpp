@@ -34,6 +34,7 @@
 #include <crypto/RsaContext.h>
 #include <crypto/DiffieHellmanContext.h>
 #include <crypto/AesKeyWrapper.h>
+#include "SampleKeyProvision.h"
 
 using namespace std;
 using std::tr1::shared_ptr;
@@ -271,8 +272,40 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::init(const Vuc& prngSeed)
     // create the system key used for export/import wrapping
     createSystemKey();
 
+    // import pre-provisioned keys
+    importPreSharedKeys();
+
     isInited_ = true;
     return CAD_ERR_OK;
+}
+
+void CadmiumCrypto::CadmiumCryptoImpl::importPreSharedKeys()
+{
+    const string currentOrigin(pDeviceInfo_->getOrigin());
+    SampleKeyProvision skp;
+    const SampleKeyProvision::NamedKeyVec& keyVec(skp.getNamedKeyVec());
+    DLOG() << "Importing pre-shared keys:\n";
+    for (SampleKeyProvision::NamedKeyVec::const_iterator it = keyVec.begin(); it != keyVec.end(); ++it)
+    {
+        NamedKey nk(*it);
+        DLOG() << nk.name << ", " << Base64::decode(nk.id) << ", " << nk.origin << endl;
+        if (!doesRightSideOfStringMatch(nk.origin, currentOrigin))
+        {
+            DLOG() << "CadmiumCryptoImpl::importPreSharedKeys: preshared key origin " << nk.origin <<
+                    " does not match current origin " << currentOrigin << ", skipping\n";
+            continue;
+        }
+        uint32_t keyHandle;
+        CadErr err = importKey(RAW, vucToStr64(nk.key), nk.algVar, nk.extractable,
+                nk.keyUsage, keyHandle);
+        if (err != CAD_ERR_OK)
+        {
+            DLOG() << "CadmiumCryptoImpl::importPreSharedKeys: WARNING: preshared key " <<
+                    nk.name << " failed\n";
+            continue;
+        }
+        namedKeyMap_.insert(make_pair(nk.name, NamedKeySpec(keyHandle, nk.id)));
+    }
 }
 
 // Create the AES-KW system key used for export/import wrapping.
@@ -416,12 +449,12 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::digest(Algorithm algorithm,
 
 CadErr CadmiumCrypto::CadmiumCryptoImpl::importKey(KeyFormat keyFormat,
     const string& keyData, const Variant& algVar, bool extractable,
-    const vector<KeyUsage>& keyUsage, uint32_t& keyHandle, KeyType& keyType)
+    const vector<KeyUsage>& keyUsage, uint32_t& keyHandle)
 {
     keyHandle = kInvalidKeyHandle;
 
-    if (!isInited_)
-        return CAD_ERR_NOT_INITIALIZED;
+//    if (!isInited_)
+//        return CAD_ERR_NOT_INITIALIZED;
 
     // keydata is always base64-encoded
     Vuc keyVuc(str64toVuc(keyData));
@@ -432,7 +465,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importKey(KeyFormat keyFormat,
     // override the algorithm, extractable, etc. input parms. Shunt it off to
     // a separate handler now.
     if (keyFormat == JWK)
-        return importJwk(keyVuc, algVar, extractable, keyUsage, keyHandle, keyType);
+        return importJwk(keyVuc, algVar, extractable, keyUsage, keyHandle);
 
     const Algorithm algType = toAlgorithm(algVar["name"].string());
 
@@ -443,6 +476,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importKey(KeyFormat keyFormat,
     }
 
     shared_ptr<RsaContext> pRsaContext(new RsaContext());
+    KeyType keyType;
     switch (algType)
     {
         case HMAC:
@@ -533,7 +567,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importKey(KeyFormat keyFormat,
 
 CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
     const Variant& algVar, bool extractable, const vector<KeyUsage>& keyUsage,
-    uint32_t& keyHandle, KeyType& keyType)
+    uint32_t& keyHandle)
 {
     // NOTE: the input parms algVar, extractable, and keyUsage are used only if
     // corresponding fields in the JWK not present. They are fallbacks only.
@@ -766,6 +800,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
     // extract / make the key material
     shared_ptr<RsaContext> pRsaContext;
     Vuc jwkKVuc;
+    KeyType keyType;
     if (jwkKty == "oct")    // raw octet string in 'k' field
     {
         const string jwkKStr64 = jwk.mapValue<string>("k", &isFound);
@@ -969,7 +1004,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::exportJwk(const Key& key, string& jwkSt
     else if (isAlgorithmRsa(algType))
     {
         jwkMap["kty"] = "RSA";
-        if (!key.type == PUBLIC)
+        if (key.type != PUBLIC)
         {
             DLOG() << "CadmiumCrypto::exportJwk: RSA private key export not implemented\n";
             return CAD_ERR_INTERNAL;    // FIXME better error
@@ -1921,8 +1956,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::unwrapJwe(const vector<string>& jweStrV
     // clearTextVuc contains the unwrapped JWK key to import
 
     // ---- import the JWK and we are done
-    KeyType keyType;
-    return importJwk(clearTextVuc, algVar, extractable, keyUsage, keyHandle, keyType);
+    return importJwk(clearTextVuc, algVar, extractable, keyUsage, keyHandle);
 }
 
 CadErr CadmiumCrypto::CadmiumCryptoImpl::wrapJwe(uint32_t toBeWrappedKeyHandle,
@@ -2251,6 +2285,17 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::pbkdf2Derive(const string& salt,
     return CAD_ERR_NOMETHOD;
 }
 
+CadErr CadmiumCrypto::CadmiumCryptoImpl::getKeyByName(const string keyName,
+        uint32_t &keyHandle, string& metadata)
+{
+    NamedKeyMap::const_iterator it = namedKeyMap_.find(keyName);
+    if (it == namedKeyMap_.end())
+        return CAD_ERR_BADKEYNAME;
+    keyHandle = it->second.keyHandle;
+    metadata = it->second.id;
+    return CAD_ERR_OK;
+}
+
 CadErr CadmiumCrypto::CadmiumCryptoImpl::getDeviceId(string& deviceId) const
 {
     if (!isInited_)
@@ -2266,66 +2311,5 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::getSystemKeyHandle(uint32_t& systemKeyH
     systemKeyHandle = systemKeyHandle_;
     return CAD_ERR_OK;
 }
-
-//------------------------------------------------------------------------------
-
-CadmiumCrypto::CadmiumCryptoImpl::Key::Key()
-:   type(SECRET)
-,   extractable(false)
-{
-}
-
-CadmiumCrypto::CadmiumCryptoImpl::Key::Key(const vector<unsigned char>& key,
-        shared_ptr<RsaContext> pRsaContext, KeyType type, bool extractable,
-        const Variant& algVar, const vector<KeyUsage>& keyUsage)
-:   key(key)
-,   pRsaContext(pRsaContext)
-,   type(type)
-,   extractable(extractable)
-,   algVar(algVar)
-,   keyUsage(keyUsage)
-{
-}
-
-CadmiumCrypto::CadmiumCryptoImpl::Key::Key(const vector<unsigned char>& key,
-        shared_ptr<DiffieHellmanContext> pDhContext, KeyType type, bool extractable,
-        const Variant& algVar, const vector<KeyUsage>& keyUsage)
-:   key(key)
-,   pDhContext(pDhContext)
-,   type(type)
-,   extractable(extractable)
-,   algVar(algVar)
-,   keyUsage(keyUsage)
-{
-}
-
-CadmiumCrypto::CadmiumCryptoImpl::Key::Key(const Key& rhs)
-:   key(rhs.key)
-,   pRsaContext(rhs.pRsaContext)
-,   pDhContext(rhs.pDhContext)
-,   type(rhs.type)
-,   extractable(rhs.extractable)
-,   algVar(rhs.algVar)
-,   keyUsage(rhs.keyUsage)
-{
-}
-
-CadmiumCrypto::CadmiumCryptoImpl::Key&
-CadmiumCrypto::CadmiumCryptoImpl::Key::operator=(const Key& rhs)
-{
-    if (this != &rhs)
-    {
-        key = rhs.key;
-        pRsaContext = rhs.pRsaContext;
-        pDhContext = rhs.pDhContext;
-        type = rhs.type;
-        extractable = rhs.extractable;
-        algVar = rhs.algVar;
-        keyUsage = rhs.keyUsage;
-    }
-    return *this;
-}
-
-//------------------------------------------------------------------------------
 
 }} // namespace cadmium::crypto

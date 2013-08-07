@@ -23,19 +23,21 @@ set(CRYPTO_SOURCES
     AesCbcCipher.cpp
     AesGcmCipher.cpp
     AesKeyWrapper.cpp
+    BigNum.cpp
     CadmiumCrypto.cpp
     CadmiumCryptoImpl.cpp
     DiffieHellmanContext.cpp
-    RsaContext.cpp
     DigestAlgo.cpp
     Digester.cpp
+    Key.cpp
     OpenSSLLib.cpp
-    BigNum.cpp
     HMAC.cpp
     NtbaUtil.cpp
     OpenSSLException.cpp
     Random.cpp
     RandTable.cpp
+    RsaContext.cpp
+    SampleKeyProvision.cpp
 )
 
 add_library(cadcrypto ${CRYPTO_SOURCES})

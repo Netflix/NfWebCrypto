@@ -23,6 +23,7 @@
 #include <map>
 #include <base/Variant.h>
 #include <base/Noncopyable.h>
+#include "Key.h"
 
 namespace cadmium {
 namespace crypto {
@@ -40,7 +41,7 @@ public:
     CadErr digest(Algorithm algorithm, const std::string& data, std::string& digest);
     CadErr importKey(KeyFormat format, const std::string& keyData,
         const base::Variant& algVar, bool extractable,
-        const std::vector<KeyUsage>& keyUsage, uint32_t& keyHandle, KeyType& keyType);
+        const std::vector<KeyUsage>& keyUsage, uint32_t& keyHandle);
     CadErr exportKey(uint32_t keyHandle, KeyFormat format, std::string& keyData);
     CadErr getKeyInfo(uint32_t keyHandle, KeyType& type, bool& extractable,
             base::Variant& algVar, std::vector<KeyUsage>& usage) const;
@@ -78,33 +79,17 @@ public:
             const base::Variant& prf, const std::string& password,
             const base::Variant& derivedAlgObj, bool extractable,
             const std::vector<KeyUsage> usage, uint32_t &keyHandle);
+    CadErr getKeyByName(const std::string keyName, uint32_t &keyHandle, std::string& metadata);
     CadErr getDeviceId(std::string& deviceId) const;
     CadErr getSystemKeyHandle(uint32_t& systemKeyHandle) const;
 private:
-    struct Key
-    {
-        std::vector<unsigned char> key;
-        std::tr1::shared_ptr<RsaContext> pRsaContext;
-        std::tr1::shared_ptr<DiffieHellmanContext> pDhContext;
-        KeyType type;
-        bool extractable;
-        base::Variant algVar;
-        std::vector<KeyUsage> keyUsage;
-        Key();
-        Key(const std::vector<unsigned char>& key, std::tr1::shared_ptr<RsaContext> pRsaContext,
-            KeyType kt, bool extractable, const base::Variant& algVar, const std::vector<KeyUsage>& usg);
-        Key(const std::vector<unsigned char>& key, std::tr1::shared_ptr<DiffieHellmanContext> pDhContext,
-            KeyType kt, bool extractable, const base::Variant& algVar, const std::vector<KeyUsage>& usg);
-        Key(const Key& rhs);
-        Key& operator=(const Key& rhs);
-    };
-private:
+    void importPreSharedKeys();
     bool hasKey(uint32_t keyHandle) const;
     bool isUsageAllowed(uint32_t keyHandle, KeyUsage keyUsage);
     bool isKeyAlgMatch(uint32_t keyHandle, Algorithm algorithm);
     void createSystemKey();
     CadErr importJwk(const Vuc& keyVuc, const base::Variant& algVar, bool extractable,
-        const std::vector<KeyUsage>& keyUsage, uint32_t& keyHandle, KeyType& keyType);
+        const std::vector<KeyUsage>& keyUsage, uint32_t& keyHandle);
     CadErr exportJwk(const Key& key, std::string& keyData);
     CadErr unwrapJwe(const std::vector<std::string>& jweData, uint32_t wrappingKeyHandle,
             const base::Variant& algVar, bool extractable,
@@ -119,6 +104,14 @@ private:
     uint32_t nextKeyHandle_;
     std::map<uint32_t, Key> keyMap_;
     uint32_t systemKeyHandle_;
+    struct NamedKeySpec
+    {
+        const uint32_t keyHandle;
+        const std::string id;
+        NamedKeySpec(uint32_t kh, const std::string& id) : keyHandle(kh), id(id) {}
+    };
+    typedef std::map<std::string, NamedKeySpec> NamedKeyMap;
+    NamedKeyMap namedKeyMap_;
 };
 
 }}   // namespace cadmium::crypto

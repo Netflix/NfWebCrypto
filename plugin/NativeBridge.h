@@ -71,6 +71,7 @@ private:
     JsMethod encryptDecrypt;
     JsMethod signVerify;
     JsMethod getDeviceId;
+    JsMethod getKeyByName;
 private:
     pp::InstancePrivate * const pInstance_;
     crypto::CadmiumCrypto * const cadmiumCrypto_;
