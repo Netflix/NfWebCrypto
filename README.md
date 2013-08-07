@@ -23,12 +23,15 @@ Supported
   + Key, KeyPair
   + KeyOperation
   + CryptoOperation
+  + CryptoKeys
 * SubtleCrypto interface methods supported
   + encrypt, decrypt
   + sign, verify
   + generateKey
   + exportKey, importKey
   + wrapKey, unwrapKey* **
+* CryptoKeys interface methods supported
+  + getKeyByName
 * Key formats supported
   + symmetric keys: raw and jwk (raw)
   + asymmetric keys: pkcs#8 (public), spki (private), and jwk (public only)
