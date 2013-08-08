@@ -318,5 +318,12 @@ base64$decode = function (s) {
 
     return a;
 };
+//Utility that allows algo to be specified as a string or obj
+var algorithmName = function(alg) {
+    if (typeof(alg) === 'string')
+        return alg;
+    else
+        return alg.name;
+};
 
 

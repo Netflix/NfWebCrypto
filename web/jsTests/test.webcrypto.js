@@ -25,6 +25,7 @@
     // var crypto = window.msCrypto;
     // var crypto = window.webkitCrypto;
     var cryptoSubtle = crypto.subtle;
+    var cryptokeys = nfCryptoKeys;
 
     // --------------------------------------------------------------------------------
     describe("crypto interface", function () {
@@ -89,6 +90,10 @@
             expect(typeof cryptoSubtle.unwrapKey).toEqual("function");
         });
 
+        it("cryptokeys.getKeyByName exists", function () {
+            expect(typeof cryptokeys.getKeyByName).toEqual("function");
+        });
+        
     });
 
     // --------------------------------------------------------------------------------
@@ -119,7 +124,7 @@
 
     // --------------------------------------------------------------------------------
 
-    describe("DeviceId", function () {
+    describe("DeviceId (non-normative)", function () {
 
         it("getDeviceId", function () {
             var op,
@@ -147,6 +152,60 @@
                 // test here to make sure it runs anyway
             });
         });
+
+    });
+
+    // --------------------------------------------------------------------------------
+
+    describe("Key Discovery API (sample)", function () {
+        
+        // NOTE: For this test to pass, the plugin must have pre-provisioned
+        // keys named "Kpe", "Kph", and "Kpw", with all keys associated with the
+        // script origin in which the test is running.
+        
+        function wrapper(keyName) {
+            it("getKeyByName " + keyName, function () {
+                var op,
+                    key,
+                    error;
+
+                runs(function () {
+                    op = cryptokeys.getKeyByName(keyName);
+                    op.onerror = function (e) {
+                        error = "ERROR";
+                    };
+                    op.oncomplete = function (e) {
+                        key = e.target.result;
+                    };
+                });
+
+                waitsFor(function () {
+                    return error || key;
+                });
+
+                runs(function () {
+                    expect(error).toBeUndefined();
+                    expect(key).toBeDefined();
+                    expect(key.type).toBe("secret");
+                    expect(key.extractable).toBe(false);
+                    expect(key.name).toBe(keyName);
+                    expect(key.id).toBeDefined();
+                    if (keyName == "Kpe") {
+                        expect(key.algorithm.name).toBe("AES-CBC");
+                        expect(JSON.stringify(key.keyUsage)).toBe(JSON.stringify(['encrypt', 'decrypt']));
+                    } else if (keyName == "Kph") {
+                        expect(key.algorithm.name).toBe("HMAC");
+                        expect(JSON.stringify(key.keyUsage)).toBe(JSON.stringify(['sign', 'verify']));
+                    } else {
+                        expect(key.algorithm.name).toBe("AES-KW");
+                        expect(JSON.stringify(key.keyUsage)).toBe(JSON.stringify(['wrap', 'unwrap']));
+                    }
+                });
+            });
+        }
+        wrapper("Kpe");
+        wrapper("Kph");
+        wrapper("Kpw")
 
     });
 

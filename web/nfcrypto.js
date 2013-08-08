@@ -75,6 +75,7 @@ End of (PolyCrypt) License Terms and Conditions.
     // TODO: remove the methods from nfCrypto, they should only be on nfCrypto.subtle
     window.nfCrypto = that;
     window.nfCrypto.subtle = that;
+    window.nfCryptoKeys = that;
 
     //--------------------------------------------------------------------------
     // created before pluginObject, and accumulates messages to the plugin, then runs them once pluginObject is ready
@@ -262,6 +263,7 @@ End of (PolyCrypt) License Terms and Conditions.
             }
             //console.log("TRACE _handleMessage enter");
             //console.log(message.data);
+            plugin.removeEventListener('message', _handleMessage);
             var event = {};
             event.target = op;
             if (data.success == false) {
@@ -390,7 +392,7 @@ End of (PolyCrypt) License Terms and Conditions.
 
     //--------------------------------------------------------------------------
     var createKeyOp = function (type, format, keyData, algorithm,
-            extractable, keyUsage, baseKey, derivedKeyType, key) {
+            extractable, keyUsage, baseKey, derivedKeyType, key, keyName) {
 
         var op = {},
         result = null,
@@ -441,6 +443,7 @@ End of (PolyCrypt) License Terms and Conditions.
             baseKeyHandle: (baseKey == null) ? baseKey : baseKey.handle,
             derivedAlgorithm : derivedKeyType,
             keyHandle: (key == null) ? key : key.handle,
+            keyName: keyName,
         };
         messenger.postMessage(type, args);
 
@@ -529,7 +532,11 @@ End of (PolyCrypt) License Terms and Conditions.
     };
     
     that.getDeviceId = function () {
-        return createKeyOp('getDeviceId', null, null, null, null, null, null, null, null)
+        return createKeyOp('getDeviceId', null, null, null, null, null, null, null, null);
+    }
+    
+    that.getKeyByName = function (keyName) {
+        return createKeyOp('getKeyByName', null, null, null, null, null, null, null, null, keyName);
     }
 
     //--------------------------------------------------------------------------
