@@ -263,6 +263,7 @@ End of (PolyCrypt) License Terms and Conditions.
             }
             //console.log("TRACE _handleMessage enter");
             //console.log(message.data);
+            plugin.removeEventListener('message', _handleMessage);
             var event = {};
             event.target = op;
             if (data.success == false) {
