@@ -36,40 +36,46 @@ class SampleKeyProvision: public IKeyProvision
 public:
 	SampleKeyProvision();
 	virtual ~SampleKeyProvision() {}
+private:
+	void addKey(const std::string& name, const std::string& esn64,
+	        const std::vector<std::string>& origins, const CadmiumCrypto::Vuc& key,
+	        CadmiumCrypto::KeyType type, bool extractable, const base::Variant& algVar,
+	        const std::vector<CadmiumCrypto::KeyUsage>& keyUsage)
+	{
+	    NamedKey nk(name, esn64, origins, key, type, extractable, algVar, keyUsage);
+	    namedKeyVec_.push_back(nk);
+	}
+	base::VariantMap makeAlgVar(CadmiumCrypto::Algorithm algoType, int keyLength)
+	{
+	    assert(algoType == CadmiumCrypto::AES_CBC ||
+	           algoType == CadmiumCrypto::HMAC    ||
+	           algoType == CadmiumCrypto::AES_KW);
+	    base::VariantMap algVar;
+	    algVar["name"] = toString(algoType);
+	    if (algoType == CadmiumCrypto::HMAC)
+	    {
+	        std::string hashName;
+	        switch (keyLength)
+	        {
+	            case 160: hashName = toString(CadmiumCrypto::SHA1);   break;
+	            case 224: hashName = toString(CadmiumCrypto::SHA224); break;
+	            case 256: hashName = toString(CadmiumCrypto::SHA256); break;
+	            case 384: hashName = toString(CadmiumCrypto::SHA384); break;
+	            case 512: hashName = toString(CadmiumCrypto::SHA512); break;
+	            default:  assert(false);                              break;
+	        }
+	        algVar["params"]["hash"]["name"] = hashName;
+	    }
+	    return algVar;
+	}
+	CadmiumCrypto::Vuc makeVuc(const std::string& dataStr64)
+	{
+	    const CadmiumCrypto::Vuc dataVec64(dataStr64.begin(), dataStr64.end());
+	    return CadmiumCrypto::Vuc(base::Base64::decode(dataVec64));
+	}
+	template<typename T, size_t N> T* begin(T (&arr)[N]) { return &arr[0];     }
+	template<typename T, size_t N> T* end(T (&arr)[N])   { return &arr[0] + N; }
 };
-
-inline base::VariantMap makeAlgVar(CadmiumCrypto::Algorithm algoType, int keyLength)
-{
-    assert(algoType == CadmiumCrypto::AES_CBC ||
-           algoType == CadmiumCrypto::HMAC    ||
-           algoType == CadmiumCrypto::AES_KW);
-    base::VariantMap algVar;
-    algVar["name"] = toString(algoType);
-    if (algoType == CadmiumCrypto::HMAC)
-    {
-        std::string hashName;
-        switch (keyLength)
-        {
-            case 160: hashName = toString(CadmiumCrypto::SHA1);   break;
-            case 224: hashName = toString(CadmiumCrypto::SHA224); break;
-            case 256: hashName = toString(CadmiumCrypto::SHA256); break;
-            case 384: hashName = toString(CadmiumCrypto::SHA384); break;
-            case 512: hashName = toString(CadmiumCrypto::SHA512); break;
-            default:  assert(false);                              break;
-        }
-        algVar["params"]["hash"]["name"] = hashName;
-    }
-    return algVar;
-}
-
-inline std::vector<unsigned char> makeVuc(const std::string& dataStr64)
-{
-    const std::vector<unsigned char> dataVec64(dataStr64.begin(), dataStr64.end());
-    return std::vector<unsigned char>(base::Base64::decode(dataVec64));
-}
-
-template<typename T, size_t N> T* begin(T (&arr)[N]) { return &arr[0];     }
-template<typename T, size_t N> T* end(T (&arr)[N])   { return &arr[0] + N; }
 
 }} // namespace cadmium::crypto
 

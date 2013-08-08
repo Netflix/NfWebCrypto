@@ -285,26 +285,36 @@ void CadmiumCrypto::CadmiumCryptoImpl::importPreSharedKeys()
     SampleKeyProvision skp;
     const SampleKeyProvision::NamedKeyVec& keyVec(skp.getNamedKeyVec());
     DLOG() << "Importing pre-shared keys:\n";
-    for (SampleKeyProvision::NamedKeyVec::const_iterator it = keyVec.begin(); it != keyVec.end(); ++it)
+    for (SampleKeyProvision::NamedKeyVec::const_iterator nk = keyVec.begin(); nk != keyVec.end(); ++nk)
     {
-        NamedKey nk(*it);
-        DLOG() << nk.name << ", " << Base64::decode(nk.id) << ", " << nk.origin << endl;
-        if (!doesRightSideOfStringMatch(nk.origin, currentOrigin))
+        DLOG() << nk->name << ", " << Base64::decode(nk->id) << ", searching origins for " << currentOrigin << ": ";
+        bool originOk = false;
+        for (vector<string>::const_iterator org = nk->origins.begin(); org != nk->origins.end(); ++org)
         {
-            DLOG() << "CadmiumCryptoImpl::importPreSharedKeys: preshared key origin " << nk.origin <<
-                    " does not match current origin " << currentOrigin << ", skipping\n";
+            DLOG() << *org << " ";
+            if (doesRightSideOfStringMatch(*org, currentOrigin))
+            {
+                originOk = true;
+                DLOG() << "(found) ";
+            }
+        }
+        DLOG() << endl;
+        if (!originOk)
+        {
+            DLOG() << "CadmiumCrypto::importPreSharedKeys: preshared key has no "
+                    "origin compatible with " << currentOrigin << ", skipping\n";
             continue;
         }
         uint32_t keyHandle;
-        CadErr err = importKeyInternal(RAW, vucToStr64(nk.key), nk.algVar, nk.extractable,
-                nk.keyUsage, keyHandle);
+        CadErr err = importKeyInternal(RAW, vucToStr64(nk->key), nk->algVar, nk->extractable,
+                nk->keyUsage, keyHandle);
         if (err != CAD_ERR_OK)
         {
-            DLOG() << "CadmiumCryptoImpl::importPreSharedKeys: WARNING: preshared key " <<
-                    nk.name << " failed\n";
+            DLOG() << "CadmiumCrypto::importPreSharedKeys: WARNING: preshared key " <<
+                    nk->name << " failed\n";
             continue;
         }
-        namedKeyMap_.insert(make_pair(nk.name, NamedKeySpec(keyHandle, nk.id)));
+        namedKeyMap_.insert(make_pair(nk->name, NamedKeySpec(keyHandle, nk->id)));
     }
 }
 

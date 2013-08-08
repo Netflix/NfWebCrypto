@@ -31,14 +31,18 @@ namespace crypto {
 SampleKeyProvision::SampleKeyProvision()
 {
     const string esn64 = Base64::encode("FAKE_ESN-0123-4567");
-    const string originGithub("netflix.github.io");
-    const string originLocalhost("localhost");
     const bool extractable = false;
     const CadmiumCrypto::KeyType type = CadmiumCrypto::SECRET;
+
+    // provision the keys for all of the following origins
+    vector<string> origins;
+    origins.push_back("netflix.github.io");
+    origins.push_back("localhost");
+
     string name;
+    CadmiumCrypto::Vuc key;
     Variant algVar;
     vector<CadmiumCrypto::KeyUsage> keyUsage;
-    vector<unsigned char> key;
 
     // -- sample Kpe
     name = "Kpe";
@@ -46,7 +50,7 @@ SampleKeyProvision::SampleKeyProvision()
     const size_t kpeLenBytes = 16;
     const unsigned char rawKpeAry[kpeLenBytes] =
     {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f};
-    vector<unsigned char>(begin(rawKpeAry), end(rawKpeAry)).swap(key);
+    CadmiumCrypto::Vuc(begin(rawKpeAry), end(rawKpeAry)).swap(key);
     assert(key.size() == kpeLenBytes);
     // algorithm
     algVar = makeAlgVar(CadmiumCrypto::AES_CBC, key.size() * 8);
@@ -54,11 +58,8 @@ SampleKeyProvision::SampleKeyProvision()
     keyUsage.clear();
     keyUsage.push_back(CadmiumCrypto::ENCRYPT);
     keyUsage.push_back(CadmiumCrypto::DECRYPT);
-    // provision this key for both the GitHub and localhost origins
-    NamedKey kpe(name, esn64, originGithub, key, type, extractable, algVar, keyUsage);
-    namedKeyVec_.push_back(kpe);
-    kpe.origin = originLocalhost;
-    namedKeyVec_.push_back(kpe);
+    // provision this key
+    addKey(name, esn64, origins, key, type, extractable, algVar, keyUsage);
 
     // -- sample Kph
     name = "Kph";
@@ -67,7 +68,7 @@ SampleKeyProvision::SampleKeyProvision()
     const unsigned char rawKphAry[kphLenBytes] =
     {0x0f,0x0e,0x0d,0x0c,0x0b,0x0a,0x09,0x08,0x07,0x06,0x05,0x04,0x03,0x02,0x01,0x01,
      0x0f,0x0e,0x0d,0x0c,0x0b,0x0a,0x09,0x08,0x07,0x06,0x05,0x04,0x03,0x02,0x01,0x01};
-    vector<unsigned char>(begin(rawKphAry), end(rawKphAry)).swap(key);
+    CadmiumCrypto::Vuc(begin(rawKphAry), end(rawKphAry)).swap(key);
     assert(key.size() == kphLenBytes);
     // algorithm
     algVar = makeAlgVar(CadmiumCrypto::HMAC, key.size() * 8);
@@ -75,11 +76,8 @@ SampleKeyProvision::SampleKeyProvision()
     keyUsage.clear();
     keyUsage.push_back(CadmiumCrypto::SIGN);
     keyUsage.push_back(CadmiumCrypto::VERIFY);
-    // provision this key for both the GitHub and localhost origins
-    NamedKey kph(name, esn64, originGithub, key, type, extractable, algVar, keyUsage);
-    namedKeyVec_.push_back(kph);
-    kph.origin = originLocalhost;
-    namedKeyVec_.push_back(kph);
+    // provision this key
+    addKey(name, esn64, origins, key, type, extractable, algVar, keyUsage);
 
     // -- sample Kpw
     name = "Kpw";
@@ -87,7 +85,7 @@ SampleKeyProvision::SampleKeyProvision()
     const size_t kpwLenBytes = 16;
     const unsigned char rawKpwAry[kpwLenBytes] =
     {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f};
-    vector<unsigned char>(begin(rawKpwAry), end(rawKpwAry)).swap(key);
+    CadmiumCrypto::Vuc(begin(rawKpwAry), end(rawKpwAry)).swap(key);
     assert(key.size() == kpwLenBytes);
     // algorithm
     algVar = makeAlgVar(CadmiumCrypto::AES_KW, key.size() * 8);
@@ -95,11 +93,8 @@ SampleKeyProvision::SampleKeyProvision()
     keyUsage.clear();
     keyUsage.push_back(CadmiumCrypto::WRAP);
     keyUsage.push_back(CadmiumCrypto::UNWRAP);
-    // provision this key for both the GitHub and localhost origins
-    NamedKey kpw(name, esn64, originGithub, key, type, extractable, algVar, keyUsage);
-    namedKeyVec_.push_back(kpw);
-    kpw.origin = originLocalhost;
-    namedKeyVec_.push_back(kpw);
+    // provision this key
+    addKey(name, esn64, origins,key, type, extractable, algVar, keyUsage);
 }
 
 }} // namespace cadmium::crypto

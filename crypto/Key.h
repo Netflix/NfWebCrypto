@@ -62,11 +62,12 @@ struct NamedKey : public Key
 {
     std::string name;   // the pre-provisioned name of this key
     std::string id;     // the pre-provisioned meta data; often the device ESN
-    std::string origin; // the pre-provisioned origin where this key is valid
+    std::vector<std::string> origins; // the pre-provisioned origins where this key is valid
     virtual ~NamedKey() {}
-    NamedKey(const std::string& name, const std::string& id, const std::string& origin,
-            const Vuc& key, CadmiumCrypto::KeyType type,
-            bool extractable, const base::Variant& algVar,
+    NamedKey(const std::string& name, const std::string& id,
+            const std::vector<std::string>& origin, const Vuc& key,
+            CadmiumCrypto::KeyType type, bool extractable,
+            const base::Variant& algVar,
             const std::vector<CadmiumCrypto::KeyUsage>& usg);
 };
 

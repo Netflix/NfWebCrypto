@@ -68,13 +68,13 @@ Key::Key(const Vuc& key, shared_ptr<DiffieHellmanContext> pDhContext,
 }
 
 NamedKey::NamedKey(const string& name, const string& id,
-        const string& origin, const Vuc& key, CadmiumCrypto::KeyType kt,
+        const vector<string>& origins, const Vuc& key, CadmiumCrypto::KeyType kt,
         bool extractable, const base::Variant& algVar,
         const vector<CadmiumCrypto::KeyUsage>& usg)
 :   Key(key, kt, extractable, algVar, usg)
 ,   name(name)
 ,   id(id)
-,   origin(origin)
+,   origins(origins)
 {
 }
 
