@@ -19,6 +19,9 @@
 #define SAMPLEKEYPROVISION_H_
 
 #include "IKeyProvision.h"
+#include <vector>
+#include <string>
+#include <base/Base64.h>
 
 namespace cadmium {
 namespace crypto {
@@ -33,10 +36,40 @@ class SampleKeyProvision: public IKeyProvision
 public:
 	SampleKeyProvision();
 	virtual ~SampleKeyProvision() {}
-    virtual NamedKeyVec& getNamedKeyVec() {return namedKeyVec_;}
-private:
-    NamedKeyVec namedKeyVec_;
 };
+
+inline base::VariantMap makeAlgVar(CadmiumCrypto::Algorithm algoType, int keyLength)
+{
+    assert(algoType == CadmiumCrypto::AES_CBC ||
+           algoType == CadmiumCrypto::HMAC    ||
+           algoType == CadmiumCrypto::AES_KW);
+    base::VariantMap algVar;
+    algVar["name"] = toString(algoType);
+    if (algoType == CadmiumCrypto::HMAC)
+    {
+        std::string hashName;
+        switch (keyLength)
+        {
+            case 160: hashName = toString(CadmiumCrypto::SHA1);   break;
+            case 224: hashName = toString(CadmiumCrypto::SHA224); break;
+            case 256: hashName = toString(CadmiumCrypto::SHA256); break;
+            case 384: hashName = toString(CadmiumCrypto::SHA384); break;
+            case 512: hashName = toString(CadmiumCrypto::SHA512); break;
+            default:  assert(false);                              break;
+        }
+        algVar["params"]["hash"]["name"] = hashName;
+    }
+    return algVar;
+}
+
+inline std::vector<unsigned char> makeVuc(const std::string& dataStr64)
+{
+    const std::vector<unsigned char> dataVec64(dataStr64.begin(), dataStr64.end());
+    return std::vector<unsigned char>(base::Base64::decode(dataVec64));
+}
+
+template<typename T, size_t N> T* begin(T (&arr)[N]) { return &arr[0];     }
+template<typename T, size_t N> T* end(T (&arr)[N])   { return &arr[0] + N; }
 
 }} // namespace cadmium::crypto
 

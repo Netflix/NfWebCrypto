@@ -18,7 +18,6 @@
 #ifndef IKEYPROVISION_H_
 #define IKEYPROVISION_H_
 #include <vector>
-#include <string>
 #include "Key.h"
 
 namespace cadmium {
@@ -31,9 +30,11 @@ class IKeyProvision
 {
 public:
 	typedef std::vector<NamedKey> NamedKeyVec;
-	virtual NamedKeyVec& getNamedKeyVec() = 0;
+	NamedKeyVec& getNamedKeyVec() {return namedKeyVec_;}
 protected:
 	virtual ~IKeyProvision() {}
+    NamedKeyVec namedKeyVec_;
+
 };
 
 }} // namespace cadmium::crypto

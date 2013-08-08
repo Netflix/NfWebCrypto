@@ -28,40 +28,6 @@ using namespace cadmium::base;
 namespace cadmium {
 namespace crypto {
 
-namespace
-{
-
-typedef vector<unsigned char> Vuc;
-
-template<typename T, size_t N> T* begin(T (&arr)[N]) { return &arr[0];     }
-template<typename T, size_t N> T* end(T (&arr)[N])   { return &arr[0] + N; }
-
-VariantMap makeAlgVar(CadmiumCrypto::Algorithm algoType, int keyLength)
-{
-    assert(algoType == CadmiumCrypto::AES_CBC ||
-           algoType == CadmiumCrypto::HMAC    ||
-           algoType == CadmiumCrypto::AES_KW);
-    VariantMap algVar;
-    algVar["name"] = toString(algoType);
-    if (algoType == CadmiumCrypto::HMAC)
-    {
-        string hashName;
-        switch (keyLength)
-        {
-            case 160: hashName = toString(CadmiumCrypto::SHA1);   break;
-            case 224: hashName = toString(CadmiumCrypto::SHA224); break;
-            case 256: hashName = toString(CadmiumCrypto::SHA256); break;
-            case 384: hashName = toString(CadmiumCrypto::SHA384); break;
-            case 512: hashName = toString(CadmiumCrypto::SHA512); break;
-            default:  assert(false);                              break;
-        }
-        algVar["params"]["hash"]["name"] = hashName;
-    }
-    return algVar;
-}
-
-}   // anonymous namespace
-
 SampleKeyProvision::SampleKeyProvision()
 {
     const string esn64 = Base64::encode("FAKE_ESN-0123-4567");
@@ -72,7 +38,7 @@ SampleKeyProvision::SampleKeyProvision()
     string name;
     Variant algVar;
     vector<CadmiumCrypto::KeyUsage> keyUsage;
-    Vuc key;
+    vector<unsigned char> key;
 
     // -- sample Kpe
     name = "Kpe";
@@ -80,7 +46,7 @@ SampleKeyProvision::SampleKeyProvision()
     const size_t kpeLenBytes = 16;
     const unsigned char rawKpeAry[kpeLenBytes] =
     {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f};
-    Vuc(begin(rawKpeAry), end(rawKpeAry)).swap(key);
+    vector<unsigned char>(begin(rawKpeAry), end(rawKpeAry)).swap(key);
     assert(key.size() == kpeLenBytes);
     // algorithm
     algVar = makeAlgVar(CadmiumCrypto::AES_CBC, key.size() * 8);
@@ -101,7 +67,7 @@ SampleKeyProvision::SampleKeyProvision()
     const unsigned char rawKphAry[kphLenBytes] =
     {0x0f,0x0e,0x0d,0x0c,0x0b,0x0a,0x09,0x08,0x07,0x06,0x05,0x04,0x03,0x02,0x01,0x01,
      0x0f,0x0e,0x0d,0x0c,0x0b,0x0a,0x09,0x08,0x07,0x06,0x05,0x04,0x03,0x02,0x01,0x01};
-    Vuc(begin(rawKphAry), end(rawKphAry)).swap(key);
+    vector<unsigned char>(begin(rawKphAry), end(rawKphAry)).swap(key);
     assert(key.size() == kphLenBytes);
     // algorithm
     algVar = makeAlgVar(CadmiumCrypto::HMAC, key.size() * 8);
@@ -121,7 +87,7 @@ SampleKeyProvision::SampleKeyProvision()
     const size_t kpwLenBytes = 16;
     const unsigned char rawKpwAry[kpwLenBytes] =
     {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f};
-    Vuc(begin(rawKpwAry), end(rawKpwAry)).swap(key);
+    vector<unsigned char>(begin(rawKpwAry), end(rawKpwAry)).swap(key);
     assert(key.size() == kpwLenBytes);
     // algorithm
     algVar = makeAlgVar(CadmiumCrypto::AES_KW, key.size() * 8);

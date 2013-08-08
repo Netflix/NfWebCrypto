@@ -38,6 +38,7 @@ set(CRYPTO_SOURCES
     RandTable.cpp
     RsaContext.cpp
     SampleKeyProvision.cpp
+    #netflixInternalSecret/SecretKeyProvision.cpp
 )
 
 add_library(cadcrypto ${CRYPTO_SOURCES})
