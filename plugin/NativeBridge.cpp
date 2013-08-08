@@ -494,13 +494,9 @@ bool NativeBridge::importKey(const string& cmdIndex, Variant& argsVar,
         return false;
     DLOG() << "\tkeyData: " << truncateLong(keyData) << endl;
 
-    // get algorithm
+    // get algorithm, do not fail if not present since some codepaths offer a fallback
     Variant algObj;
-    if (!getAlgorithmObj(argsVar, algObj))
-    {
-        sendError(cmdIndex, CAD_ERR_UNKNOWN_ALGO);  // FIXME: better error
-        return false;
-    }
+    getAlgorithmObj(argsVar, algObj);
     const CadmiumCrypto::Algorithm algType = toAlgorithm(algObj["name"].string());
     DLOG() << "\talgorithm: " << toString(algType) << endl;
 

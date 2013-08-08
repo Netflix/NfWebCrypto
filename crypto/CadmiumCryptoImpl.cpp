@@ -151,7 +151,7 @@ bool reconcileAlgVsUsage(CadmiumCrypto::Algorithm algorithm,
             allowedKeyUsage.insert(CadmiumCrypto::UNWRAP);
             break;
         default:
-            assert(false);
+            return false;
     }
     for (vector<CadmiumCrypto::KeyUsage>::const_iterator it = keyUsage.begin();
             it != keyUsage.end(); ++it)

@@ -203,25 +203,29 @@ describe("keywrapunwraprsa", function () {
 
 			// generate RSA pub/priv key pair for wrapping with
 			runs(function () {
-				var genOp = undefined;
-				if(INDEXVALUE.name == "WrapUsingKeyWithIvalidUsage") {
-					genOp = nfCrypto.generateKey({name: "RSA-OAEP", params: { modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01])}},
-							false,
-							["unwrap"]
-					);
-				} else {
-					genOp = nfCrypto.generateKey({name: "RSA-OAEP", params: { modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01])}},
-							false,
-							["wrap", "unwrap"]
-					);
-				}
-				genOp.onerror = function (e) {
+				try {
+					var genOp = undefined;
+					if(INDEXVALUE.name == "WrapUsingKeyWithIvalidUsage") {
+						genOp = nfCrypto.generateKey({name: "RSA-OAEP", params: { modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01])}},
+								false,
+								["unwrap"]
+						);
+					} else {
+						genOp = nfCrypto.generateKey({name: "RSA-OAEP", params: { modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01])}},
+								false,
+								["wrap", "unwrap"]
+						);
+					}
+					genOp.onerror = function (e) {
+						error = "ERROR";
+					};
+					genOp.oncomplete = function (e) {
+						pubKey  = e.target.result.publicKey;
+						privKey = e.target.result.privateKey;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				genOp.oncomplete = function (e) {
-					pubKey  = e.target.result.publicKey;
-					privKey = e.target.result.privateKey;
-				};
+				}
 			});
 			waitsFor(function () {
 				return (pubKey && privKey) || error;
@@ -234,19 +238,23 @@ describe("keywrapunwraprsa", function () {
 
 			// create the key to be wrapped
 			runs(function () {
-				error = undefined;
-				var op = undefined;
-				if(INDEXVALUE.name == "WrapeeExtractableFalseUnwrapExtractableTrue") {
-					op = nfCrypto.importKey("raw", keyData, { name: "AES-CBC" }, false);
-				} else {
-					op = nfCrypto.importKey("raw", keyData, { name: "AES-CBC" }, true);
-				}
-				op.onerror = function (e) {
+				try {
+					error = undefined;
+					var op = undefined;
+					if(INDEXVALUE.name == "WrapeeExtractableFalseUnwrapExtractableTrue") {
+						op = nfCrypto.importKey("raw", keyData, { name: "AES-CBC" }, false);
+					} else {
+						op = nfCrypto.importKey("raw", keyData, { name: "AES-CBC" }, true);
+					}
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						keyToWrap = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					keyToWrap = e.target.result;
-				};
+				}
 			});
 			waitsFor(function () {
 				return keyToWrap || error;
@@ -258,32 +266,36 @@ describe("keywrapunwraprsa", function () {
 
 			// wrap the wrap-ee key using the public wrapping key
 			runs(function () {
-				error = undefined;
-				var op = undefined;
-				if(INDEXVALUE.name == "WrapeeKeyIncorrectAlgo") {
-					keyToWrap.algorithm.name = "";
-				} else if (INDEXVALUE.name == "WrapeeKeyInvalidHandle") {
-					keyToWrap.handle = 0;
-				} else if (INDEXVALUE.name == "WrapporKeyIncorrectAlgo") {
-					pubKey.algorithm.name = "";
-				} else if (INDEXVALUE.name == "WrapporKeyInvalidHandle") {
-					pubKey.handle = 0;
-				}
-				
-				if (INDEXVALUE.name == "WrapMissingAlgoInput") {
-					//Did not specify wrap algo
-					op = nfCrypto.wrapKey(keyToWrap, pubKey);
-				} else {
-					op = nfCrypto.wrapKey(keyToWrap, pubKey, INDEXVALUE.wrapAlgo);
-				}
-				
-				
-				op.onerror = function (e) {
+				try {
+					error = undefined;
+					var op = undefined;
+					if(INDEXVALUE.name == "WrapeeKeyIncorrectAlgo") {
+						keyToWrap.algorithm.name = "";
+					} else if (INDEXVALUE.name == "WrapeeKeyInvalidHandle") {
+						keyToWrap.handle = 0;
+					} else if (INDEXVALUE.name == "WrapporKeyIncorrectAlgo") {
+						pubKey.algorithm.name = "";
+					} else if (INDEXVALUE.name == "WrapporKeyInvalidHandle") {
+						pubKey.handle = 0;
+					}
+
+					if (INDEXVALUE.name == "WrapMissingAlgoInput") {
+						//Did not specify wrap algo
+						op = nfCrypto.wrapKey(keyToWrap, pubKey);
+					} else {
+						op = nfCrypto.wrapKey(keyToWrap, pubKey, INDEXVALUE.wrapAlgo);
+					}
+
+
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						jweData = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					jweData = e.target.result;
-				};
+				}
 			});
 			waitsFor(function () {
 				return jweData || error;
@@ -302,33 +314,37 @@ describe("keywrapunwraprsa", function () {
 				// now unwrap the jwe data received from wrapKey, using the private wrapping key
 				// this gives us a new key in the key store
 				runs(function () {
-					error = undefined;
-					var op = undefined;
-					if(INDEXVALUE.name == "MangledWrapData") {
-						jweData[5] = jweData[5] ^ 0xFF;
-					} else if (INDEXVALUE.name == "UnwrapWrapporKeyInvalidAlgo") {
-						privKey.algorithm.name = "";
-					} else if (INDEXVALUE.name == "UnwrapWrapporKeyInvalidHandle") {
-						privKey.handle = 0;
-					} 
-					
-					if(INDEXVALUE.name == "WrapShortKeyUnwrap") {
-			            //"short key" test: replace the encrypted CMK with "x"
-			            var jwe = latin1.stringify(jweData);
-			            var jweObj = JSON.parse(jwe);
-			            jweObj.recipients[0].encrypted_key = base64.stringifyUrlSafe([0x78]);
-			            var newJwe = JSON.stringify(jweObj);
-			            op = nfCrypto.unwrapKey(latin1.parse(newJwe), INDEXVALUE.unwrapAlgo, privKey, INDEXVALUE.unwrapExtractable);    
-					} else {
-						op = nfCrypto.unwrapKey(jweData, INDEXVALUE.unwrapAlgo, privKey, INDEXVALUE.unwrapExtractable);
-					}
-					
-					op.onerror = function (e) {
+					try {
+						error = undefined;
+						var op = undefined;
+						if(INDEXVALUE.name == "MangledWrapData") {
+							jweData[5] = jweData[5] ^ 0xFF;
+						} else if (INDEXVALUE.name == "UnwrapWrapporKeyInvalidAlgo") {
+							privKey.algorithm.name = "";
+						} else if (INDEXVALUE.name == "UnwrapWrapporKeyInvalidHandle") {
+							privKey.handle = 0;
+						} 
+
+						if(INDEXVALUE.name == "WrapShortKeyUnwrap") {
+							//"short key" test: replace the encrypted CMK with "x"
+							var jwe = latin1.stringify(jweData);
+							var jweObj = JSON.parse(jwe);
+							jweObj.recipients[0].encrypted_key = base64.stringifyUrlSafe([0x78]);
+							var newJwe = JSON.stringify(jweObj);
+							op = nfCrypto.unwrapKey(latin1.parse(newJwe), INDEXVALUE.unwrapAlgo, privKey, INDEXVALUE.unwrapExtractable);    
+						} else {
+							op = nfCrypto.unwrapKey(jweData, INDEXVALUE.unwrapAlgo, privKey, INDEXVALUE.unwrapExtractable);
+						}
+
+						op.onerror = function (e) {
+							error = "ERROR";
+						};
+						op.oncomplete = function (e) {
+							unwrappedKey = e.target.result;
+						};
+					} catch(e) {
 						error = "ERROR";
-					};
-					op.oncomplete = function (e) {
-						unwrappedKey = e.target.result;
-					};
+					}
 				});
 				waitsFor(function () {
 					return unwrappedKey || error;
@@ -340,7 +356,7 @@ describe("keywrapunwraprsa", function () {
 					} else {
 						expect(error).toBeUndefined();
 						expect(unwrappedKey).toBeDefined();
-						expect(unwrappedKey.algorithm.name).toBe("AES-CBC");
+						expect(algorithmName(unwrappedKey.algorithm)).toBe("AES-CBC");
 						expect(unwrappedKey.type).toBe("secret");
 						if(INDEXVALUE.name == "WrapeeExtractableFalseUnwrapExtractableTrue") {
 							expect(unwrappedKey.extractable).toBeFalsy;
@@ -353,14 +369,18 @@ describe("keywrapunwraprsa", function () {
 
 				// finally, export this new key and verify the raw key data
 				runs(function () {
-					error = undefined;
-					var op = nfCrypto.exportKey("raw", unwrappedKey);
-					op.onerror = function (e) {
+					try {
+						error = undefined;
+						var op = nfCrypto.exportKey("raw", unwrappedKey);
+						op.onerror = function (e) {
+							error = "ERROR";
+						};
+						op.oncomplete = function (e) {
+							exportKeyData = e.target.result;
+						};
+					} catch(e) {
 						error = "ERROR";
-					};
-					op.oncomplete = function (e) {
-						exportKeyData = e.target.result;
-					};
+					}
 				});
 				waitsFor(function () {
 					return exportKeyData || error;
@@ -563,15 +583,19 @@ describe("keywrapunwrapaes", function () {
 			
 			// generate a key to be wrapped
             runs(function () {
-                error = undefined;
-                var op = nfCrypto.generateKey({ name: "HMAC", params: { hash: {name: "SHA-256"} } }, true);
-                
-                op.onerror = function (e) {
-                    error = "ERROR";
-                };
-                op.oncomplete = function (e) {
-                    wrapeeKey = e.target.result;
-                };
+            	try {
+            		error = undefined;
+            		var op = nfCrypto.generateKey({ name: "HMAC", params: { hash: {name: "SHA-256"} } }, true);
+
+            		op.onerror = function (e) {
+            			error = "ERROR";
+            		};
+            		op.oncomplete = function (e) {
+            			wrapeeKey = e.target.result;
+            		};
+            	} catch(e) {
+            		error = "ERROR";
+            	}
             });
             waitsFor(function () {
                 return wrapeeKey || error;
@@ -583,14 +607,18 @@ describe("keywrapunwrapaes", function () {
             
             // export the wrap-ee key data for later checking only if extractable is set to true
             runs(function () {
-            	error = undefined;
-            	var op = nfCrypto.exportKey("raw", wrapeeKey);
-            	op.onerror = function (e) {
+            	try {
+            		error = undefined;
+            		var op = nfCrypto.exportKey("raw", wrapeeKey);
+            		op.onerror = function (e) {
+            			error = "ERROR";
+            		};
+            		op.oncomplete = function (e) {
+            			wrapeeKeyData = e.target.result;
+            		};
+            	} catch(e) {
             		error = "ERROR";
-            	};
-            	op.oncomplete = function (e) {
-            		wrapeeKeyData = e.target.result;
-            	};
+            	}
             });
             waitsFor(function () {
             	return wrapeeKeyData || error;
@@ -602,20 +630,24 @@ describe("keywrapunwrapaes", function () {
                         
             // generate a wrapping key
             runs(function () {
-                error = undefined;
-                var op = undefined;
-                if(INDEXVALUE.name == "AESWrapUsingKeyWithInvalidUsage") {
-                	 op = nfCrypto.generateKey({ name: "AES-KW", params: { length: 128 } }, false, ["unwrap"]);
-                } else {
-                	 op = nfCrypto.generateKey({ name: "AES-KW", params: { length: 128 } });
-                }
-             
-                op.onerror = function (e) {
-                    error = "ERROR";
-                };
-                op.oncomplete = function (e) {
-                    wrapporKey = e.target.result;
-                };
+            	try {
+            		error = undefined;
+            		var op = undefined;
+            		if(INDEXVALUE.name == "AESWrapUsingKeyWithInvalidUsage") {
+            			op = nfCrypto.generateKey({ name: "AES-KW", params: { length: 128 } }, false, ["unwrap"]);
+            		} else {
+            			op = nfCrypto.generateKey({ name: "AES-KW", params: { length: 128 } });
+            		}
+
+            		op.onerror = function (e) {
+            			error = "ERROR";
+            		};
+            		op.oncomplete = function (e) {
+            			wrapporKey = e.target.result;
+            		};
+            	} catch(e) {
+            		error = "ERROR";
+            	}
             });
             waitsFor(function () {
                 return wrapporKey || error;
@@ -627,31 +659,35 @@ describe("keywrapunwrapaes", function () {
             
             // wrap the wrap-ee using the wrap-or
             runs(function () {
-                error = undefined;
-                var op = undefined;
-                if(INDEXVALUE.name == "AESWrapeeKeyIncorrectAlgo") {
-                	wrapeeKey.algorithm.name = "";
-				} else if (INDEXVALUE.name == "AESWrapeeKeyInvalidHandle") {
-					wrapeeKey.handle = 0;
-				} else if (INDEXVALUE.name == "AESWrapporKeyIncorrectAlgo") {
-					wrapporKey.algorithm.name = "";
-				} else if (INDEXVALUE.name == "AESWrapporKeyInvalidHandle") {
-					wrapporKey.handle = 0;
-				} 
-                
-            	if (INDEXVALUE.name == "AESWrapMissingAlgoInput") {
-					//Did not specify wrap algo
-            		op = nfCrypto.wrapKey(wrapeeKey, wrapporKey);
-				} else {
-					op = nfCrypto.wrapKey(wrapeeKey, wrapporKey, INDEXVALUE.wrapAlgo);
-				}
-                
-                op.onerror = function (e) {
-                    error = "ERROR";
-                };
-                op.oncomplete = function (e) {
-                    wrappedKeyJwe = e.target.result;
-                };
+            	try {
+            		error = undefined;
+            		var op = undefined;
+            		if(INDEXVALUE.name == "AESWrapeeKeyIncorrectAlgo") {
+            			wrapeeKey.algorithm.name = "";
+            		} else if (INDEXVALUE.name == "AESWrapeeKeyInvalidHandle") {
+            			wrapeeKey.handle = 0;
+            		} else if (INDEXVALUE.name == "AESWrapporKeyIncorrectAlgo") {
+            			wrapporKey.algorithm.name = "";
+            		} else if (INDEXVALUE.name == "AESWrapporKeyInvalidHandle") {
+            			wrapporKey.handle = 0;
+            		} 
+
+            		if (INDEXVALUE.name == "AESWrapMissingAlgoInput") {
+            			//Did not specify wrap algo
+            			op = nfCrypto.wrapKey(wrapeeKey, wrapporKey);
+            		} else {
+            			op = nfCrypto.wrapKey(wrapeeKey, wrapporKey, INDEXVALUE.wrapAlgo);
+            		}
+
+            		op.onerror = function (e) {
+            			error = "ERROR";
+            		};
+            		op.oncomplete = function (e) {
+            			wrappedKeyJwe = e.target.result;
+            		};
+            	} catch(e) {
+            		error = "ERROR";
+            	}
             });
             waitsFor(function () {
                 return wrappedKeyJwe || error;
@@ -669,33 +705,37 @@ describe("keywrapunwrapaes", function () {
             if(INDEXVALUE.disableUnwrap != true) {
             	// unwrap the resulting JWE
             	runs(function () {
-            		error = undefined;
-            		var op = undefined;
-            		if(INDEXVALUE.name == "AESMangledWrapData") {
-            			wrappedKeyJwe[5] = wrappedKeyJwe[5] ^ 0xFF;
-					} else if (INDEXVALUE.name == "AESUnwrapWrapporKeyInvalidAlgo") {
-						wrapporKey.algorithm.name = "";
-					} else if (INDEXVALUE.name == "AESUnwrapWrapporKeyInvalidHandle") {
-						wrapporKey.handle = 0;
-					} 
-            		
-            		if(INDEXVALUE.name == "AESWrapShortKeyUnwrap") {
-			            //"short key" test: replace the encrypted CMK with "x"
-			            var jwe = latin1.stringify(wrappedKeyJwe);
-			            var jweObj = JSON.parse(jwe);
-			            jweObj.recipients[0].encrypted_key = base64.stringifyUrlSafe([0x78]);
-			            var newJwe = JSON.stringify(jweObj);
-			            op = nfCrypto.unwrapKey(latin1.parse(newJwe), INDEXVALUE.unwrapAlgo, wrapporKey, INDEXVALUE.unwrapExtractable);    
-					} else {
-						op = nfCrypto.unwrapKey(wrappedKeyJwe, INDEXVALUE.unwrapAlgo, wrapporKey, INDEXVALUE.unwrapExtractable);
-					}
-            		
-            		op.onerror = function (e) {
+            		try {
+            			error = undefined;
+            			var op = undefined;
+            			if(INDEXVALUE.name == "AESMangledWrapData") {
+            				wrappedKeyJwe[5] = wrappedKeyJwe[5] ^ 0xFF;
+            			} else if (INDEXVALUE.name == "AESUnwrapWrapporKeyInvalidAlgo") {
+            				wrapporKey.algorithm.name = "";
+            			} else if (INDEXVALUE.name == "AESUnwrapWrapporKeyInvalidHandle") {
+            				wrapporKey.handle = 0;
+            			} 
+
+            			if(INDEXVALUE.name == "AESWrapShortKeyUnwrap") {
+            				//"short key" test: replace the encrypted CMK with "x"
+            				var jwe = latin1.stringify(wrappedKeyJwe);
+            				var jweObj = JSON.parse(jwe);
+            				jweObj.recipients[0].encrypted_key = base64.stringifyUrlSafe([0x78]);
+            				var newJwe = JSON.stringify(jweObj);
+            				op = nfCrypto.unwrapKey(latin1.parse(newJwe), INDEXVALUE.unwrapAlgo, wrapporKey, INDEXVALUE.unwrapExtractable);    
+            			} else {
+            				op = nfCrypto.unwrapKey(wrappedKeyJwe, INDEXVALUE.unwrapAlgo, wrapporKey, INDEXVALUE.unwrapExtractable);
+            			}
+
+            			op.onerror = function (e) {
+            				error = "ERROR";
+            			};
+            			op.oncomplete = function (e) {
+            				unwrappedWrappeeKey = e.target.result;
+            			};
+            		} catch(e) {
             			error = "ERROR";
-            		};
-            		op.oncomplete = function (e) {
-            			unwrappedWrappeeKey = e.target.result;
-            		};
+            		}
             	});
             	waitsFor(function () {
                 	return unwrappedWrappeeKey || error;
@@ -707,20 +747,24 @@ describe("keywrapunwrapaes", function () {
             		} else {
             			expect(error).toBeUndefined();
                 		expect(unwrappedWrappeeKey).toBeDefined();
-                		expect(unwrappedWrappeeKey.algorithm.name).toBe("HMAC");
+                		expect(algorithmName(unwrappedWrappeeKey.algorithm)).toBe("HMAC");
             		}
             	});
             
             	// export the raw key and compare to the original
             	runs(function () {
-            		error = undefined;
-            		var op = nfCrypto.exportKey("raw", unwrappedWrappeeKey);
-            		op.onerror = function (e) {
+            		try {
+            			error = undefined;
+            			var op = nfCrypto.exportKey("raw", unwrappedWrappeeKey);
+            			op.onerror = function (e) {
+            				error = "ERROR";
+            			};
+            			op.oncomplete = function (e) {
+            				unwrappedWrappeeKeyData = e.target.result;
+            			};
+            		} catch(e) {
             			error = "ERROR";
-            		};
-            		op.oncomplete = function (e) {
-            			unwrappedWrappeeKeyData = e.target.result;
-            		};
+            		}
             	});
             	waitsFor(function () {
             		return unwrappedWrappeeKeyData || error;
@@ -916,17 +960,21 @@ describe("keywrapunwrapjwejsrsa-oaep", function () {
 			
 			// generate RSA pub/priv key pair for wrapping with
 			runs(function () {
-				var genOp = nfCrypto.generateKey({name: "RSA-OAEP", params: { modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01])}},
-						false,
-						["wrap", "unwrap"]
-				);
-				genOp.onerror = function (e) {
+				try {
+					var genOp = nfCrypto.generateKey({name: "RSA-OAEP", params: { modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01])}},
+							false,
+							["wrap", "unwrap"]
+					);
+					genOp.onerror = function (e) {
+						error = "ERROR";
+					};
+					genOp.oncomplete = function (e) {
+						pubKey  = e.target.result.publicKey;
+						privKey = e.target.result.privateKey;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				genOp.oncomplete = function (e) {
-					pubKey  = e.target.result.publicKey;
-					privKey = e.target.result.privateKey;
-				};
+				}
 			});
 			waitsFor(function () {
 				return (pubKey && privKey) || error;
@@ -939,16 +987,20 @@ describe("keywrapunwrapjwejsrsa-oaep", function () {
 
 			// create the key to be wrapped
 			runs(function () {
-				error = undefined;
-				var op = undefined;
-				op = nfCrypto.importKey("raw", keyData, { name: "AES-CBC" }, true);
-				
-				op.onerror = function (e) {
+				try {
+					error = undefined;
+					var op = undefined;
+					op = nfCrypto.importKey("raw", keyData, { name: "AES-CBC" }, true);
+
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						keyToWrap = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					keyToWrap = e.target.result;
-				};
+				}
 			});
 			waitsFor(function () {
 				return keyToWrap || error;
@@ -960,16 +1012,20 @@ describe("keywrapunwrapjwejsrsa-oaep", function () {
 
 			// wrap the wrap-ee key using the public wrapping key
 			runs(function () {
-				error = undefined;
-				var op = undefined;
-				op = nfCrypto.wrapKey(keyToWrap, pubKey, INDEXVALUE.wrapAlgo);
-				
-				op.onerror = function (e) {
+				try {
+					error = undefined;
+					var op = undefined;
+					op = nfCrypto.wrapKey(keyToWrap, pubKey, INDEXVALUE.wrapAlgo);
+
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						jweData = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					jweData = e.target.result;
-				};
+				}
 			});
 			waitsFor(function () {
 				return jweData || error;
@@ -1089,21 +1145,24 @@ describe("keywrapunwrapjwejsrsa-oaep", function () {
 		           	jweObj.recipients[0] = recipient;
 		        	recipientFlag = false;
 		        } 
-		        
-		        if (INDEXVALUE.name == "InvalidSerialization") {
-		        	jweData =  textEncoding$getString("x", "utf-8");
-		        	op = nfCrypto.unwrapKey(latin1.parse(jweData), INDEXVALUE.unwrapAlgo, privKey, INDEXVALUE.unwrapExtractable);    
-		        } else {
-		        	var newJwe = JSON.stringify(jweObj);
-		        	op = nfCrypto.unwrapKey(latin1.parse(newJwe), INDEXVALUE.unwrapAlgo, privKey, INDEXVALUE.unwrapExtractable);    
+		        try {
+		        	if (INDEXVALUE.name == "InvalidSerialization") {
+		        		jweData =  textEncoding$getString("x", "utf-8");
+		        		op = nfCrypto.unwrapKey(latin1.parse(jweData), INDEXVALUE.unwrapAlgo, privKey, INDEXVALUE.unwrapExtractable);    
+		        	} else {
+		        		var newJwe = JSON.stringify(jweObj);
+		        		op = nfCrypto.unwrapKey(latin1.parse(newJwe), INDEXVALUE.unwrapAlgo, privKey, INDEXVALUE.unwrapExtractable);    
+		        	}
+
+		        	op.onerror = function (e) {
+		        		error = "ERROR";
+		        	};
+		        	op.oncomplete = function (e) {
+		        		unwrappedKey = e.target.result;
+		        	};
+		        } catch(e) {
+		        	error = "ERROR";
 		        }
-				
-				op.onerror = function (e) {
-					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					unwrappedKey = e.target.result;
-				};
 			});
 			waitsFor(function () {
 				return unwrappedKey || error;
@@ -1115,14 +1174,18 @@ describe("keywrapunwrapjwejsrsa-oaep", function () {
 
 			// finally, export this new key and verify the raw key data
 			runs(function () {
-				error = undefined;
-				var op = nfCrypto.exportKey("raw", unwrappedKey);
-				op.onerror = function (e) {
+				try {
+					error = undefined;
+					var op = nfCrypto.exportKey("raw", unwrappedKey);
+					op.onerror = function (e) {
+						error = "ERROR";
+					};
+					op.oncomplete = function (e) {
+						exportKeyData = e.target.result;
+					};
+				} catch(e) {
 					error = "ERROR";
-				};
-				op.oncomplete = function (e) {
-					exportKeyData = e.target.result;
-				};
+				}
 			});
 			waitsFor(function () {
 				return exportKeyData || error;
@@ -1312,15 +1375,19 @@ describe("keywrapunwrapjwejsaes", function () {
          			
 			// generate a key to be wrapped
             runs(function () {
-                error = undefined;
-                var op = nfCrypto.generateKey({ name: "HMAC", params: { hash: {name: "SHA-256"} } }, true);
-                
-                op.onerror = function (e) {
-                    error = "ERROR";
-                };
-                op.oncomplete = function (e) {
-                    wrapeeKey = e.target.result;
-                };
+            	try {
+            		error = undefined;
+            		var op = nfCrypto.generateKey({ name: "HMAC", params: { hash: {name: "SHA-256"} } }, true);
+
+            		op.onerror = function (e) {
+            			error = "ERROR";
+            		};
+            		op.oncomplete = function (e) {
+            			wrapeeKey = e.target.result;
+            		};
+            	} catch(e) {
+            		error = "ERROR";
+            	}
             });
             waitsFor(function () {
                 return wrapeeKey || error;
@@ -1332,14 +1399,18 @@ describe("keywrapunwrapjwejsaes", function () {
             
             // export the wrap-ee key data for later checking only if extractable is set to true
             runs(function () {
-            	error = undefined;
-            	var op = nfCrypto.exportKey("raw", wrapeeKey);
-            	op.onerror = function (e) {
+            	try {
+            		error = undefined;
+            		var op = nfCrypto.exportKey("raw", wrapeeKey);
+            		op.onerror = function (e) {
+            			error = "ERROR";
+            		};
+            		op.oncomplete = function (e) {
+            			wrapeeKeyData = e.target.result;
+            		};
+            	} catch(e) {
             		error = "ERROR";
-            	};
-            	op.oncomplete = function (e) {
-            		wrapeeKeyData = e.target.result;
-            	};
+            	}
             });
             waitsFor(function () {
             	return wrapeeKeyData || error;
@@ -1351,14 +1422,18 @@ describe("keywrapunwrapjwejsaes", function () {
                         
             // generate a wrapping key
             runs(function () {
-                error = undefined;
-                var op = nfCrypto.generateKey({ name: "AES-KW", params: { length: 128 } });
-                op.onerror = function (e) {
-                    error = "ERROR";
-                };
-                op.oncomplete = function (e) {
-                    wrapporKey = e.target.result;
-                };
+            	try {
+            		error = undefined;
+            		var op = nfCrypto.generateKey({ name: "AES-KW", params: { length: 128 } });
+            		op.onerror = function (e) {
+            			error = "ERROR";
+            		};
+            		op.oncomplete = function (e) {
+            			wrapporKey = e.target.result;
+            		};
+            	} catch(e) {
+            		error = "ERROR";
+            	}
             });
             waitsFor(function () {
                 return wrapporKey || error;
@@ -1370,17 +1445,21 @@ describe("keywrapunwrapjwejsaes", function () {
             
             // wrap the wrap-ee using the wrap-or
             runs(function () {
-                error = undefined;
-                var op = undefined;
-           
-				op = nfCrypto.wrapKey(wrapeeKey, wrapporKey, INDEXVALUE.wrapAlgo);
-                
-                op.onerror = function (e) {
-                    error = "ERROR";
-                };
-                op.oncomplete = function (e) {
-                    wrappedKeyJwe = e.target.result;
-                };
+            	try {
+            		error = undefined;
+            		var op = undefined;
+
+            		op = nfCrypto.wrapKey(wrapeeKey, wrapporKey, INDEXVALUE.wrapAlgo);
+
+            		op.onerror = function (e) {
+            			error = "ERROR";
+            		};
+            		op.oncomplete = function (e) {
+            			wrappedKeyJwe = e.target.result;
+            		};
+            	} catch(e) {
+            		error = "ERROR";
+            	}
             });
             waitsFor(function () {
                 return wrappedKeyJwe || error;
@@ -1499,21 +1578,24 @@ describe("keywrapunwrapjwejsaes", function () {
 		        	jweObj.recipients[0] = recipient;
 		        	recipientFlag = false;
 		        } 
-		        
-		        if (INDEXVALUE.name == "AESInvalidSerialization") {
-		        	wrappedKeyJwe = utf8.parse("x");
-		        	op = nfCrypto.unwrapKey(wrappedKeyJwe, INDEXVALUE.unwrapAlgo, wrapporKey, INDEXVALUE.unwrapExtractable);
-		        } else {
-		        	var newJwe = JSON.stringify(jweObj);
-		        	op = nfCrypto.unwrapKey(latin1.parse(newJwe), INDEXVALUE.unwrapAlgo, wrapporKey, INDEXVALUE.unwrapExtractable);    
-		        }          	
-				
-            	op.onerror = function (e) {
-            		error = "ERROR";
-            	};
-            	op.oncomplete = function (e) {
-            		unwrappedWrappeeKey = e.target.result;
-            	};
+		        try {
+		        	if (INDEXVALUE.name == "AESInvalidSerialization") {
+		        		wrappedKeyJwe = utf8.parse("x");
+		        		op = nfCrypto.unwrapKey(wrappedKeyJwe, INDEXVALUE.unwrapAlgo, wrapporKey, INDEXVALUE.unwrapExtractable);
+		        	} else {
+		        		var newJwe = JSON.stringify(jweObj);
+		        		op = nfCrypto.unwrapKey(latin1.parse(newJwe), INDEXVALUE.unwrapAlgo, wrapporKey, INDEXVALUE.unwrapExtractable);    
+		        	}          	
+
+		        	op.onerror = function (e) {
+		        		error = "ERROR";
+		        	};
+		        	op.oncomplete = function (e) {
+		        		unwrappedWrappeeKey = e.target.result;
+		        	};
+		        } catch(e) {
+		        	error = "ERROR";
+		        }
             });
             waitsFor(function () {
                	return unwrappedWrappeeKey || error;

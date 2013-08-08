@@ -29,7 +29,7 @@ describe("derive", function () {
     var genPubkey = undefined,
         genPrivkey = undefined;
    
-	var listofOperations = [                
+	var listofOperations = [                    
 	    {
 			name: "DeriveDHKey",
 			algo: { name: "DH", params: { public: randPubkey } },
@@ -104,12 +104,35 @@ describe("derive", function () {
 			usages: ["encrypt", "decrypt"],
 			result: "pass"
 		},
+		
+		{  //Generated key has derive in the usage hence this passes
+		   //The derived key usage is based on the usage specified as input to derive	
+			name: "GeneratedKeyUsageMismatch",
+			algo: { name: "DH", params: { public: randPubkey } },
+			derivedKeyAlgo: "AES-CBC",
+			extractable: true,
+			usages: ["encrypt"],
+			result: "pass"
+		},	
+		
+		{  
+			name: "GeneratedKeyUsageNotDerive",
+			algo: { name: "DH", params: { public: randPubkey } },
+			derivedKeyAlgo: "AES-CBC",
+			extractable: true,
+			usages: ["derive"],
+			deriveKey: false
+		},	
+		
+		
+		
 
 	];
 	var opIndex = 0;
 	var indexValue = 0;
 	function wrapperForTest(opIndex) {	
 		it(listofOperations[opIndex].name, function () {
+	      
 			indexValue = listofOperations[opIndex];
 			var error = undefined;
 			var privkeyData = undefined, 
@@ -133,6 +156,9 @@ describe("derive", function () {
 								publicExponent: fermatF4,
 							},
 						});
+            		} else if (indexValue.name == "GeneratedKeyUsageNotDerive") {  
+            			op = nfCrypto.generateKey( {name: "DH", params: { prime: dhPrime, generator: dhGenerator } }, true, ["encrypt"] );
+         	           
             		} else {
     	                op = nfCrypto.generateKey( {name: "DH", params: { prime: dhPrime, generator: dhGenerator } }, true, ["derive", "decrypt"] );
     	            }
@@ -191,7 +217,7 @@ describe("derive", function () {
 				} else {
 					//shared key checks
 					expect(error).toBeUndefined();
-					expect(sharedKey.algorithm.name).toEqual(indexValue.derivedKeyAlgo);
+					expect(algorithmName(sharedKey.algorithm)).toEqual(indexValue.derivedKeyAlgo);
 					expect(sharedKey.extractable).toEqual(indexValue.extractable);
 					expect(sharedKey.keyUsage.length).toEqual(indexValue.usages.length);
 					if(indexValue.usages.length > 1) {
@@ -204,39 +230,40 @@ describe("derive", function () {
 					expect(sharedKey.type).toEqual("secret");
 				}
 			});
-			//Export shared key
-			runs(function () {
-				try {
-					error = undefined;
-					pubkeyData = undefined;
-					var op = nfCrypto.exportKey("raw", sharedKey);
-					op.onerror = function (e) {
+			
+			if(indexValue.deriveKey != false) {
+				//Export shared key
+				runs(function () {
+					try {
+						error = undefined;
+						var op = nfCrypto.exportKey("raw", sharedKey);
+						op.onerror = function (e) {
+							error = "ERROR";
+						};
+						op.oncomplete = function (e) {
+							pubkeyData = e.target.result;
+						};
+					} catch(e) {
 						error = "ERROR";
-					};
-					op.oncomplete = function (e) {
-						pubkeyData = e.target.result;
-					};
-				} catch(e) {
-					error = "ERROR";
-				}
-			});
+					}
+				});
 
-			waitsFor(function () {
-				return pubkeyData || error;
-			});
+				waitsFor(function () {
+					return pubkeyData || error;
+				});
 
-			runs(function () {
-				if(indexValue.result == "fail" || indexValue.deriveKey == false || indexValue. name == "DeriveNonExtractableDHKey" || indexValue. name == "DeriveDiffKeyAlgo") {
-					expect(error).toBeDefined();
-					expect(pubkeyData).toBeUndefined();
-				}
-				else {
-					expect(error).toBeUndefined();
-					expect(pubkeyData).toBeDefined();
-				    //Check that keyData is not a bunch of zeros
-					expect(base16.stringify(pubkeyData)).not.toEqual(base16.stringify([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]));
-				}
-			});
+				runs(function () {
+					if(indexValue.result == "fail" || indexValue.deriveKey == false || indexValue. name == "DeriveNonExtractableDHKey" || indexValue. name == "DeriveDiffKeyAlgo") {
+						expect(error).toBeDefined();
+						expect(pubkeyData).toBeUndefined();
+					} else {
+						expect(error).toBeUndefined();
+						expect(pubkeyData).toBeDefined();
+						//Check that keyData is not a bunch of zeros
+						expect(base16.stringify(pubkeyData)).not.toEqual(base16.stringify([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]));
+					}
+				});
+			}//if(indexValue.deriveKey != false) 
 		});//it
 	}//function wrapperForTest
 	for(opIndex = 0; opIndex < listofOperations.length; opIndex++) {	
