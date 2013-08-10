@@ -34,6 +34,7 @@ set(CRYPTO_SOURCES
     HMAC.cpp
     NtbaUtil.cpp
     OpenSSLException.cpp
+    Pbkdf2.cpp
     Random.cpp
     RandTable.cpp
     RsaContext.cpp
