@@ -17,6 +17,8 @@
  */
 #include "Pbkdf2.h"
 #include <assert.h>
+#include <openssl/evp.h>
+#include "DigestAlgo.h"
 
 using namespace std;
 using namespace tr1;
@@ -28,27 +30,29 @@ Pbkdf2::Pbkdf2(shared_ptr<const DigestAlgo> digestAlgo) : digestAlgo_(digestAlgo
 {
 }
 
-Pbkdf2::~Pbkdf2()
-{
-}
-
 bool Pbkdf2::generate(const Vuc& salt, uint32_t iterations, const string& password,
-        uint32_t keyLen, Vuc& out)
+        uint32_t keyLenBits, Vuc& out)
 {
     assert(salt.size());
     assert(password.size());
     assert(iterations);
-    assert(keyLen);
+    assert(keyLenBits);
 
     // size the output
-    out.resize(keyLen >> 3);
+    const uint32_t keyLenBytes = keyLenBits / 8;
+    out.resize(keyLenBytes);
 
-//    int PKCS5_PBKDF2_HMAC(const char *pass, int passlen,
-//                   const unsigned char *salt, int saltlen, int iter,
-//                   const EVP_MD *digest,
-//                  int keylen, unsigned char *out);
+    // do the operation
+    const int ret = PKCS5_PBKDF2_HMAC(password.c_str(), password.size(),
+        &salt[0], salt.size(), iterations, digestAlgo_->evp_md(), keyLenBytes,
+        &out[0]);
+    if (!ret)
+        return false;
 
-    return false;
+    // shrink to fit
+    Vuc(out.begin(), out.end()).swap(out);
+
+    return true;
 }
 
 

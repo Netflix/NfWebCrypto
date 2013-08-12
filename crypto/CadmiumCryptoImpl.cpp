@@ -34,6 +34,7 @@
 #include <crypto/RsaContext.h>
 #include <crypto/DiffieHellmanContext.h>
 #include <crypto/AesKeyWrapper.h>
+#include <crypto/Pbkdf2.h>
 #include "SampleKeyProvision.h"
 
 using namespace std;
@@ -2292,13 +2293,70 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::symKeyGen(const Variant& algVar,
     return CAD_ERR_OK;
 }
 
-CadErr CadmiumCrypto::CadmiumCryptoImpl::pbkdf2Derive(const string& salt,
+CadErr CadmiumCrypto::CadmiumCryptoImpl::pbkdf2Derive(const string& saltStr64,
         uint32_t iterations, const base::Variant& prf, const string& password,
         const base::Variant& derivedAlgObj, bool extractable,
         const vector<KeyUsage> usage, uint32_t &keyHandle)
 {
-    // TODO
-    return CAD_ERR_NOMETHOD;
+    // parm check
+    if (saltStr64.empty() || !iterations || password.empty())
+        return CAD_ERR_BADARG;
+
+    const Vuc salt(str64toVuc(saltStr64));
+    if (salt.empty())
+        return CAD_ERR_BADARG;
+
+    // PRF must be a SHA
+    Algorithm hashType;
+    if (prf.isString())
+        hashType = toAlgorithm(prf.string());
+    else
+        hashType = toAlgorithm(prf["name"].string());
+    if (hashType == CadmiumCrypto::INVALID_ALGORITHM)
+    {
+        DLOG() << "ERROR: CadmiumCrypto::pbkdf2Derive prf missing algorithm\n";
+        return CAD_ERR_UNKNOWN_ALGO;
+    }
+    if (!isAlgorithmSha(hashType))
+    {
+        DLOG() << "ERROR: CadmiumCrypto::pbkdf2Derive prf must be SHA\n";
+        return CAD_ERR_UNKNOWN_ALGO;
+    }
+
+    // validate derivedAlgObj; should be for symmetric key only
+    const Algorithm derivedAlgType = toAlgorithm(derivedAlgObj["name"].string());
+    if (!isAlgorithmAes(derivedAlgType) && !isAlgorithmHmac(derivedAlgType))
+    {
+        DLOG() << "ERROR: CadmiumCrypto::pbkdf2Derive derived alg must be AES or HMAC\n";
+        return CAD_ERR_UNKNOWN_ALGO;
+    }
+
+    shared_ptr<const DigestAlgo> algo;
+    switch(hashType)
+    {
+        case SHA1:      algo = DigestAlgo::SHA1();      break;
+        case SHA224:    algo = DigestAlgo::SHA224();    break;
+        case SHA256:    algo = DigestAlgo::SHA256();    break;
+        case SHA384:    algo = DigestAlgo::SHA384();    break;
+        case SHA512:    algo = DigestAlgo::SHA512();    break;
+        default:        assert(false);                  break;
+    }
+
+    // FIXME: how to get key length?
+    const uint32_t keyLen = 40;
+
+
+    Pbkdf2 pbkdf2(algo);
+    Vuc rawKey;
+    bool success = pbkdf2.generate(salt, iterations, password, keyLen, rawKey);
+    if (!success)
+        return CAD_ERR_KEYDERIVE;
+
+    // make the key
+    keyHandle = nextKeyHandle_++;
+    Key key(rawKey, shared_ptr<RsaContext>(), SECRET, extractable, derivedAlgObj, usage);
+    keyMap_[keyHandle] = key;
+    return CAD_ERR_OK;
 }
 
 CadErr CadmiumCrypto::CadmiumCryptoImpl::getKeyByName(const string keyName,
