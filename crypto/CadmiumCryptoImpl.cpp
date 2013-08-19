@@ -293,7 +293,7 @@ void CadmiumCrypto::CadmiumCryptoImpl::importPreSharedKeys()
         for (vector<string>::const_iterator org = nk->origins.begin(); org != nk->origins.end(); ++org)
         {
             DLOG() << *org << " ";
-            if (doesRightSideOfStringMatch(*org, currentOrigin))
+            if (doesRightSideOfStringMatch(currentOrigin, *org))
             {
                 originOk = true;
                 DLOG() << "(found) ";

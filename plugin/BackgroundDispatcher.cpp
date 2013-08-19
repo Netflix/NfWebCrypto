@@ -57,8 +57,6 @@ bool BackgroundDispatcher::postMessage(const string& message)
     FUNCTIONSCOPELOG;
     assert(isMainThread());
     ScopedMutex scopedMutex(mutex_);
-    if (!isRunning_)
-        return false;
     msgFifo_.push(message);
     condVar_.signal();
     return true;

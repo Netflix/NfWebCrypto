@@ -48,7 +48,6 @@ vector<unsigned char> hexTextToBin(const string& hexText)
 PpapiDeviceInfo::PpapiDeviceInfo(pp::InstancePrivate* pInstance)
 :   callbackFactory_(this)
 ,   ppDeviceId_(new pp::flash::DeviceID(pInstance))
-,   isInited_(false)
 {
     assert(isMainThread());
     originStr_ =
@@ -62,75 +61,44 @@ PpapiDeviceInfo::PpapiDeviceInfo(pp::InstancePrivate* pInstance)
 
 PpapiDeviceInfo::~PpapiDeviceInfo()
 {
+    condVar_.signal();
 }
 
 void PpapiDeviceInfo::gotDeviceId(int32_t result, const pp::Var& deviceId)
 {
     assert(isMainThread());
     ScopedMutex scopedMutex(mutex_);
-    rawDeviceIdStr_.clear();
+    string rawDeviceIdStr;
     if (result == PP_OK && deviceId.is_string())
-        rawDeviceIdStr_ = deviceId.AsString();
-    // Google says the device ID from PPAPI will always be 64 chars: a string
-    // with the text value of the numerical ID.
+        rawDeviceIdStr = deviceId.AsString();
+    // Google says the device ID from PPAPI, when supported, will always be 64
+    // chars: a string with the text value of the numerical ID. Clamp or extend
+    // the actual received value to this length.
     const string::size_type SPEC_SIZE = 64;
-    string::size_type rawSize = rawDeviceIdStr_.size();
-    // If the actual size is out of spec, at least make sure the size is capped
-    // at 64 and even.
-    if (rawSize > SPEC_SIZE)
-        rawDeviceIdStr_.resize(SPEC_SIZE);
-    else if (rawSize % 2)
-        rawDeviceIdStr_.resize(rawSize-1);
-    isInited_ = true;
+    rawDeviceIdStr.resize(SPEC_SIZE, '0');
+    // Now convert the text numerical ID to a binary value
+    deviceIdBin_ = hexTextToBin(rawDeviceIdStr);
+    assert(deviceIdBin_.size() == 32);
+    // We are now initialized
     condVar_.signal();
 }
 
-void PpapiDeviceInfo::waitUntilReady()
+vector<uint8_t> PpapiDeviceInfo::getBinaryDeviceId()
 {
     assert(!isMainThread());
     // We get initialized by the PPAPI callback requested in the ctor. Block
     // here until that happens. Once the callback occurs, or we time out waiting
     // for it, we are forever after initialized.
     ScopedMutex scopedMutex(mutex_);
-    if (!isInited_)
+    if (deviceIdBin_.empty())
     {
-        static const uint64_t timeoutMs(2000);    // 2s timeout
+        static const uint64_t timeoutMs(8000);    // 8s timeout
         ConditionVariable::Error err = ConditionVariable::OK;
-        while (!isInited_)
+        while (deviceIdBin_.empty())
         {
             err = condVar_.wait(mutex_, timeoutMs);
             if (err != ConditionVariable::OK)
                 break;
-        }
-        if (err != ConditionVariable::OK)
-        {
-            DLOG() << "PpapiDeviceInfo::getDeviceId: timeout or other error waiting for mainthread callback\n";
-            rawDeviceIdStr_.clear();
-        }
-        isInited_ = true;
-    }
-}
-
-vector<uint8_t> PpapiDeviceInfo::getBinaryDeviceId()
-{
-    // Block until the mainthread callback has populated rawDeviceIdStr_
-    waitUntilReady();
-    if (deviceIdBin_.empty())
-    {
-        // For devices that don't support device ID, return all zeros
-        if (rawDeviceIdStr_.empty())
-        {
-            deviceIdBin_ = vector<unsigned char>(32, 0);
-        }
-        else
-        {
-            deviceIdBin_ = hexTextToBin(rawDeviceIdStr_);
-            // deviceIdBin_ should be 32 bytes by spec. If not pad with zeros.
-            if (deviceIdBin_.size() != 32)
-            {
-                const vector<unsigned char> zeros(32 - deviceIdBin_.size(), 0);
-                std::copy(zeros.begin(), zeros.end(), back_inserter(deviceIdBin_));
-            }
         }
     }
     return deviceIdBin_;
@@ -138,6 +106,7 @@ vector<uint8_t> PpapiDeviceInfo::getBinaryDeviceId()
 
 string PpapiDeviceInfo::getDeviceId()
 {
+    assert(!isMainThread());
     if (deviceIdStr_.empty())
     {
         vector<uint8_t> binId = getBinaryDeviceId();

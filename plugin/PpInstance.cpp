@@ -175,6 +175,7 @@ namespace cadmium
 PpInstance::PpInstance(PP_Instance instance)
 :   pp::InstancePrivate(instance)
 ,   callbackFactory_(this)
+,   backgroundInitThread_(NULL)
 ,   backgroundDispatcher_(NULL)
 ,   msgCount_(0)
 {
@@ -185,7 +186,7 @@ PpInstance::PpInstance(PP_Instance instance)
 PpInstance::~PpInstance()
 {
     FUNCTIONSCOPELOG;
-    LogToBrowserConsole(pp_instance(), PP_LOGLEVEL_LOG, "PpInstance dtor");
+    //LogToBrowserConsole(pp_instance(), PP_LOGLEVEL_LOG, "PpInstance dtor");
     delete backgroundDispatcher_;
     delete backgroundInitThread_;
 }

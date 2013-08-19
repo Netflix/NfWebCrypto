@@ -36,15 +36,12 @@ public:
     virtual std::vector<unsigned char> getBinaryDeviceId();
     virtual std::string getOrigin() {return originStr_;}
 private:
-    void waitUntilReady();
     void gotDeviceId(int32_t result, const pp::Var& deviceId);
 private:
     pp::CompletionCallbackFactory<PpapiDeviceInfo> callbackFactory_;
     pp::flash::DeviceID * const ppDeviceId_;
-    bool isInited_;
     base::Mutex mutex_;
     base::ConditionVariable condVar_;
-    std::string rawDeviceIdStr_;
     std::vector<unsigned char> deviceIdBin_;
     std::string deviceIdStr_;
     std::string originStr_;
