@@ -190,10 +190,10 @@
                     expect(key.extractable).toBe(false);
                     expect(key.name).toBe(keyName);
                     expect(key.id).toBeDefined();
-                    if (keyName == "Kpe") {
+                    if (keyName == "Kde") {
                         expect(key.algorithm.name).toBe("AES-CBC");
                         expect(JSON.stringify(key.keyUsage)).toBe(JSON.stringify(['encrypt', 'decrypt']));
-                    } else if (keyName == "Kph") {
+                    } else if (keyName == "Kdh") {
                         expect(key.algorithm.name).toBe("HMAC");
                         expect(JSON.stringify(key.keyUsage)).toBe(JSON.stringify(['sign', 'verify']));
                     } else {
@@ -203,9 +203,9 @@
                 });
             });
         }
-        wrapper("Kpe");
-        wrapper("Kph");
-        wrapper("Kpw")
+        wrapper("Kde");
+        wrapper("Kdh");
+        wrapper("Kdw")
 
     });
 

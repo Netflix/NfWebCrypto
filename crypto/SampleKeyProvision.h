@@ -73,8 +73,6 @@ private:
 	    const CadmiumCrypto::Vuc dataVec64(dataStr64.begin(), dataStr64.end());
 	    return CadmiumCrypto::Vuc(base::Base64::decode(dataVec64));
 	}
-	template<typename T, size_t N> T* begin(T (&arr)[N]) { return &arr[0];     }
-	template<typename T, size_t N> T* end(T (&arr)[N])   { return &arr[0] + N; }
 };
 
 }} // namespace cadmium::crypto

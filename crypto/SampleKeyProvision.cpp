@@ -28,9 +28,24 @@ using namespace cadmium::base;
 namespace cadmium {
 namespace crypto {
 
+namespace
+{
+
+// NOTE: These are fake keys and ESN and will never work with Netflix
+const string ESN      = "FAKE-MGK-0123456789";
+const string kdeStr64 = "qNDCIUiIUjX1KzVFgzjObA==";
+const string kdhStr64 = "wSROXN7yRYFzZO91rK7T4zeufNARl4jc3Lobeh58bYA=";
+const string kdwStr64 = "svP4YtY3tVbqTScZdj0HXA==";
+
+const string kdeName  = "Kde";
+const string kdhName  = "Kdh";
+const string kdwName  = "Kdw";
+
+}   // anonymous namespace
+
 SampleKeyProvision::SampleKeyProvision()
 {
-    const string esn64 = Base64::encode("FAKE_ESN-0123-4567");
+    const string esn64 = Base64::encode(ESN);
     const bool extractable = false;
     const CadmiumCrypto::KeyType type = CadmiumCrypto::SECRET;
 
@@ -39,62 +54,47 @@ SampleKeyProvision::SampleKeyProvision()
     origins.push_back("netflix.github.io");
     origins.push_back("localhost");
 
-    string name;
-    CadmiumCrypto::Vuc key;
     Variant algVar;
     vector<CadmiumCrypto::KeyUsage> keyUsage;
 
-    // -- sample Kpe
-    name = "Kpe";
-    // key data
-    const size_t kpeLenBytes = 16;
-    const unsigned char rawKpeAry[kpeLenBytes] =
-    {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f};
-    CadmiumCrypto::Vuc(begin(rawKpeAry), end(rawKpeAry)).swap(key);
-    assert(key.size() == kpeLenBytes);
-    // algorithm
-    algVar = makeAlgVar(CadmiumCrypto::AES_CBC, key.size() * 8);
-    // keyUsage
+    // ---- Kde
+    // -- key data
+    const CadmiumCrypto::Vuc kdeRaw(makeVuc(kdeStr64));
+    assert(kdeRaw.size() == 128/8);
+    // -- algorithm
+    algVar = makeAlgVar(CadmiumCrypto::AES_CBC, kdeRaw.size() * 8);
+    // -- keyUsage
     keyUsage.clear();
     keyUsage.push_back(CadmiumCrypto::ENCRYPT);
     keyUsage.push_back(CadmiumCrypto::DECRYPT);
-    // provision this key
-    addKey(name, esn64, origins, key, type, extractable, algVar, keyUsage);
+    // -- provision this key
+    addKey(kdeName, esn64, origins, kdeRaw, type, extractable, algVar, keyUsage);
 
-    // -- sample Kph
-    name = "Kph";
-    // key data
-    const size_t kphLenBytes = 32;
-    const unsigned char rawKphAry[kphLenBytes] =
-    {0x0f,0x0e,0x0d,0x0c,0x0b,0x0a,0x09,0x08,0x07,0x06,0x05,0x04,0x03,0x02,0x01,0x01,
-     0x0f,0x0e,0x0d,0x0c,0x0b,0x0a,0x09,0x08,0x07,0x06,0x05,0x04,0x03,0x02,0x01,0x01};
-    CadmiumCrypto::Vuc(begin(rawKphAry), end(rawKphAry)).swap(key);
-    assert(key.size() == kphLenBytes);
-    // algorithm
-    algVar = makeAlgVar(CadmiumCrypto::HMAC, key.size() * 8);
-    // keyUsage
+    // ---- Kdh
+    // -- key data
+    const CadmiumCrypto::Vuc kdhRaw(makeVuc(kdhStr64));
+    assert(kdhRaw.size() == 256/8);
+    // -- algorithm
+    algVar = makeAlgVar(CadmiumCrypto::HMAC, kdhRaw.size() * 8);
+    // -- keyUsage
     keyUsage.clear();
     keyUsage.push_back(CadmiumCrypto::SIGN);
     keyUsage.push_back(CadmiumCrypto::VERIFY);
-    // provision this key
-    addKey(name, esn64, origins, key, type, extractable, algVar, keyUsage);
+    // -- provision this key
+    addKey(kdhName, esn64, origins, kdhRaw, type, extractable, algVar, keyUsage);
 
-    // -- sample Kpw
-    name = "Kpw";
-    // key data
-    const size_t kpwLenBytes = 16;
-    const unsigned char rawKpwAry[kpwLenBytes] =
-    {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f};
-    CadmiumCrypto::Vuc(begin(rawKpwAry), end(rawKpwAry)).swap(key);
-    assert(key.size() == kpwLenBytes);
-    // algorithm
-    algVar = makeAlgVar(CadmiumCrypto::AES_KW, key.size() * 8);
-    // keyUsage
+    // ---- Kdw
+    // -- key data
+    const CadmiumCrypto::Vuc kdwRaw(makeVuc(kdwStr64));
+    assert(kdwRaw.size() == 128/8);
+    // -- algorithm
+    algVar = makeAlgVar(CadmiumCrypto::AES_KW, kdwRaw.size() * 8);
+    // -- keyUsage
     keyUsage.clear();
     keyUsage.push_back(CadmiumCrypto::WRAP);
     keyUsage.push_back(CadmiumCrypto::UNWRAP);
-    // provision this key
-    addKey(name, esn64, origins,key, type, extractable, algVar, keyUsage);
+    // -- provision this key
+    addKey(kdwName, esn64, origins, kdwRaw, type, extractable, algVar, keyUsage);
 }
 
 }} // namespace cadmium::crypto
