@@ -833,7 +833,7 @@ bool NativeBridge::signVerify(const string& cmdIndex, Variant& argsVar,
         string sigStr64;
         if (!getVal<string>(argsVar, "signature", cmdIndex, sigStr64))
             return false;
-        DLOG() << "\tsignature: " << sigStr64 << endl;
+        DLOG() << "\tsignature: " << truncateLong(sigStr64) << endl;
         return doVerify(cmdIndex, keyHandle, algType, hashType, dataStr64, sigStr64, returnVarMap);
     }
 }

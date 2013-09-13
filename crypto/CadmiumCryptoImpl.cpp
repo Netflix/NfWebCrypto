@@ -283,6 +283,11 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::init(const Vuc& prngSeed)
 void CadmiumCrypto::CadmiumCryptoImpl::importPreSharedKeys()
 {
     const string currentOrigin(pDeviceInfo_->getOrigin());
+    if (!currentOrigin.size())
+    {
+        DLOG() << "CadmiumCrypto::importPreSharedKeys: invalid page origin, skipping key import\n";
+        return;
+    }
     SampleKeyProvision skp;
     const SampleKeyProvision::NamedKeyVec& keyVec(skp.getNamedKeyVec());
     DLOG() << "Importing pre-shared keys:\n";
@@ -292,6 +297,8 @@ void CadmiumCrypto::CadmiumCryptoImpl::importPreSharedKeys()
         bool originOk = false;
         for (vector<string>::const_iterator org = nk->origins.begin(); org != nk->origins.end(); ++org)
         {
+            if (!org->size())   // skip blank origin
+                continue;
             DLOG() << *org << " ";
             if (doesRightSideOfStringMatch(currentOrigin, *org))
             {
@@ -306,17 +313,23 @@ void CadmiumCrypto::CadmiumCryptoImpl::importPreSharedKeys()
                     "origin compatible with " << currentOrigin << ", skipping\n";
             continue;
         }
+        importNamedKey(*nk);
+    }
+}
+
+uint32_t CadmiumCrypto::CadmiumCryptoImpl::importNamedKey(const NamedKey& nk)
+{
         uint32_t keyHandle;
-        CadErr err = importKeyInternal(RAW, vucToStr64(nk->key), nk->algVar, nk->extractable,
-                nk->keyUsage, keyHandle);
+    CadErr err = importKeyInternal(RAW, vucToStr64(nk.key), nk.algVar, nk.extractable,
+            nk.keyUsage, keyHandle);
         if (err != CAD_ERR_OK)
         {
             DLOG() << "CadmiumCrypto::importPreSharedKeys: WARNING: preshared key " <<
-                    nk->name << " failed\n";
-            continue;
+                nk.name << " failed\n";
+        return kInvalidKeyHandle;
         }
-        namedKeyMap_.insert(make_pair(nk->name, NamedKeySpec(keyHandle, nk->id)));
-    }
+    namedKeyMap_.insert(make_pair(nk.name, NamedKeySpec(keyHandle, nk.id)));
+    return keyHandle;
 }
 
 // Create the AES-KW system key used for export/import wrapping.
@@ -378,14 +391,16 @@ void CadmiumCrypto::CadmiumCryptoImpl::createSystemKey()
     }
     //DLOG() << "\tkeyVuc\t\t\t\t= " << NtbaUtil::toHexString(keyVuc, "") << endl;
 
-    // save this system key
-    systemKeyHandle_ = nextKeyHandle_++;
+    DLOG() << "Created system key\n";
+
+    // make a NamedKey and store
     VariantMap algVar;
     algVar["name"] = toString(CadmiumCrypto::AES_KW);
     vector<CadmiumCrypto::KeyUsage> keyUsage;
     keyUsage.push_back(WRAP); keyUsage.push_back(UNWRAP);
-    const Key key(keyVuc, shared_ptr<RsaContext>(), SECRET, false, algVar, keyUsage);
-    keyMap_[systemKeyHandle_] = key;
+    const NamedKey nk("Kds", "", vector<string>(), keyVuc, SECRET, false, algVar, keyUsage);
+    systemKeyHandle_ = importNamedKey(nk);  // required for generateKey(SYSTEM) hack
+    assert(systemKeyHandle_ != kInvalidKeyHandle);
     //DLOG() << "\tsystemKeyHandle_ = " << systemKeyHandle_ << endl;
 }
 

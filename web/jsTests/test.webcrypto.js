@@ -205,7 +205,8 @@
         }
         wrapper("Kde");
         wrapper("Kdh");
-        wrapper("Kdw")
+        wrapper("Kdw");
+        wrapper("Kds");
 
     });
 
@@ -213,9 +214,11 @@
     
     describe("Persistence APIs", function() {
         
+        var systemKey1,
+            systemKey2;
+        
         it("getSystemKey", function() {
             var op,
-            key,
             error,
             complete;
 
@@ -226,21 +229,52 @@
                     error = "ERROR";
                 };
                 op.oncomplete = function (e) {
-                    key = e.target.result;
+                    systemKey1 = e.target.result;
                 };
             });
 
             waitsFor(function () {
-                return key || error;
+                return systemKey1 || error;
             });
 
             runs(function () {
                 expect(error).toBeUndefined();
-                expect(key).toBeDefined();
-                expect(key.type).toBe("secret");
-                expect(key.extractable).toBe(false);
-                expect(key.algorithm.name).toBe("AES-KW");
-                expect(JSON.stringify(key.keyUsage)).toBe(JSON.stringify(['wrap', 'unwrap']));
+                expect(systemKey1).toBeDefined();
+                expect(systemKey1.type).toBe("secret");
+                expect(systemKey1.extractable).toBe(false);
+                expect(systemKey1.algorithm.name).toBe("AES-KW");
+                expect(JSON.stringify(systemKey1.keyUsage)).toBe(JSON.stringify(['wrap', 'unwrap']));
+            });
+            
+        });
+        
+        it("getKeyByName(\'Kds\')", function() {
+            var op,
+            error,
+            complete;
+
+            runs(function () {
+                error = undefined;
+                var op = cryptoSubtle.getKeyByName("Kds");
+                op.onerror = function (e) {
+                    error = "ERROR";
+                };
+                op.oncomplete = function (e) {
+                    systemKey2 = e.target.result;
+                };
+            });
+
+            waitsFor(function () {
+                return systemKey2 || error;
+            });
+
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(systemKey2).toBeDefined();
+                expect(systemKey2.type).toBe(systemKey1.type);
+                expect(systemKey2.extractable).toBe(systemKey1.extractable);
+                expect(systemKey2.algorithm.name).toBe(systemKey1.algorithm.name);
+                expect(JSON.stringify(systemKey2.keyUsage)).toBe(JSON.stringify(systemKey1.keyUsage));
             });
             
         });
@@ -249,9 +283,7 @@
             var error;
             var key,
                 keyData = new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
-                systemKey,
                 jweData,
-                systemKey2,
                 key2,
                 keyData2;
 
@@ -275,33 +307,10 @@
                 expect(key.extractable).toBe(true);
             });
             
-            // get the system key
-            runs(function () {
-                error = undefined;
-                var op = cryptoSubtle.generateKey({ name: "SYSTEM" }, true);
-                op.onerror = function (e) {
-                    error = "ERROR";
-                };
-                op.oncomplete = function (e) {
-                    systemKey = e.target.result;
-                };
-            });
-            waitsFor(function () {
-                return systemKey || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(systemKey).toBeDefined();
-                expect(systemKey.type).toBe("secret");
-                expect(systemKey.extractable).toBe(false);
-                expect(systemKey.algorithm.name).toBe("AES-KW");
-                expect(JSON.stringify(systemKey.keyUsage)).toBe(JSON.stringify(['wrap', 'unwrap']));
-            });
-            
             // wrap the imported key with the system key
             runs(function () {
                 error = undefined;
-                var op = cryptoSubtle.wrapKey(key, systemKey, { name: "AES-KW" });
+                var op = cryptoSubtle.wrapKey(key, systemKey1, { name: "AES-KW" });
                 op.onerror = function (e) {
                     error = "ERROR";
                 };
@@ -317,29 +326,6 @@
                 expect(jweData).toBeDefined();
             });
 
-            // get the system key again, for good measure
-            runs(function () {
-                error = undefined;
-                var op = cryptoSubtle.generateKey({ name: "SYSTEM" }, true);
-                op.onerror = function (e) {
-                    error = "ERROR";
-                };
-                op.oncomplete = function (e) {
-                    systemKey2 = e.target.result;
-                };
-            });
-            waitsFor(function () {
-                return systemKey2 || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(systemKey2).toBeDefined();
-                expect(systemKey2.type).toBe("secret");
-                expect(systemKey2.extractable).toBe(false);
-                expect(systemKey2.algorithm.name).toBe("AES-KW");
-                expect(JSON.stringify(systemKey2.keyUsage)).toBe(JSON.stringify(['wrap', 'unwrap']));
-            });
-            
             // now unwrap the jwe data received from wrapKey, using the system key
             // this gives us a new key in the key store
             runs(function () {
@@ -411,33 +397,10 @@
                 expect(key.extractable).toBe(false);
             });
 
-            // get the system key
+            // ensure we can wrap this key with the system key, even though the wrap-ee is not extractable
             runs(function () {
                 error = undefined;
-                var op = cryptoSubtle.generateKey({ name: "SYSTEM" }, true);
-                op.onerror = function (e) {
-                    error = "ERROR";
-                };
-                op.oncomplete = function (e) {
-                    systemKey = e.target.result;
-                };
-            });
-            waitsFor(function () {
-                return systemKey || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(systemKey).toBeDefined();
-                expect(systemKey.type).toBe("secret");
-                expect(systemKey.extractable).toBe(false);
-                expect(systemKey.algorithm.name).toBe("AES-KW");
-                expect(JSON.stringify(systemKey.keyUsage)).toBe(JSON.stringify(['wrap', 'unwrap']));
-            });
-
-            // ensure we can wrap this key with the system key, even though it's not extractable
-            runs(function () {
-                error = undefined;
-                var op = cryptoSubtle.wrapKey(key, systemKey, { name: "AES-KW" });
+                var op = cryptoSubtle.wrapKey(key, systemKey2, { name: "AES-KW" });
                 op.onerror = function (e) {
                     error = "ERROR";
                 };
