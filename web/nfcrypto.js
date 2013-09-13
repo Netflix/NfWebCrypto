@@ -229,8 +229,11 @@ End of (PolyCrypt) License Terms and Conditions.
 
         var dispatchEvent = function (e) {
             //console.log("TRACE dispatchEvent enter");
-            for (var l in listeners[e.type]) {
-                _fireListener(listeners[e.type][l], e);
+            var listenersForEvent = listeners[e.type];
+            for (var l in listenersForEvent) {
+            	if (listenersForEvent.hasOwnProperty(l)) {
+            	    _fireListener(listenersForEvent[l], e);
+            	}
             }
             // Cache the latest event received of each type
             lastEvent[e.type] = e;
@@ -241,9 +244,10 @@ End of (PolyCrypt) License Terms and Conditions.
         // that take the event as its argument
         var _fireListener = function (listener, e) {
             //console.log("TRACE _fireListener enter");
-            if (typeof (listener) === 'function') {
+            var typeofListener = typeof (listener);
+            if (typeofListener === 'function') {
                 listener(e);
-            } else if ((typeof (listener) === 'object') &&
+            } else if ((typeofListener === 'object') &&
                 listener.hasOwnProperty('handleEvent') &&
                 (typeof (listener.handleEvent) === 'function')) {
                 listener.handleEvent(e);

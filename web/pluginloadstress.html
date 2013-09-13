@@ -1,0 +1,128 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.1//EN' 'http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd'>
+<html xml:lang='en'>
+
+<head>
+    <meta http-equiv='Content-Type' content='text/html; charset=UTF-8' />
+    <title>NfWebCrypto Test</title>
+
+    <script type='text/javascript'>
+    (function(window) {
+        var body,
+            navPlugin = window.navigator.plugins['NfWebCrypto'] || window.navigator.plugins['NetflixHelper'],
+            opId = 0,
+            insertedObject = {},
+            intvl = {},
+            count = 0,
+            lastDeviceId = "first";
+
+        // Generic error function. This will destroy the plugin instance.
+        function drawError(message) {
+            document.body.innerHTML = '<p>' + message + '</p>$ta';
+        }
+
+        // Runs immediately. Loads the plugin and starts the native code.
+        function onLoad() {
+            window.removeEventListener('load', onLoad);
+            body = window.document.body;
+            if (navPlugin) {
+                goTest();
+            } else {
+                drawError('No Cadmium Plugin Found.');
+            }
+        };
+        window.addEventListener('load', onLoad);
+
+        // Test Entry: Load / unload the plugin very quickly, print out the
+        // device ID and interation number each time.
+        function goTest() {
+            window.clearInterval(intvl);
+            var body = window.document.body;
+            insertedObject = window.document.createElement('object');
+            insertedObject.setAttribute('type', navPlugin[0].type);
+            insertedObject.setAttribute('style', 'position:fixed;left:0;top:0;width:1px;height:1px;visibility:hidden');
+            insertedObject.addEventListener('message', onReady, false);
+            // Insert the plugin object into the document body. This starts the
+            // native code.
+            body.appendChild(insertedObject);
+        }
+
+        // the first message from the plugin after it loads is the ready message
+        function onReady(message) {
+            insertedObject.removeEventListener('message', onReady);
+            var obj = JSON.parse(message.data);
+            if (obj.success && obj.method === 'ready') {
+                console.log('Plugin is ready!');
+                insertedObject.addEventListener('message', handleMessage, false);
+                setTimeout(function() {
+                    postGetDeviceIdMessage();
+                }, 1);
+            }
+        }
+        
+        // post the 'getDeviceId' message to the plugin
+        function postGetDeviceIdMessage() {
+            opId++;
+            var msg = {
+                argsObj: {
+                  algorithm:  null,
+                  baseKeyHandle:  null,
+                  derivedAlgorithm: null,
+                  extractable:  null,
+                  format:   null,
+                  keyData:  '',
+                  keyHandle:    null,
+                  keyUsage: null
+                },
+                idx:    opId,
+                method: 'getDeviceId'
+            };
+            var msgStr = JSON.stringify(msg);
+            insertedObject.postMessage(msgStr);
+        };
+        
+        // handle a message from the plugin; fail if it is anything but getDeviceId return
+        function handleMessage(message) {
+            var data = JSON.parse(message.data);
+            if (data.idx != opId) {
+        	    console.log("ERROR: wrong operation idx");
+            } else if (data.success == false) {
+                console.log("Plugin returned error " + data.errorMessage);
+            } else if (data.method != "getDeviceId") {
+                console.log("ERROR: wrong operation method");
+            } else {
+                onDeviceId(data.payload.buffer);
+            }
+        };
+
+        // show the device Id on the div, remove the plugin, and go around again;
+        // also check for device Id change
+        function onDeviceId(deviceId) {
+            var msg = count++ + ": Got device ID\t" + deviceId,
+                div = document.getElementById('output');
+            if ( (deviceId != lastDeviceId) && (lastDeviceId != "first")) {
+    	       console.log("ERROR: device Id mismatch");
+    	       return;
+            }
+            lastDeviceId = deviceId;
+            if (count % 100 == 0) {   // clear out the div every now and then
+        	   div.innerHTML = '';
+            }
+            div.innerHTML += msg + '<br/>';
+            div.scrollTop = 100000;
+            document.body.removeChild(insertedObject);  // remove the plugin
+            intvl = window.setInterval(goTest, 1);
+        }
+
+    })(window)
+    </script>
+
+</head>
+
+<body>
+
+<div id="output" style="overflow:auto;height:400px;background-color:grey;color:blue">
+</div>
+
+</body>
+
+</html>
