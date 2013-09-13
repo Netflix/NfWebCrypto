@@ -46,7 +46,7 @@ Supported
   + AES-KW: wrapKey, unwrapKey
   + AES-GCM: encrypt, decrypt, importKey, exportKey, generateKey
 
-*A special SYSTEM key bound to the plugin binary and script origin can be used with (un)wrapKey to export/import
+*A special "Kds" NamedKey bound to the plugin binary and script origin can be used with (un)wrapKey to export/import
 opaque key representations for persistence in HTML5 local storage or equivalent.
 
 **Wrap/Unwrap operations follow the Netflix [KeyWrap Proposal](http://www.w3.org/2012/webcrypto/wiki/KeyWrap_Proposal)
