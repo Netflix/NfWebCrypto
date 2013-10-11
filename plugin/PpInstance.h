@@ -19,7 +19,7 @@
 #define PPINSTANCE_H_
 #include <stdint.h>
 #include <memory>
-#include <ppapi/cpp/private/instance_private.h>
+#include <ppapi/cpp/instance.h>
 #include <ppapi/utility/completion_callback_factory.h>
 
 namespace cadmium
@@ -33,7 +33,7 @@ namespace base { class SimpleThread; }
 
 namespace crypto { class CadmiumCrypto; }
 
-class PpInstance : public pp::InstancePrivate
+class PpInstance : public pp::Instance
 {
 public:
     explicit PpInstance(PP_Instance instance);

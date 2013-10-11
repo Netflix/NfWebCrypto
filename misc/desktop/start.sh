@@ -8,7 +8,7 @@ export LD_LIBRARY_PATH="$PLUGINHOME"
 
 # Assemble the chrome command line.
 
-CHROME="/opt/google/chrome/chrome"
+CHROME=${CHROME:-"/usr/local/google/home/chromium2/src/out/Release/chrome"}
 
 # This snippet was copied from /sbin/session_manager_setup.sh on Chrome OS.
 # It parses data from the .info file to put into the command line to register

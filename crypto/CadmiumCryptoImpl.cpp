@@ -51,6 +51,8 @@ extern unsigned char gRandTable[];
 namespace   // anonymous
 {
 
+#define SECRET_SYSTEM_KEY "iIniW9SVpZKlXGmbrgrJG9uxy7HtCNJsDM5IXS24eCI="
+
 #define xstr(s) str(s)
 #define str(s) #s
 
@@ -282,7 +284,8 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::init(const Vuc& prngSeed)
 
 void CadmiumCrypto::CadmiumCryptoImpl::importPreSharedKeys()
 {
-    const string currentOrigin(pDeviceInfo_->getOrigin());
+    //const string currentOrigin(pDeviceInfo_->getOrigin());
+    const string currentOrigin("localhost");
     SampleKeyProvision skp;
     const SampleKeyProvision::NamedKeyVec& keyVec(skp.getNamedKeyVec());
     DLOG() << "Importing pre-shared keys:\n";
@@ -325,7 +328,8 @@ void CadmiumCrypto::CadmiumCryptoImpl::importPreSharedKeys()
 void CadmiumCrypto::CadmiumCryptoImpl::createSystemKey()
 {
     // make originVuc, a 256 bit hash of the origin string
-    const string originStr(pDeviceInfo_->getOrigin());
+    //const string originStr(pDeviceInfo_->getOrigin());
+    const string originStr("localhost");
     //DLOG() << "\toriginStr= " << originStr << endl;
     Vuc originShaVuc;
     if (!originStr.empty())
@@ -340,7 +344,8 @@ void CadmiumCrypto::CadmiumCryptoImpl::createSystemKey()
     //DLOG() << "\toriginShaVuc(" <<  originShaVuc.size() << ")\t= " << NtbaUtil::toHexString(originShaVuc, "") << endl;
 
     // get 256 bit deviceId
-    Vuc deviceIdVuc = pDeviceInfo_->getBinaryDeviceId();
+    //Vuc deviceIdVuc = pDeviceInfo_->getBinaryDeviceId();
+    Vuc deviceIdVuc(32,0);
     //DLOG() << "\tdeviceId(" <<  deviceIdVuc.size() << ")\t\t= " << NtbaUtil::toHexString(deviceIdVuc, "") << endl;
     assert(deviceIdVuc.size() == 32);
 
@@ -354,7 +359,8 @@ void CadmiumCrypto::CadmiumCryptoImpl::createSystemKey()
     //DLOG() << "\tdeviceId after(" <<  deviceIdVuc.size() << ")\t= " << NtbaUtil::toHexString(deviceIdVuc, "") << endl;
 
     // get secret system key
-    const Vuc secretSystemKey(str64toVuc(kSecretSystemKey64));
+    //const Vuc secretSystemKey(str64toVuc(kSecretSystemKey64));
+    const Vuc secretSystemKey(32, 0);
     assert(secretSystemKey.size() == 32);
     //DLOG() << "\tsecretSystemKey\t\t= " << NtbaUtil::toHexString(secretSystemKey, "") << endl;
 
@@ -2374,7 +2380,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::getDeviceId(string& deviceId) const
 {
     if (!isInited_)
         return CAD_ERR_NOT_INITIALIZED;
-    deviceId = Base64::encode(pDeviceInfo_->getDeviceId());
+    //deviceId = Base64::encode(pDeviceInfo_->getDeviceId());
     return CAD_ERR_OK;
 }
 

@@ -151,7 +151,7 @@ describe("SignRSA", function () {
 			});
 			waitsFor(function () {
 				return pubKey || privKey || error;
-			});
+			}, 5000);
 
 			runs(function () {
 				expect(error).toBeUndefined();
@@ -217,7 +217,7 @@ describe("SignRSA", function () {
 
 			waitsFor(function () {
 				return signature || error;
-			});
+			}, 5000);
 
 			runs(function () {
 				if (INDEXVALUE.sign == false) {
@@ -248,7 +248,7 @@ describe("SignRSA", function () {
 
 				waitsFor(function () {
 					return verified || error;
-				});
+				}, 5000);
 
 				runs(function () {
 	                if (INDEXVALUE.sign == false) {
@@ -376,7 +376,7 @@ describe("VerifyRSA", function () {
 			});
 			waitsFor(function () {
 				return pubKey || privKey || error;
-			});
+			}, 5000);
 
 			runs(function () {
 				expect(error).toBeUndefined();
@@ -430,7 +430,7 @@ describe("VerifyRSA", function () {
 
 			waitsFor(function () {
 				return signature || error;
-			});
+			}, 5000);
 
 			runs(function () {
 				expect(error).toBeUndefined();
@@ -461,7 +461,7 @@ describe("VerifyRSA", function () {
 
 			waitsFor(function () {
 				return (typeof verified !== 'undefined') || error;
-			});
+			}, 5000);
 
 			runs(function () {
 				if (INDEXVALUE.verify == false) {

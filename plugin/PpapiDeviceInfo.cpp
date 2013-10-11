@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string>
 #include <algorithm>
+#include <ppapi/cpp/instance.h>
 #include <ppapi/cpp/var.h>
 #include <ppapi/cpp/private/flash_device_id.h>
 #include <base/ScopedMutex.h>
@@ -45,7 +46,7 @@ vector<unsigned char> hexTextToBin(const string& hexText)
 
 }   // anonymous namespace
 
-PpapiDeviceInfo::PpapiDeviceInfo(pp::InstancePrivate* pInstance)
+PpapiDeviceInfo::PpapiDeviceInfo(pp::Instance* pInstance)
 :   callbackFactory_(this)
 ,   ppDeviceId_(new pp::flash::DeviceID(pInstance))
 {

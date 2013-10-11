@@ -221,7 +221,7 @@ describe("encryptaes", function () {
 
 			waitsFor(function () {
 				return importedKey || error;
-			});
+			}, 5000);
 
 			runs(function () {
 				expect(error).toBeUndefined();
@@ -248,7 +248,7 @@ describe("encryptaes", function () {
 
 			waitsFor(function () {
 				return encrypted || error;
-			});
+			}, 5000);
 
 			runs(function () {
 				if(INDEXVALUE.encrypt == false) {
@@ -290,7 +290,7 @@ describe("encryptaes", function () {
 
 				waitsFor(function () {
 					return decrypted || error;
-				});
+				}, 5000);
 
 				runs(function () {
 					if(INDEXVALUE.decrypt == false) {
@@ -417,7 +417,7 @@ describe("decryptaes", function () {
 
 			waitsFor(function () {
 				return importedKey || error;
-			});
+			}, 5000);
 
 			runs(function () {
 				expect(error).toBeUndefined();
@@ -441,7 +441,7 @@ describe("decryptaes", function () {
 
 			waitsFor(function () {
 				return encrypted || error;
-			});
+			}, 5000);
 
 			runs(function () {
 				expect(error).toBeUndefined();
@@ -474,7 +474,7 @@ describe("decryptaes", function () {
 
 			waitsFor(function () {
 				return decrypted || error;
-			});
+			}, 5000);
 
 			runs(function () {
 				if(INDEXVALUE.decrypt == false) {
@@ -652,7 +652,7 @@ describe("encryptrsa", function () {
 
 			waitsFor(function () {
 				return pubKey || privKey || error;
-			});
+			}, 5000);
 
 			runs(function () {
 				expect(error).toBeUndefined();
@@ -723,7 +723,7 @@ describe("encryptrsa", function () {
 
 			waitsFor(function () {
 				return encrypted || error;
-			});
+			}, 5000);
 
 			runs(function () {
 				if(INDEXVALUE.encrypt == false) {
@@ -757,7 +757,7 @@ describe("encryptrsa", function () {
 
 				waitsFor(function () {
 					return decrypted || error;
-				});
+				}, 5000);
 
 				runs(function () {
 					if(INDEXVALUE.name == "RSAMangledEncryptionData") {
@@ -895,7 +895,7 @@ describe("decryptrsa", function () {
 
 			waitsFor(function () {
 				return pubKey || privKey || error;
-			});
+			}, 5000);
 
 			runs(function () {
 				expect(error).toBeUndefined();
@@ -949,7 +949,7 @@ describe("decryptrsa", function () {
 
 			waitsFor(function () {
 				return encrypted || error;
-			});
+			}, 5000);
 
 			runs(function () {
 				expect(error).toBeUndefined();
@@ -982,7 +982,7 @@ describe("decryptrsa", function () {
 
 			waitsFor(function () {
 				return decrypted || error;
-			});
+			}, 5000);
 
 			runs(function () {
 				//Since all the tests are negative error is always defined

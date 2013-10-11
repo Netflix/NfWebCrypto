@@ -17,6 +17,12 @@
  */
 #ifndef SIMPLETHREAD_H_
 #define SIMPLETHREAD_H_
+
+/* NaCl defines pthread_t in <pthread.h> instead of <sys/types.h>. */
+#if defined(__native_client__)
+#include <pthread.h>
+#endif
+
 #include <sys/types.h>
 #include "Noncopyable.h"
 

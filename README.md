@@ -119,6 +119,32 @@ Actual deployments must change this key.
     $ cmake -DCMAKE_TOOLCHAIN_FILE=(repo)/cmake/toolchains/linux64.cmake -DCMAKE_BUILD_TYPE=[Debug|Release] (repo)
     $ make -j<N>
 
+
+How to Build with PNaCl
+-----------------------
+
+There is experimental support for building the plugin with PNaCl. See
+https://developers.google.com/native-client/, for how to acquire an SDK.
+
+To build with PNaCl, you must have the Pepper 31 NaCl SDK or higher, along
+with a build of the OpenSSL libraries for PNaCl from NaCl ports.
+The SDK's root should be in ${NACL_SDK_ROOT}.
+
+To get NaCl ports, see:
+https://code.google.com/p/naclports/wiki/HowTo_Checkout?tm=4.
+Build OpenSSL from the NaCl ports repo with "NACL_ARCH=pnacl make openssl".
+
+Once that is set up do:
+
+    $ mkdir buildDir
+    $ cd buildDir
+    $ cmake -DCMAKE_TOOLCHAIN_FILE=(repo)/cmake/toolchains/linux_pnacl.cmake \
+        -DCMAKE_BUILD_TYPE=[Debug|Release] \
+        -DNACL_SDK_ROOT=${NACL_SDK_ROOT} \
+        -DOPENSSL_ROOT_DIR=${NACL_SDK_ROOT}/toolchain/linux_pnacl/usr/ (repo)
+    $ make -j<N>
+
+
 Build Results
 -------------
 

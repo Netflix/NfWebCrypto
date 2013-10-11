@@ -16,7 +16,7 @@
  *
  */
 #include "NativeBridge.h"
-#include <ppapi/cpp/private/instance_private.h>
+#include <ppapi/cpp/instance.h>
 #include <base/CadmiumErrors.h>
 #include <base/DebugUtil.h>
 #include <base/JSONFormatter.h>
@@ -227,7 +227,7 @@ string thinJsonMessage(const string& in)
 
 }   // anonymous namespace
 
-NativeBridge::NativeBridge(pp::InstancePrivate * pInstance, CadmiumCrypto * cadmiumCrypto)
+NativeBridge::NativeBridge(pp::Instance * pInstance, CadmiumCrypto * cadmiumCrypto)
 :   pInstance_(pInstance)
 ,   cadmiumCrypto_(cadmiumCrypto)
 ,   callbackFactory_(this)

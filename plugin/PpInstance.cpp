@@ -17,11 +17,8 @@
  */
 #include "PpInstance.h"
 #include <ppapi/c/ppb_instance.h>
-#include <ppapi/c/private/ppb_instance_private.h>
 #include <ppapi/c/ppb_var.h>
 #include <ppapi/c/dev/ppb_crypto_dev.h>
-#include <ppapi/c/private/ppb_flash_device_id.h>
-#include <ppapi/cpp/private/var_private.h>
 #include <base/DebugUtil.h>
 #include <base/Variant.h>
 #include <base/Base64.h>
@@ -31,7 +28,7 @@
 #include "BackgroundDispatcher.h"
 #include "NativeBridge.h"
 #include "BrowserConsoleLog.h"
-#include "PpapiDeviceInfo.h"
+//#include "PpapiDeviceInfo.h"
 
 using namespace std;
 using namespace cadmium::base;
@@ -43,10 +40,7 @@ namespace   // anonymous
 const char* const kUsedInterfaces[] = {
   PPB_CORE_INTERFACE,
   PPB_INSTANCE_INTERFACE,
-  PPB_INSTANCE_PRIVATE_INTERFACE,
   PPB_VAR_INTERFACE,
-  PPB_CRYPTO_DEV_INTERFACE,
-  PPB_FLASH_DEVICEID_INTERFACE,
   PPB_CONSOLE_INTERFACE
 };
 const size_t kUsedInterfaceCount = sizeof(kUsedInterfaces) / sizeof(kUsedInterfaces[0]);
@@ -58,6 +52,7 @@ typedef std::vector<unsigned char> Vuc;
 
 Vuc getRandBytes()
 {
+#if 0
     assert(isMainThread());
     const PPB_Crypto_Dev* const crypto = reinterpret_cast<const PPB_Crypto_Dev*>(
             pp::Module::Get()->GetBrowserInterface(PPB_CRYPTO_DEV_INTERFACE));
@@ -65,6 +60,8 @@ Vuc getRandBytes()
     vector<unsigned char> randBytes(CadmiumCrypto::MIN_SEED_LEN, 0);
     (*crypto->GetRandomBytes)(reinterpret_cast<char*>(&randBytes[0]), randBytes.size());
     return randBytes;
+#endif
+    return Vuc(CadmiumCrypto::MIN_SEED_LEN, 0);
 }
 
 // site check code for restricted platforms
@@ -121,10 +118,10 @@ bool isSiteAllowed(pp::InstancePrivate* instance)
 // any origin OK when not on a restricted platform
 #else
 
-bool isSiteAllowed(pp::InstancePrivate*)
-{
-    return true;
-}
+//bool isSiteAllowed(pp::InstancePrivate*)
+//{
+//    return true;
+//}
 
 #endif  // ifdef RESTRICTED_PLATFORM
 
@@ -173,7 +170,7 @@ namespace cadmium
 {
 
 PpInstance::PpInstance(PP_Instance instance)
-:   pp::InstancePrivate(instance)
+:   pp::Instance(instance)
 ,   callbackFactory_(this)
 ,   backgroundInitThread_(NULL)
 ,   backgroundDispatcher_(NULL)
@@ -215,17 +212,17 @@ bool PpInstance::Init(uint32_t argc, const char* argn[], const char* argv[])
     handleOptions(argc, argn, argv);
 
     // origin check
-    if (!isSiteAllowed(this))
-    {
-        DLOG() << "Error: site not allowed" << endl;
-        LogToBrowserConsole(pp_instance(), PP_LOGLEVEL_ERROR, "Error: site not allowed");
-        return false;
-    }
+//    if (!isSiteAllowed(this))
+//    {
+//        DLOG() << "Error: site not allowed" << endl;
+//        LogToBrowserConsole(pp_instance(), PP_LOGLEVEL_ERROR, "Error: site not allowed");
+//        return false;
+//    }
 
     // get a random number
     randSeed_ = getRandBytes();
 
-    deviceInfo_.reset(new PpapiDeviceInfo(this));
+    //deviceInfo_.reset(new PpapiDeviceInfo(this));
 
     // Init the rest on a separate thread
     backgroundInitThread_ =

@@ -62,14 +62,14 @@ End of (PolyCrypt) License Terms and Conditions.
         operationId = 0,
         that = {},
         plugin;
-
-    if (!navPlugin) {
-        // don't throw inline, not to block further scripts from executing
-        window.setTimeout(function () {
-            throw new Error('NfWebCrypto plugin not found, unable to create nfCrypt');
-        }, 0);
-        return;
-    }
+//
+//    if (!navPlugin) {
+//        // don't throw inline, not to block further scripts from executing
+//        window.setTimeout(function () {
+//            throw new Error('NfWebCrypto plugin not found, unable to create nfCrypt');
+//        }, 0);
+//        return;
+//    }
 
     // public api root
     // TODO: remove the methods from nfCrypto, they should only be on nfCrypto.subtle
@@ -550,7 +550,9 @@ End of (PolyCrypt) License Terms and Conditions.
         var body = window.document.body;
 
         var pluginObject = window.document.createElement('object');
-        pluginObject.setAttribute('type', navPlugin[0].type);
+        pluginObject.setAttribute('id', 'NfWebCrypto');
+        pluginObject.setAttribute('src', 'manifest.nmf');
+        pluginObject.setAttribute('type', 'application/x-pnacl');
         pluginObject.setAttribute('style', 'position:fixed;left:0;top:0;width:1px;height:1px;visibility:hidden');
 
         pluginObject.addEventListener('message', handleReadyMessage, false);
@@ -559,6 +561,7 @@ End of (PolyCrypt) License Terms and Conditions.
             pluginObject.removeEventListener('message', handleReadyMessage);
             var obj = JSON.parse(message.data);
             if (obj.success && obj.method === 'ready') {
+            	console.log("got plugin ready message");
                 setTimeout(function() {
                     pluginIsReady(pluginObject);
                 }, 1);
@@ -568,6 +571,7 @@ End of (PolyCrypt) License Terms and Conditions.
         // Insert the plugin object into the document body. This starts the
         // native code. This should be done last.
         body.appendChild(pluginObject);
+        
     };
     window.addEventListener('load', onLoad);
 

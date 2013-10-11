@@ -24,7 +24,7 @@
 #include <crypto/CadmiumCrypto.h>
 #include "INativeBridge.h"
 
-namespace pp {class InstancePrivate;}
+namespace pp {class Instance;}
 
 namespace cadmium
 {
@@ -32,7 +32,7 @@ namespace cadmium
 class NativeBridge : public INativeBridge, private base::Noncopyable
 {
 public:
-    NativeBridge(pp::InstancePrivate * pInstance, crypto::CadmiumCrypto * cadmiumCrypto);
+    NativeBridge(pp::Instance * pInstance, crypto::CadmiumCrypto * cadmiumCrypto);
     virtual ~NativeBridge();
     virtual void handleMessage(const std::string& message);
     virtual void postMessage(const std::string& message);
@@ -73,7 +73,7 @@ private:
     JsMethod getDeviceId;
     JsMethod getKeyByName;
 private:
-    pp::InstancePrivate * const pInstance_;
+    pp::Instance * const pInstance_;
     crypto::CadmiumCrypto * const cadmiumCrypto_;
     pp::CompletionCallbackFactory<NativeBridge> callbackFactory_;
     typedef bool (NativeBridge::*JsMethodPtr)(const std::string& cmdIdx,

@@ -37,8 +37,8 @@ include_directories (${PROJECT_BINARY_DIR})   # Version.h lands in the binary tr
 include_directories(${PROJECT_SOURCE_DIR})
 
 # PPAPI
-add_subdirectory(ppapi)
-include_directories(ppapi)
+#add_subdirectory(ppapi)
+include_directories(${NACL_SDK_ROOT}/include)
 
 # Sources
 set(PLUGIN_SOURCES
@@ -47,14 +47,14 @@ set(PLUGIN_SOURCES
     BrowserConsoleLog.cpp
     MainThreadUtil.cpp
     NativeBridge.cpp
-    PpapiDeviceInfo.cpp
     PpInstance.cpp
     PpModule.cpp
 )
 
-add_library(plugin SHARED ${PLUGIN_SOURCES})
+#add_library(plugin SHARED ${PLUGIN_SOURCES})
+add_executable(plugin ${PLUGIN_SOURCES})
 
-target_link_libraries(plugin ppapi base cadcrypto)
+target_link_libraries(plugin base cadcrypto ${NACL_SDK_ROOT}/toolchain/linux_pnacl/sdk/lib/libppapi.a ${NACL_SDK_ROOT}/lib/pnacl/Debug/libppapi_cpp.a)
 
 # name the .so file
 set_target_properties(plugin PROPERTIES OUTPUT_NAME "${LIBNAME}")

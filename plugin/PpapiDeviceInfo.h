@@ -8,8 +8,6 @@
 
 #ifndef PPAPIDEVICEINFO_H_
 #define PPAPIDEVICEINFO_H_
-#include <ppapi/cpp/private/instance_private.h>
-#include <ppapi/cpp/private/var_private.h>
 #include <ppapi/utility/completion_callback_factory.h>
 #include <base/Mutex.h>
 #include <base/ConditionVariable.h>
@@ -30,7 +28,7 @@ namespace cadmium
 class PpapiDeviceInfo : public IDeviceInfo
 {
 public:
-    PpapiDeviceInfo(pp::InstancePrivate* pInstance);
+    PpapiDeviceInfo(pp::Instance* pInstance);
     ~PpapiDeviceInfo();
     virtual std::string getDeviceId();
     virtual std::vector<unsigned char> getBinaryDeviceId();
