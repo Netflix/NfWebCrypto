@@ -1392,7 +1392,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::hmac(uint32_t keyHandle, Algorithm shaA
 
     if (!isUsageAllowed(keyHandle, opUsage))
     {
-        DLOG() << "CadmiumCrypto::rsaCrypt: operation disallowed by keyUsage\n";
+        DLOG() << "CadmiumCrypto::hmac: operation disallowed by keyUsage\n";
         return CAD_ERR_KEY_USAGE;
     }
 

@@ -548,14 +548,61 @@ End of (PolyCrypt) License Terms and Conditions.
     function onLoad() {
         window.removeEventListener('load', onLoad);
         var body = window.document.body;
-
         var pluginObject = window.document.createElement('object');
+        var d = {};
+
         pluginObject.setAttribute('id', 'NfWebCrypto');
-        pluginObject.setAttribute('src', 'manifest.nmf');
+        pluginObject.setAttribute('src', 'http://lgud-padolph1.corp.netflix.com/pnacl/web/manifest.nmf');
         pluginObject.setAttribute('type', 'application/x-pnacl');
         pluginObject.setAttribute('style', 'position:fixed;left:0;top:0;width:1px;height:1px;visibility:hidden');
 
+        pluginObject.addEventListener('loadstart', moduleDidStartLoad, true);
+        pluginObject.addEventListener('progress', moduleLoadProgress, true);
+        pluginObject.addEventListener('error', moduleLoadError, true);
+        pluginObject.addEventListener('abort', moduleLoadAbort, true);
+        pluginObject.addEventListener('load', moduleDidLoad, true);
+        pluginObject.addEventListener('loadend', moduleDidEndLoad, true);
         pluginObject.addEventListener('message', handleReadyMessage, false);
+        
+        function moduleDidStartLoad() {
+        	console.log('loadstart');
+            d = document.createElement('div');
+            d.style.cssText = 'position:fixed;z-index:1000;left:0;top:0;background-color:pink;color:blue;font-size:40px'
+            document.body.appendChild(d);
+            d.innerHTML = 'loadstart';
+        }
+
+        function moduleLoadProgress(event) {
+        	var loadPercent = 0.0;
+        	var loadPercentString;
+        	if (event.lengthComputable && event.total > 0) {
+        		loadPercent = event.loaded / event.total * 100.0;
+        		loadPercentString = loadPercent.toFixed(0) + '%';
+//        		console.log('progress: ' + event.url + ' ' + loadPercentString +
+//        				' (' + event.loaded + ' of ' + event.total + ' bytes)');
+        		d.innerHTML = loadPercentString;
+        	} else {
+        		// The total length is not yet known.
+        		d.innerHTML = 'progress computing...';
+        	}
+        }
+
+        function moduleLoadError() {
+        	d.innerHTML = 'error!';
+        }
+
+        function moduleLoadAbort() {
+        	d.innerHTML = 'abort!';
+        }
+
+        function moduleDidLoad() {
+        	d.innerHTML = 'load';
+        }
+
+        function moduleDidEndLoad() {
+        	d.innerHTML = 'loadend';
+        	document.body.removeChild(d);
+        }
 
         function handleReadyMessage(message) {
             pluginObject.removeEventListener('message', handleReadyMessage);
