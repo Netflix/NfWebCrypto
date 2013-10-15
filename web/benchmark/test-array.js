@@ -4,12 +4,18 @@ function Test(name, test) {
     this.endTime = null;
     this.result = null;
     this.row = null;
+    this.currentIteration = 0;
+    this.maxIterations = 100;
 
     this.run = function() {
-        // Note the start time
-        this.startTime = window.performance.now();
+        
+        if (this.currentIteration == 0) {
+            // Note the start time
+            this.startTime = window.performance.now();
+        }
         // Run the test
         try {
+            //console.log(this.name + " " + this.currentIteration);
             test.call(this);
         } catch (e) {
             console.log(e);
@@ -28,15 +34,22 @@ function Test(name, test) {
     };
 
     this.complete = function(result) {
-        // Note the end time
-        this.endTime = window.performance.now();
-        // Set result
-        this.result = result;
-        // Re-draw the row
-        this.draw();
-        
-        if (this.oncomplete) {
-            this.oncomplete();
+        if ( (this.name != "LoadPlugin") && (this.currentIteration++ < this.maxIterations-1 )) {
+            // run the test again
+            this.run();
+        } else {
+            // Note the end time
+            this.endTime = window.performance.now();
+            // Set result
+            this.result = result;
+            // Re-draw the row
+            this.draw();
+
+            this.currentIteration = 0;
+            
+            if (this.oncomplete) {
+                this.oncomplete();
+            }
         }
     };
 
@@ -45,6 +58,7 @@ function Test(name, test) {
     };
 
     this.draw = function() {
+        var testTime = 0;
         if (!this.row) return;
         
         // Print the name of the test
@@ -65,11 +79,17 @@ function Test(name, test) {
             this.row[1].innerHTML = "";
         }
 
-        // Print the elapsed time, if known
-        if (this.startTime &&  this.endTime) {
-            this.row[2].innerHTML = (this.endTime - this.startTime).toFixed(1) + " ms";
-        } else {
-            this.row[2].innerHTML = "";
+        if (this.result == true) {
+            // Print the elapsed time, if known
+            if (this.startTime &&  this.endTime) {
+                testTime = this.endTime - this.startTime;
+                if (this.name != "Load Plugin") {
+                    testTime /= this.maxIterations;
+                }
+                this.row[2].innerHTML = testTime.toFixed(0) + " ms";
+            } else {
+                this.row[2].innerHTML = "";
+            }
         }
     };
 }
