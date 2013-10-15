@@ -364,7 +364,7 @@ TestArray.addTest(
 
 //-----------------------------------------------------------------------------
 TestArray.addTest(
-    "Unwrap JWE-JS, RSA-OAEP + AES-GCM 128",
+    "Unwrap JWE-JS Key, RSA-OAEP+AES-GCM128",
     function () {
         var that = this;
         var op1 = window.nfCrypto.subtle.importKey(
@@ -399,9 +399,7 @@ TestArray.addTest(
                 op3.oncomplete = function (e) {
                     that.memcmp_complete(tv.t20_key, e.target.result);
                 }
-                
             }
-
         };
     }
 );

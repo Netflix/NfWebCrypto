@@ -59,19 +59,10 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
 (function (window) {
     'use strict';
 
-    var navPlugin = window.navigator.plugins['NfWebCrypto'] || window.navigator.plugins['NetflixHelper'],
-        pluginDelegate = {},
+    var pluginDelegate = {},
         operationId = 0,
         that = {},
         plugin;
-//
-//    if (!navPlugin) {
-//        // don't throw inline, not to block further scripts from executing
-//        window.setTimeout(function () {
-//            throw new Error('NfWebCrypto plugin not found, unable to create nfCrypt');
-//        }, 0);
-//        return;
-//    }
 
     // public api root
     // TODO: remove the methods from nfCrypto, they should only be on nfCrypto.subtle
@@ -540,78 +531,81 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
     that.getKeyByName = function (keyName) {
         return createKeyOp('getKeyByName', null, null, null, null, null, null, null, null, keyName);
     }
-    
-    //--------------------------------------------------------------------------
-
 
     //--------------------------------------------------------------------------
 
-    // Runs immediately. Loads the plugin and starts the native code.
+
+    //--------------------------------------------------------------------------
+
+    // Loads the plugin and starts the native code.
     function onLoad() {
         window.removeEventListener('load', onLoad);
         var body = window.document.body;
+        var navPlugin = window.navigator.plugins['NfWebCrypto'] || window.navigator.plugins['NetflixHelper'];
         var pluginObject = window.document.createElement('object');
-        var d = {};
+        var overlayDiv = document.createElement('div');
 
+        overlayDiv.style.cssText = 'position:fixed;z-index:1000;left:0;top:0;background-color:pink;color:blue;font-size:40px'
+        document.body.appendChild(overlayDiv);
+
+        if (navPlugin) {
+            pluginObject.setAttribute('type', navPlugin[0].type);
+            overlayDiv.innerHTML = 'PPAPI Version';
+        } else {
+            pluginObject.setAttribute('type', 'application/x-pnacl');
+            pluginObject.setAttribute('src', 'http://lgud-padolph1.corp.netflix.com/pnacl/web/manifest.nmf');
+        }
         pluginObject.setAttribute('id', 'NfWebCrypto');
-        pluginObject.setAttribute('src', 'http://lgud-padolph1.corp.netflix.com/pnacl/web/manifest.nmf');
-        pluginObject.setAttribute('type', 'application/x-pnacl');
         pluginObject.setAttribute('style', 'position:fixed;left:0;top:0;width:1px;height:1px;visibility:hidden');
 
-        pluginObject.addEventListener('loadstart', moduleDidStartLoad, true);
-        pluginObject.addEventListener('progress', moduleLoadProgress, true);
-        pluginObject.addEventListener('error', moduleLoadError, true);
-        pluginObject.addEventListener('abort', moduleLoadAbort, true);
-        pluginObject.addEventListener('load', moduleDidLoad, true);
-        pluginObject.addEventListener('loadend', moduleDidEndLoad, true);
         pluginObject.addEventListener('message', handleReadyMessage, false);
         
+        if (!navPlugin) {
+            pluginObject.addEventListener('loadstart', moduleDidStartLoad, true);
+            pluginObject.addEventListener('progress', moduleLoadProgress, true);
+            pluginObject.addEventListener('error', moduleLoadError, true);
+            pluginObject.addEventListener('abort', moduleLoadAbort, true);
+            pluginObject.addEventListener('load', moduleDidLoad, true);
+            pluginObject.addEventListener('loadend', moduleDidEndLoad, true);
+        }
+        
+        // PNaCl specific callbacks
         function moduleDidStartLoad() {
-            pluginStartLoadTime = window.performance.now();
-            d = document.createElement('div');
-            d.style.cssText = 'position:fixed;z-index:1000;left:0;top:0;background-color:pink;color:blue;font-size:40px'
-            document.body.appendChild(d);
-            d.innerHTML = 'loadstart';
+            overlayDiv.innerHTML = 'loadstart';
         }
-
         function moduleLoadProgress(event) {
-        	var loadPercent = 0.0;
-        	var loadPercentString;
-        	if (event.lengthComputable && event.total > 0) {
-        		loadPercent = event.loaded / event.total * 100.0;
-        		loadPercentString = loadPercent.toFixed(0) + '%';
-//        		console.log('progress: ' + event.url + ' ' + loadPercentString +
-//        				' (' + event.loaded + ' of ' + event.total + ' bytes)');
-        		d.innerHTML = loadPercentString;
-        	} else {
-        		// The total length is not yet known.
-        		d.innerHTML = 'progress computing...';
-        	}
+            var loadPercent = 0.0;
+            var loadPercentString;
+            if (event.lengthComputable && event.total > 0) {
+                    loadPercent = event.loaded / event.total * 100.0;
+                    loadPercentString = loadPercent.toFixed(0) + '%';
+                    // console.log('progress: ' + event.url + ' ' + loadPercentString +
+                    //              ' (' + event.loaded + ' of ' + event.total + ' bytes)');
+                    overlayDiv.innerHTML = 'PNaCl loading...' + loadPercentString;
+            } else {
+                    // The total length is not yet known.
+                    overlayDiv.innerHTML = 'PNaCl loading...';
+            }
         }
-
         function moduleLoadError() {
-            d.innerHTML = 'error!';
+            overlayDiv.innerHTML = 'PNaCl error!';
         }
-
         function moduleLoadAbort() {
-            d.innerHTML = 'abort!';
+            overlayDiv.innerHTML = 'PNaCl abort!';
         }
-
         function moduleDidLoad() {
-            d.innerHTML = 'load';
+            overlayDiv.innerHTML = 'PNaCl load';
         }
-
         function moduleDidEndLoad() {
-            pluginEndLoadTime = window.performance.now();
-            d.innerHTML = 'loadend';
-            document.body.removeChild(d);
+            overlayDiv.innerHTML = 'PNaCl Version';
         }
+        // End PNaCl specific callbacks
 
         function handleReadyMessage(message) {
             pluginObject.removeEventListener('message', handleReadyMessage);
             var obj = JSON.parse(message.data);
             if (obj.success && obj.method === 'ready') {
-            	//console.log("got plugin ready message");
+                pluginEndLoadTime = window.performance.now();
                 setTimeout(function() {
                     pluginIsReady(pluginObject);
                 }, 1);
@@ -620,8 +614,8 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
 
         // Insert the plugin object into the document body. This starts the
         // native code. This should be done last.
+        pluginStartLoadTime = window.performance.now();
         body.appendChild(pluginObject);
-        
     };
     window.addEventListener('load', onLoad);
 
