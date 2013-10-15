@@ -38,8 +38,8 @@ var util = {
 
     // Compare the contents of two ArrayBufferViews
     memcmp: function util_memcmp(x, y) {
-        this.assert( this.isABV(x) );
-        this.assert( this.isABV(y) );
+        //this.assert( this.isABV(x) );
+        //this.assert( this.isABV(y) );
 
         if (x.byteLength !== y.byteLength) { return false; }
 

@@ -54,6 +54,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 End of (PolyCrypt) License Terms and Conditions.
 */
 
+var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
+
 (function (window) {
     'use strict';
 
@@ -538,7 +540,7 @@ End of (PolyCrypt) License Terms and Conditions.
     that.getKeyByName = function (keyName) {
         return createKeyOp('getKeyByName', null, null, null, null, null, null, null, null, keyName);
     }
-
+    
     //--------------------------------------------------------------------------
 
 
@@ -565,7 +567,7 @@ End of (PolyCrypt) License Terms and Conditions.
         pluginObject.addEventListener('message', handleReadyMessage, false);
         
         function moduleDidStartLoad() {
-        	console.log('loadstart');
+            pluginStartLoadTime = window.performance.now();
             d = document.createElement('div');
             d.style.cssText = 'position:fixed;z-index:1000;left:0;top:0;background-color:pink;color:blue;font-size:40px'
             document.body.appendChild(d);
@@ -588,27 +590,28 @@ End of (PolyCrypt) License Terms and Conditions.
         }
 
         function moduleLoadError() {
-        	d.innerHTML = 'error!';
+            d.innerHTML = 'error!';
         }
 
         function moduleLoadAbort() {
-        	d.innerHTML = 'abort!';
+            d.innerHTML = 'abort!';
         }
 
         function moduleDidLoad() {
-        	d.innerHTML = 'load';
+            d.innerHTML = 'load';
         }
 
         function moduleDidEndLoad() {
-        	d.innerHTML = 'loadend';
-        	document.body.removeChild(d);
+            pluginEndLoadTime = window.performance.now();
+            d.innerHTML = 'loadend';
+            document.body.removeChild(d);
         }
 
         function handleReadyMessage(message) {
             pluginObject.removeEventListener('message', handleReadyMessage);
             var obj = JSON.parse(message.data);
             if (obj.success && obj.method === 'ready') {
-            	console.log("got plugin ready message");
+            	//console.log("got plugin ready message");
                 setTimeout(function() {
                     pluginIsReady(pluginObject);
                 }, 1);

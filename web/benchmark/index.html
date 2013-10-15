@@ -16,7 +16,7 @@
 
 <div id="content">
 	<div id="head">
-		NfWebCrypto<b>Test</b><br>
+		NfWebCrypto Test<br>
 	</div>
 
     <div id="start" onclick="start();">START</div>
@@ -47,15 +47,9 @@
             window.removeEventListener('load', onLoad);
             var plugin = window.document.getElementById("NfWebCrypto");
             
-            plugin.addEventListener('loadstart', moduleDidStartLoad, true);
             plugin.addEventListener('loadend', moduleDidEndLoad, true);
             
-            function moduleDidStartLoad() {
-                console.log('loadstart');
-            }
-
             function moduleDidEndLoad() {
-                console.log('loadend');
                 start();
             }
        }

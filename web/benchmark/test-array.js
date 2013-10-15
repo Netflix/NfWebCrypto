@@ -7,7 +7,7 @@ function Test(name, test) {
 
     this.run = function() {
         // Note the start time
-        this.startTime = new Date();
+        this.startTime = window.performance.now();
         // Run the test
         try {
             test.call(this);
@@ -29,7 +29,7 @@ function Test(name, test) {
 
     this.complete = function(result) {
         // Note the end time
-        this.endTime = new Date();
+        this.endTime = window.performance.now();
         // Set result
         this.result = result;
         // Re-draw the row
@@ -67,7 +67,7 @@ function Test(name, test) {
 
         // Print the elapsed time, if known
         if (this.startTime &&  this.endTime) {
-            this.row[2].innerHTML = (this.endTime - this.startTime) + " ms";
+            this.row[2].innerHTML = (this.endTime - this.startTime).toFixed(1) + " ms";
         } else {
             this.row[2].innerHTML = "";
         }

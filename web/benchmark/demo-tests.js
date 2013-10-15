@@ -1,13 +1,25 @@
 /*global TestArray, util, tv */
 
+/* global pluginStartLoadTime, pluginEndLoadTime */
+
 // -----------------------------------------------------------------------------
 TestArray.addTest(
-    "Generate a 192-bit AES key",
+    "Load Plugin",
+    function() {
+        this.startTime = pluginStartLoadTime;
+        this.endTime = pluginEndLoadTime;
+        this.complete(true);
+    }
+);
+
+//-----------------------------------------------------------------------------
+TestArray.addTest(
+    "Generate a 256-bit AES key",
     function() {
         var length = 192;
         var op = window.nfCrypto.subtle.generateKey({
-            name: "AES-GCM",
-            params: { length: 192 }
+            name: "AES-CBC",
+            params: { length: 256 }
         });
         var that = this;
         op.onerror = function(e) {
@@ -15,15 +27,12 @@ TestArray.addTest(
             that.complete(.1, false );
         };
         op.oncomplete = function(e) {
-            console.log("COMPLETE :: " + e.target.result);
             var key = e.target.result;
             that.complete( 
                 key.hasOwnProperty('type') &&
                 key.hasOwnProperty('extractable') &&
                 key.hasOwnProperty('algorithm') &&
-                key.hasOwnProperty('keyUsage') // &&
-                //key.hasOwnProperty('key') &&
-                //key.key.length === 2*((length >> 3) + 8) // length+64 bits
+                key.hasOwnProperty('keyUsage')
             );
         };
     }
@@ -31,26 +40,50 @@ TestArray.addTest(
 
 // -----------------------------------------------------------------------------
 TestArray.addTest(
-    "Generate a 512-bit RSA key",
+    "Generate a 2048-bit RSAES-PKCS1-v1_5 key pair",
     function() {
         var op = window.nfCrypto.subtle.generateKey({
-            name: "RSAES-PKCS1-v1_5",
-            params: { 
-                modulusLength: 512,
-                publicExponent: new Uint8Array([0x01, 0x00, 0x01])
+            'name': 'RSAES-PKCS1-v1_5',
+            'params': {
+                'modulusLength': 2048,
+                'publicExponent': new Uint8Array([0x01, 0x00, 0x01])
             }
-        });
+        }, false, ['encrypt', 'decrypt']);
         var that = this;
         op.onerror = function(e) {
             console.log("ERROR :: " + e.target.result);
             that.complete(.2, false );
         };
         op.oncomplete = function(e) {
-            console.log("COMPLETE :: " + e.target.result);
-            var key = e.target.result;
+            tv.rsaesKey = e.target.result;
             that.complete(  
-                key.hasOwnProperty('publicKey') &&
-                key.hasOwnProperty('privateKey')
+                tv.rsaesKey.hasOwnProperty('publicKey') &&
+                tv.rsaesKey.hasOwnProperty('privateKey')
+            );
+        };
+    }
+);
+
+TestArray.addTest(
+    "Generate a 2048-bit RSASSA-PKCS1-v1_5 key pair",
+    function() {
+        var op = window.nfCrypto.subtle.generateKey({
+            'name': 'RSASSA-PKCS1-v1_5',
+            'params': {
+                'modulusLength': 2048,
+                'publicExponent': new Uint8Array([0x01, 0x00, 0x01])
+            }
+        }, false, ['sign', 'verify']);
+        var that = this;
+        op.onerror = function(e) {
+            console.log("ERROR :: " + e.target.result);
+            that.complete(false);
+        };
+        op.oncomplete = function(e) {
+            tv.rsassaKey = e.target.result;
+            that.complete(  
+                    tv.rsassaKey.hasOwnProperty('publicKey') &&
+                    tv.rsassaKey.hasOwnProperty('privateKey')
             );
         };
     }
@@ -71,15 +104,12 @@ TestArray.addTest(
             that.complete(.3, false );
         };
         op.oncomplete = function(e) {
-            console.log("COMPLETE :: " + e.target.result);
             var key = e.target.result;
             that.complete( 
                 key.hasOwnProperty('type') &&
                 key.hasOwnProperty('extractable') &&
                 key.hasOwnProperty('algorithm') &&
-                key.hasOwnProperty('keyUsage') // &&
-                //key.hasOwnProperty('key') &&
-                //key.key.length === 48 // 128+64 bits
+                key.hasOwnProperty('keyUsage')
             );
         };
     }
@@ -87,38 +117,17 @@ TestArray.addTest(
 
 // -----------------------------------------------------------------------------
 TestArray.addTest(
-    "Export an RSA public key",
+    "Export an RSA public key in SPKI format",
     function() {
         var that = this;
-        var jwk = {
-            kty: "RSA",
-            alg: "RSA1_5",
-            n: util.b64encodeNoPadding( tv.t7_rsa_n ),
-            e: util.b64encodeNoPadding( tv.t7_rsa_e ),
-            extractable: true,
-        };
-        var jwkStr = util.latin1.parse(JSON.stringify(jwk));
-        var op = window.nfCrypto.subtle.importKey("jwk", jwkStr, "RSAES-PKCS1-v1_5");
-        op.onerror = function(e) {
+        var op1 = window.nfCrypto.subtle.exportKey("spki", tv.rsaesKey.publicKey);
+        op1.onerror = function(e) {
             console.log("ERROR :: " + e.target.result);
             that.complete(false );
         };
-        op.oncomplete = function(e) {
-            var key = e.target.result;
-            var op2 = window.nfCrypto.subtle.exportKey("jwk", key);
-            op2.onerror = function(e) {
-                console.log("ERROR :: " + e.target.result);
-                that.complete(false );
-            };
-            op2.oncomplete = function(e) {
-                var jwkStr2 = e.target.result;
-                var jwk2 = JSON.parse(util.latin1.stringify(jwkStr2));
-                console.log("COMPLETE :: " + e.target.result);
-                that.complete(
-                    (jwk.n === jwk2.n)
-                    && (jwk.e === jwk2.e)
-                );
-            };
+        op1.oncomplete = function(e) {
+            var spki = e.target.result;
+            that.complete(spki.length != 0);
         };
     }
 );
@@ -134,7 +143,6 @@ TestArray.addTest(
             that.complete( false );
         };
         op.oncomplete = function(e) {
-            console.log("COMPLETE :: " + e.target.result);
             that.memcmp_complete(tv.t3_result, e.target.result); 
         };
     }
@@ -161,7 +169,6 @@ TestArray.addTest(
                 that.complete(false );
             };
             op2.oncomplete = function(e) {
-                console.log("COMPLETE :: " + e.target.result);
                 that.memcmp_complete(tv.t4_result, e.target.result );
             };
         };
@@ -171,39 +178,23 @@ TestArray.addTest(
 
 // -----------------------------------------------------------------------------
 TestArray.addTest(
-    "RSAES encryption",
+    "RSAES encrypt/decrypt 28 bytes",
     function () {
         var that = this;
-        var jwk = util.latin1.parse(JSON.stringify({
-            kty: "RSA",
-            alg: "RSA1_5",
-            n: util.b64encodeNoPadding(tv.t7_rsa_n),
-            e: util.b64encodeNoPadding(tv.t7_rsa_d),
-            extractable: true,
-        }));
-        var op = window.nfCrypto.subtle.importKey("jwk", jwk, "RSAES-PKCS1-v1_5");
+        var op = window.nfCrypto.subtle.encrypt("RSAES-PKCS1-v1_5", tv.rsaesKey.publicKey, tv.t7_data);
         op.onerror = function(e) {
             console.log("ERROR :: " + e.target.result);
             that.complete(false );
         };
         op.oncomplete = function(e) {
-            var key = e.target.result;
-            var op2 = window.nfCrypto.subtle.encrypt("RSAES-PKCS1-v1_5", key, tv.t7_data);
+            var data = e.target.result;
+            var op2 = window.nfCrypto.subtle.decrypt("RSAES-PKCS1-v1_5", tv.rsaesKey.privateKey, data);
             op2.onerror = function(e) {
                 console.log("ERROR :: " + e.target.result);
                 that.complete(false );
             };
             op2.oncomplete = function(e) {
-                var data = e.target.result;
-                var op3 = window.nfCrypto.subtle.decrypt("RSAES-PKCS1-v1_5", key, data);
-                op3.onerror = function(e) {
-                    console.log("ERROR :: " + e.target.result);
-                    that.complete(false );
-                };
-                op3.oncomplete = function(e) {
-                    console.log("COMPLETE :: " + e.target.result);
-                    that.memcmp_complete(tv.t7_data, e.target.result );
-                };
+                that.memcmp_complete(tv.t7_data, e.target.result );
             };
         };
     }
@@ -212,167 +203,28 @@ TestArray.addTest(
 
 // -----------------------------------------------------------------------------
 TestArray.addTest(
-    "RSAES decryption",
+    "RSASSA/SHA-256 sign/verify 228 bytes",
     function () { 
-        var that = this;
-        var jwk = {
-            n: util.b64encodeNoPadding( tv.t8_rsa_n ),
-            e: util.b64encodeNoPadding( tv.t8_rsa_e ),
-            d: util.b64encodeNoPadding( tv.t8_rsa_d )
-        };
-        console.log(jwk);
-        var op = window.nfCrypto.subtle.importKey("jwk", jwk, "RSAES-PKCS1-v1_5");
-        op.onerror = function(e) {
+    var that = this;
+        var op1 = window.nfCrypto.subtle.sign({
+            name: "RSASSA-PKCS1-v1_5",
+            params: { hash: "SHA-256" }
+        }, tv.rsassaKey.privateKey, tv.t10_data);
+        op1.onerror = function(e) {
             console.log("ERROR :: " + e.target.result);
             that.complete(false );
         };
-        op.oncomplete = function(e) {
-            var key = e.target.result;
-            var op2 = window.nfCrypto.subtle.decrypt("RSAES-PKCS1-v1_5", key, tv.t8_data);
-            op2.onerror = function(e) {
-                console.log("ERROR :: " + e.target.result);
-                that.complete(false );
-            };
-            op2.oncomplete = function(e) {
-                console.log("COMPLETE :: " + e.target.result);
-                that.memcmp_complete(tv.t8_result, e.target.result);
-            };
-        };
-    }
-);
-
-
-// -----------------------------------------------------------------------------
-TestArray.addTest(
-    "RSASSA/SHA-1 signature",
-    function () { 
-        var that = this;
-        var jwk = {
-            n: util.b64encodeNoPadding( tv.t9_rsa_n ),
-            e: util.b64encodeNoPadding( tv.t9_rsa_e ),
-            d: util.b64encodeNoPadding( tv.t9_rsa_d )
-        };
-        console.log(jwk);
-        var op = window.nfCrypto.subtle.importKey("jwk", jwk, "RSASSA-PKCS1-v1_5");
-        op.onerror = function(e) {
-            console.log("ERROR :: " + e.target.result);
-            that.complete(false );
-        };
-        op.oncomplete = function(e) {
-            var key = e.target.result;
-            var op2 = window.nfCrypto.subtle.sign({
-                name: "RSASSA-PKCS1-v1_5",
-                params: { hash: "SHA-1" }
-            }, key, tv.t9_data);
-            op2.onerror = function(e) {
-                console.log("ERROR :: " + e.target.result);
-                that.complete(false );
-            };
-            op2.oncomplete = function(e) {
-                console.log("COMPLETE :: " + e.target.result);
-                that.memcmp_complete(tv.t9_sig, e.target.result);
-            };
-        };
-    }
-);
-
-
-// -----------------------------------------------------------------------------
-TestArray.addTest(
-    "RSASSA verification (SHA-1)",
-    function () {
-        var that = this;
-        var jwk = {
-            n: util.b64encodeNoPadding( tv.t10_rsa_n ),
-            e: util.b64encodeNoPadding( tv.t10_rsa_e )
-        };
-        console.log(jwk);
-        var op = window.nfCrypto.subtle.importKey("jwk", jwk, "RSASSA-PKCS1-v1_5");
-        op.onerror = function(e) {
-            console.log("ERROR :: " + e.target.result);
-            that.complete(false );
-        };
-        op.oncomplete = function(e) {
-            var key = e.target.result;
-            var op2 = window.nfCrypto.subtle.verify("RSASSA-PKCS1-v1_5", key, tv.t10_sig, tv.t10_data);
-            op2.onerror = function(e) {
-                console.log("ERROR :: " + e.target.result);
-                that.complete(false );
-            };
-            op2.oncomplete = function(e) {
-                console.log("COMPLETE :: " + e.target.result);
-                that.complete(e.target.result);
-            };
-        };
-    }
-);
-
-
-// -----------------------------------------------------------------------------
-TestArray.addTest(
-    "RSASSA/SHA-256 signature",
-    function () { 
-        var that = this;
-        var jwk = util.latin1.parse(JSON.stringify({
-            kty: "RSA",
-            alg: "RS256",
-            n: util.b64encodeNoPadding( tv.t11_rsa_n ),
-            e: util.b64encodeNoPadding( tv.t11_rsa_e ),
-            d: util.b64encodeNoPadding( tv.t11_rsa_d ),
-            extractable: true,
-        }));
-        console.log(jwk);
-        var op = window.nfCrypto.subtle.importKey("jwk", jwk, "RSASSA-PKCS1-v1_5");
-        op.onerror = function(e) {
-            console.log("ERROR :: " + e.target.result);
-            that.complete(false );
-        };
-        op.oncomplete = function(e) {
-            var key = e.target.result;
-            var op2 = window.nfCrypto.subtle.sign({
+        op1.oncomplete = function(e) {
+            var sig = e.target.result;
+            var op2 = window.nfCrypto.subtle.verify({
                 name: "RSASSA-PKCS1-v1_5",
                 params: { hash: "SHA-256" }
-            }, key, tv.t11_data);
+            }, tv.rsassaKey.publicKey, sig, tv.t10_data);
             op2.onerror = function(e) {
                 console.log("ERROR :: " + e.target.result);
                 that.complete(false );
             };
             op2.oncomplete = function(e) {
-                console.log("COMPLETE :: " + e.target.result);
-                that.memcmp_complete(tv.t11_sig, e.target.result);
-            };
-        };
-    }
-);
-
-
-// -----------------------------------------------------------------------------
-TestArray.addTest(
-    "RSASSA verification (SHA-256)",
-    function () {
-        var that = this;
-        var jwk = util.latin1.parse(JSON.stringify({
-            kty: "RSA",
-            alg: "RS256",
-            n: util.b64encodeNoPadding( tv.t12_rsa_n ),
-            e: util.b64encodeNoPadding( tv.t12_rsa_e ),
-            extractable: true,
-        }));
-        console.log(jwk);
-        var op = window.nfCrypto.subtle.importKey("jwk", jwk, {"name":"RSASSA-PKCS1-v1_5","params":{"hash":{"name":"SHA-256"}}});
-        op.onerror = function(e) {
-            console.log("ERROR :: " + e.target.result);
-            that.complete(false );
-        };
-        op.oncomplete = function(e) {
-            var key = e.target.result;
-            var op2 = window.nfCrypto.subtle.verify({"name":"RSASSA-PKCS1-v1_5","params":{"hash":{"name":"SHA-256"}}}, key, tv.t12_sig, tv.t12_data);
-            op2.onerror = function(e) {
-                console.log("ERROR :: " + e.target.result);
-                that.complete(false );
-            };
-            op2.oncomplete = function(e) {
-                console.log("COMPLETE :: " + e.target.result);
                 that.complete(e.target.result);
             };
         };
@@ -401,7 +253,6 @@ TestArray.addTest(
                 that.complete(false );
             };
             op2.oncomplete = function(e) {
-                console.log("COMPLETE :: " + e.target.result);
                 that.memcmp_complete(tv.t13_result, e.target.result );
             };
         };
@@ -430,7 +281,6 @@ TestArray.addTest(
                 that.complete(false );
             };
             op2.oncomplete = function(e) {
-                console.log("COMPLETE :: " + e.target.result);
                 that.memcmp_complete(tv.t14_result, e.target.result );
             };
         };
@@ -463,7 +313,6 @@ TestArray.addTest(
                 that.complete(false );
             };
             op2.oncomplete = function(e) {
-                console.log("COMPLETE :: " + e.target.result);
                 // Concatenate the result and tag
                 var t18_fullresult = util.abvcat(
                     tv.t18_result,
@@ -476,7 +325,7 @@ TestArray.addTest(
 );
 
 
-// -----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 TestArray.addTest(
     "AES-GCM decryption",
     function () { 
@@ -506,11 +355,54 @@ TestArray.addTest(
                 that.complete(false );
             };
             op2.oncomplete = function(e) {
-                console.log("COMPLETE :: " + e.target.result);
                 that.memcmp_complete(tv.t19_result, e.target.result );
             };
         };
     }
 );
 
+
+//-----------------------------------------------------------------------------
+TestArray.addTest(
+    "Unwrap JWE-JS, RSA-OAEP + AES-GCM 128",
+    function () {
+        var that = this;
+        var op1 = window.nfCrypto.subtle.importKey(
+                "pkcs8",
+                tv.t20_rsaKey, 
+                "RSA-OAEP",
+                false,
+                ["unwrap"]
+        );
+        op1.onerror = function (e) {
+            console.log("ERROR :: " + e.target.result);
+            that.complete(false );
+        };
+        op1.oncomplete = function (e) {
+            var wrappingKey = e.target.result;
+            var op2 = window.nfCrypto.subtle.unwrapKey(
+                    util.latin1.parse(tv.t20_jweData),
+                    "AES-CBC",
+                    wrappingKey,
+                    true);
+            op2.onerror = function (e) {
+                console.log("ERROR :: " + e.target.result);
+                that.complete(false );
+            };
+            op2.oncomplete = function (e) {
+                var unwrappedKey = e.target.result;
+                var op3 = window.nfCrypto.subtle.exportKey("raw", unwrappedKey);
+                op3.onerror = function (e) {
+                    console.log("ERROR :: " + e.target.result);
+                    that.complete(false );
+                };
+                op3.oncomplete = function (e) {
+                    that.memcmp_complete(tv.t20_key, e.target.result);
+                }
+                
+            }
+
+        };
+    }
+);
 
