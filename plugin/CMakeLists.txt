@@ -75,8 +75,6 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${INFO_FILE_IN} ${CMAKE_CURRENT_BINAR
 add_custom_command(
     TARGET plugin
     POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${FINAL_OUTPUT_DIR}
-    COMMAND ${CMAKE_COMMAND} -E copy ${BIN_NAME} ${FINAL_OUTPUT_DIR}
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/${INFO_FILE} ${FINAL_OUTPUT_DIR}
-    COMMENT "Copying final libs to ${FINAL_OUTPUT_DIR}"
+    COMMAND ${NACL_SDK_ROOT}/toolchain/linux_pnacl/bin/pnacl-finalize ${BIN_NAME} -o ${BIN_NAME}.pexe
+    COMMENT "Finalize to ${BIN_NAME}.pexe"
 )
