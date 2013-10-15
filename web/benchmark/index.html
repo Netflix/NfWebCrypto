@@ -19,7 +19,7 @@
 		NfWebCrypto Benchmark<br>
 	</div>
 
-    <div id="start" onclick="start();">START</div>
+    <div id="start">LOADING</div>
 
     <div id="resultDiv" class="content" style="display: none;">
     Summary:
@@ -47,10 +47,14 @@
             window.removeEventListener('load', onLoad);
             var plugin = window.document.getElementById("NfWebCrypto");
             
-            plugin.addEventListener('loadend', moduleDidEndLoad, true);
+            plugin.addEventListener('message', handleMessage, true);
             
-            function moduleDidEndLoad() {
-                start();
+            function handleMessage(message) {
+                plugin.removeEventListener('message', handleMessage);
+                var obj = JSON.parse(message.data);
+                if (obj.success && obj.method === 'ready') {
+                    start();
+                }
             }
        }
         window.addEventListener('load', onLoad);

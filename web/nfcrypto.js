@@ -545,7 +545,7 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
         var pluginObject = window.document.createElement('object');
         var overlayDiv = document.createElement('div');
 
-        overlayDiv.style.cssText = 'position:fixed;z-index:1000;left:0;top:0;background-color:pink;color:blue;font-size:40px'
+        overlayDiv.style.cssText = 'position:fixed;z-index:1000;left:0;bottom:0;background-color:pink;color:blue;font-size:40px'
         document.body.appendChild(overlayDiv);
 
         if (navPlugin) {
