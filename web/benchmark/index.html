@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>NfWebCrypto Benchmark</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link rel="stylesheet" href="./demo.css"/>
+<script src="nfcrypto.js"></script>
+<script src="./util.js"></script>
+<script src="./TestVectors.js"></script>
+<script src="./test-array.js"></script>
+<script src="./demo-tests.js"></script>
+</head>
+
+<body>
+
+<div id="content">
+	<div id="head">
+		NfWebCrypto Benchmark<br>
+	</div>
+
+    <div id="start">LOADING</div>
+
+    <div id="resultDiv" class="content" style="display: none;">
+    All crypto tests run 20 iterations, test times averaged. Summary:
+    <span class="pass"><span id="passN">0</span> passed, </span>
+    <span class="fail"><span id="failN">0</span> failed, </span>
+    <span class="pending"><span id="pendingN">0</span> pending.</span>
+    <br/>
+    <br/>
+
+    <table id="results">
+        <tr>
+            <th>Test</th>
+            <th>Result</th>
+            <th>Time</th>
+        </tr>
+    </table>
+
+    </div>
+
+    <div id="foot"></div>
+</div>
+
+    <script type="text/javascript">
+        function onLoad() {
+            window.removeEventListener('load', onLoad);
+            var plugin = window.document.getElementById("NfWebCrypto");
+            
+            plugin.addEventListener('message', handleMessage, true);
+            
+            function handleMessage(message) {
+                plugin.removeEventListener('message', handleMessage);
+                var obj = JSON.parse(message.data);
+                if (obj.success && obj.method === 'ready') {
+                    start();
+                }
+            }
+       }
+        window.addEventListener('load', onLoad);
+    </script>
+
+</body>
+</html>
