@@ -1,6 +1,10 @@
 Netflix WebCrypto (NfWebCrypto)
 ================================
 
+NOTE: This branch is an experimental PNaCl version of the NfWebCrypto plugin.
+There are significant hacks in this experiement that compromise the implementation.
+DO NOT USE except for experimentation!
+
 Netflix WebCrypto is a polyfill of the [W3C Web Cryptography API](http://www.w3.org/TR/WebCryptoAPI/),
 22 April 2013 Editor's Draft, as a native Chrome PPAPI plugin. Unlike a javascript polyfill, the native implementation
 supports a stronger security model with no key material exposed to javascript. The goal is to make the Web Crypto
