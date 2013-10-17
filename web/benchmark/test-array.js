@@ -5,7 +5,7 @@ function Test(name, test) {
     this.result = null;
     this.row = null;
     this.currentIteration = 0;
-    this.maxIterations = 100;
+    this.maxIterations = 20;
 
     this.run = function() {
         
