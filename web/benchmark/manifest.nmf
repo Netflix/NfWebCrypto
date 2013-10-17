@@ -3,7 +3,7 @@
   "program": {
     "portable": {
       "pnacl-translate": {
-        "url": "http://lgud-padolph1.corp.netflix.com/pnacl/nfwebcrypto.pexe",
+        "url": "nfwebcrypto.pexe",
         "optlevel": 2
       }
     }
