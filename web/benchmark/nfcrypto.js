@@ -552,7 +552,7 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
             pluginObject.setAttribute('type', navPlugin[0].type);
             overlayDiv.innerHTML = 'PPAPI Version';
         } else {
-            pluginObject.setAttribute('type', 'application/x-pnacl');
+            pluginObject.setAttribute('type', 'application/x-nacl');
             pluginObject.setAttribute('src', 'manifest.nmf');
         }
         pluginObject.setAttribute('id', 'NfWebCrypto');
@@ -571,9 +571,11 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
         
         // PNaCl specific callbacks
         function moduleDidStartLoad() {
+            //console.log("loadstart");
             overlayDiv.innerHTML = 'loadstart';
         }
         function moduleLoadProgress(event) {
+            //console.log("loadprogress");
             var loadPercent = 0.0;
             var loadPercentString;
             if (event.lengthComputable && event.total > 0) {
@@ -581,23 +583,30 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
                     loadPercentString = loadPercent.toFixed(0) + '%';
                     // console.log('progress: ' + event.url + ' ' + loadPercentString +
                     //              ' (' + event.loaded + ' of ' + event.total + ' bytes)');
-                    overlayDiv.innerHTML = 'PNaCl loading...' + loadPercentString;
+                    overlayDiv.innerHTML = 'NaCl loading...' + loadPercentString;
             } else {
                     // The total length is not yet known.
-                    overlayDiv.innerHTML = 'PNaCl loading...';
+                    overlayDiv.innerHTML = 'NaCl loading...';
             }
         }
         function moduleLoadError() {
-            overlayDiv.innerHTML = 'PNaCl error!';
+            //console.log("error");
+            overlayDiv.innerHTML = 'NaCl error!';
         }
         function moduleLoadAbort() {
-            overlayDiv.innerHTML = 'PNaCl abort!';
+            //console.log("abort");
+            overlayDiv.innerHTML = 'NaCl abort!';
         }
         function moduleDidLoad() {
-            overlayDiv.innerHTML = 'PNaCl load';
+            //console.log("load");
+            overlayDiv.innerHTML = 'NaCl load';
         }
         function moduleDidEndLoad() {
-            overlayDiv.innerHTML = 'PNaCl Version';
+            if (!navPlugin) {
+                pluginEndLoadTime = window.performance.now();
+            }
+            //console.log("loadend");
+            overlayDiv.innerHTML = 'NaCl Version';
         }
         // End PNaCl specific callbacks
 
@@ -605,7 +614,9 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
             pluginObject.removeEventListener('message', handleReadyMessage);
             var obj = JSON.parse(message.data);
             if (obj.success && obj.method === 'ready') {
-                pluginEndLoadTime = window.performance.now();
+                if (navPlugin) {
+                    pluginEndLoadTime = window.performance.now();
+                }
                 setTimeout(function() {
                     pluginIsReady(pluginObject);
                 }, 1);

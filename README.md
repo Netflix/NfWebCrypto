@@ -124,14 +124,14 @@ Actual deployments must change this key.
     $ make -j<N>
 
 
-How to Build with PNaCl
+How to Build with NaCl
 -----------------------
 
 There is experimental support for building the plugin with PNaCl. See
 https://developers.google.com/native-client/, for how to acquire an SDK.
 
-To build with PNaCl, you must have the Pepper 31 NaCl SDK or higher, along
-with a build of the OpenSSL libraries for PNaCl from NaCl ports.
+To build with NaCl, you must have the Pepper 31 NaCl SDK or higher, along
+with a build of the OpenSSL libraries for NaCl from NaCl ports.
 The SDK's root should be in ${NACL_SDK_ROOT}.
 
 To get NaCl ports, see:

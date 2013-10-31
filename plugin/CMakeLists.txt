@@ -26,7 +26,7 @@ configure_file (
 )
 include_directories (${PROJECT_BINARY_DIR})   # Version.h lands in the binary tree
 
-    set(LIBNAME "nfwebcrypto")
+    set(LIBNAME "nfwebcrypto.nexe")
     # For the .info file
     set(SOPATH "lib${LIBNAME}.so")
     set(PLUGIN_NAME "NfWebCrypto")
@@ -54,7 +54,7 @@ set(PLUGIN_SOURCES
 #add_library(plugin SHARED ${PLUGIN_SOURCES})
 add_executable(plugin ${PLUGIN_SOURCES})
 
-target_link_libraries(plugin base cadcrypto ${NACL_SDK_ROOT}/toolchain/linux_pnacl/sdk/lib/libppapi.a ${NACL_SDK_ROOT}/lib/pnacl/Debug/libppapi_cpp.a)
+target_link_libraries(plugin base cadcrypto ${NACL_SDK_ROOT}/toolchain/linux_x86_newlib/x86_64-nacl/lib/libppapi.a ${NACL_SDK_ROOT}/lib/newlib_x86_64/Debug/libppapi_cpp.a)
 
 # name the .so file
 set_target_properties(plugin PROPERTIES OUTPUT_NAME "${LIBNAME}")
@@ -75,6 +75,5 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${INFO_FILE_IN} ${CMAKE_CURRENT_BINAR
 add_custom_command(
     TARGET plugin
     POST_BUILD
-    COMMAND ${NACL_SDK_ROOT}/toolchain/linux_pnacl/bin/pnacl-finalize ${BIN_NAME} -o ${BIN_NAME}.pexe
-    COMMENT "Finalize to ${BIN_NAME}.pexe"
+    COMMAND ${NACL_SDK_ROOT}/toolchain/linux_x86_newlib/bin/x86_64-nacl-strip ${BIN_NAME} -o ${BIN_NAME}.stripped
 )
