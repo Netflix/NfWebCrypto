@@ -1,12 +1,8 @@
 {
-  // Required
+  "files": {},
   "program": {
-    "portable": {
-      "pnacl-translate": {
-        "url": "nfwebcrypto.pexe",
-        "optlevel": 2
-      }
+    "x86-64": {
+      "url": "nfwebcrypto.nexe"
     }
   }
 }
-
