@@ -127,7 +127,7 @@ Actual deployments must change this key.
 How to Build with NaCl
 -----------------------
 
-There is experimental support for building the plugin with PNaCl. See
+There is experimental support for building the plugin with NaCl. See
 https://developers.google.com/native-client/, for how to acquire an SDK.
 
 To build with NaCl, you must have the Pepper 31 NaCl SDK or higher, along
@@ -142,10 +142,10 @@ Once that is set up do:
 
     $ mkdir buildDir
     $ cd buildDir
-    $ cmake -DCMAKE_TOOLCHAIN_FILE=(repo)/cmake/toolchains/linux_pnacl.cmake \
+    $ cmake -DCMAKE_TOOLCHAIN_FILE=(repo)/cmake/toolchains/linux_nacl.cmake \
         -DCMAKE_BUILD_TYPE=[Debug|Release] \
         -DNACL_SDK_ROOT=${NACL_SDK_ROOT} \
-        -DOPENSSL_ROOT_DIR=${NACL_SDK_ROOT}/toolchain/linux_pnacl/usr/ (repo)
+        -DOPENSSL_ROOT_DIR=${NACL_SDK_ROOT}/toolchain/<arch>/usr/ (repo)
     $ make -j<N>
 
 
