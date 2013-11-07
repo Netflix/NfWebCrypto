@@ -32,7 +32,7 @@ COMMA=","
 # end snippet
 
 # NOTE: Can't put "CrOS" in user agent or else chrome://plugins won't work (known chrome bug)
-USERAGENT="Mozilla/5.0 (X11; CrO armv7l 2876.0.0) AppleWebKit/537.10 (KHTML, like Gecko) Chrome/23.0.1262.2 Safari/537.10"
+USERAGENT="Mozilla/5.0 (X11; CrOS armv7l 2876.0.0) AppleWebKit/537.10 (KHTML, like Gecko) Chrome/30.0.1262.2 Safari/537.10"
 
 #URL="http://localhost/nfwebcrypto/test_qa.html?spec=SignVerifyRSA%20SignVerifyLargeData.#"
 URL="http://netflix.github.io/NfWebCrypto/web/test_qa.html"
@@ -41,6 +41,7 @@ OPT=(
 --register-pepper-plugins=$REGISTER_PLUGINS
 --profile-directory="nfwc"
 --ppapi-out-of-process
+--user-agent="$USERAGENT"
 )
 #--enable-dcheck
 #--enable-accelerated-plugins

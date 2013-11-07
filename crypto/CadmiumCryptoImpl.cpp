@@ -319,15 +319,15 @@ void CadmiumCrypto::CadmiumCryptoImpl::importPreSharedKeys()
 
 uint32_t CadmiumCrypto::CadmiumCryptoImpl::importNamedKey(const NamedKey& nk)
 {
-        uint32_t keyHandle;
+    uint32_t keyHandle;
     CadErr err = importKeyInternal(RAW, vucToStr64(nk.key), nk.algVar, nk.extractable,
             nk.keyUsage, keyHandle);
-        if (err != CAD_ERR_OK)
-        {
-            DLOG() << "CadmiumCrypto::importPreSharedKeys: WARNING: preshared key " <<
+    if (err != CAD_ERR_OK)
+    {
+        DLOG() << "CadmiumCrypto::importPreSharedKeys: WARNING: preshared key " <<
                 nk.name << " failed\n";
         return kInvalidKeyHandle;
-        }
+    }
     namedKeyMap_.insert(make_pair(nk.name, NamedKeySpec(keyHandle, nk.id)));
     return keyHandle;
 }
