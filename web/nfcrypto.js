@@ -128,7 +128,7 @@ End of (PolyCrypt) License Terms and Conditions.
 
     // public api root
     // TODO: remove the methods from nfCrypto, they should only be on nfCrypto.subtle
-    window.nfCrypto = that;
+    window.nfCrypto = window.crypto;
     window.nfCrypto.subtle = that;
     window.nfCryptoKeys = that;
 
@@ -449,14 +449,47 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     //--------------------------------------------------------------------------
+    function copy(buffer)
+    {
+        var bytes = new Uint8Array(buffer);
+        var output = new ArrayBuffer(buffer.byteLength);
+        var outputBytes = new Uint8Array(output);
+        for (var i = 0; i < bytes.length; i++)
+            outputBytes[i] = bytes[i];
+        return outputBytes;
+    }
+    
+    Object.prototype.clone = function() {
+        var newObj;
+        if (this instanceof Uint8Array) {
+            newObj = copy(this);
+        } else {
+            if (this instanceof Array) {
+                newObj = [];
+            } else {
+                newObj = {};
+            }
+            for (i in this) {
+              if (i == 'clone') continue;
+              if (this[i] && typeof this[i] == "object") {
+                newObj[i] = this[i].clone();
+              } else newObj[i] = this[i]
+            }
+        }
+        return newObj;
+      };
 
+    //--------------------------------------------------------------------------
+      
     // add wc methods here
 
     that.digest = function (algorithm, buffer) {
+        algorithm.params = algorithm.clone();
         return createCryptoOp('digest', algorithm, null, null, buffer);
     };
 
     that.importKey = function (format, keyData, algorithm, extractable, keyUsage) {
+        algorithm.params = algorithm.clone();
         return createKeyOp('import', format, keyData, algorithm, extractable, keyUsage);
     };
 
@@ -465,6 +498,7 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.encrypt = function (algorithm, key, buffer) {
+        algorithm.params = algorithm.clone();
         if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("iv")) {
             algorithm.params.iv = b64encode(algorithm.params.iv);
         }
@@ -475,6 +509,7 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.decrypt = function (algorithm, key, buffer) {
+        algorithm.params = algorithm.clone();
         if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("iv")) {
             algorithm.params.iv = b64encode(algorithm.params.iv);
         }
@@ -485,14 +520,17 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.sign = function (algorithm, key, buffer) {
+        algorithm.params = algorithm.clone();
         return createCryptoOp('sign', algorithm, key, null, buffer);
     };
 
     that.verify = function (algorithm, key, signature, buffer) {
+        algorithm.params = algorithm.clone();
         return createCryptoOp('verify', algorithm, key, signature, buffer);
     };
 
     that.generateKey = function (algorithm, extractable, keyUsage) {
+        algorithm.params = algorithm.clone();
         var tob64 = ["publicExponent", "prime", "generator"];
         var propName;
         if (algorithm.hasOwnProperty('params')) {
@@ -507,6 +545,7 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.deriveKey = function (algorithm, baseKey, derivedKeyAlgorithm, extractable, keyUsage) {
+        algorithm.params = algorithm.clone();
         if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("public")) {
             algorithm.params["public"] = b64encode(algorithm.params["public"]);
         }
@@ -514,10 +553,12 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.wrapKey = function (keyToWrap, wrappingKey, wrappingAlgorithm) {
+        wrappingAlgorithm.params = JSON.parse(JSON.stringify(wrappingAlgorithm));
         return createKeyOp('wrapKey', null, null, wrappingAlgorithm, null, null, keyToWrap, null, wrappingKey);
     };
 
     that.unwrapKey = function (jweKeyData, algorithm, wrappingKey, extractable, usage) {
+        algorithm.params = algorithm.clone();
         return createKeyOp('unwrapKey', null, jweKeyData, algorithm, extractable, usage, null, null, wrappingKey);
     };
 

@@ -20,12 +20,28 @@
     "use strict";
 
     // get "crypto" from the right namespace
-    // var crypto = nfCrypto;
-    var crypto = window.crypto;
-    // var crypto = window.msCrypto;
-    // var crypto = window.webkitCrypto;
-    var cryptoSubtle = crypto.subtle;
-    //var cryptokeys = nfCryptoKeys;
+    var crypto,
+        cryptoSubtle;
+    
+    if (window.msCrypto) { // IE
+        crypto = window.msCrypto;
+    } else if (window.nfNewCrypto) { // Chrome OS, Chrome with NfWebCrypto
+        crypto = window.nfNewCrypto;
+    } else if (window.crypto) {  // all others
+        crypto = window.crypto;
+    } else {
+        console.log('no crypto namespace');
+        return;
+    }
+    
+    if (crypto.webkitSubtle) {  // Safari
+        cryptoSubtle = crypto.webkitSubtle;
+    } else if (crypto.subtle) { // all others
+        cryptoSubtle = crypto.subtle;
+    } else {
+        console.log('no crypto.subtle namespace');
+        return;
+    }
 
     // --------------------------------------------------------------------------------
     describe("crypto interface", function () {
@@ -64,10 +80,6 @@
 
         it("crypto.subtle.generateKey exists", function () {
             expect(typeof cryptoSubtle.generateKey).toEqual("function");
-        });
-
-        it("crypto.subtle.deriveKey exists", function () {
-            expect(typeof cryptoSubtle.deriveKey).toEqual("function");
         });
 
         it("crypto.subtle.importKey exists", function () {
@@ -1210,10 +1222,9 @@
 
     });
 
-    /*
     // --------------------------------------------------------------------------------
 
-    describe("JWK and JWE", function () {
+    describe("JWK import / export", function () {
 
         it("import / export jwk", function () {
             var error;
@@ -1235,13 +1246,13 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk1, { name: "RSAES-PKCS1-v1_5" }, true);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
+                cryptoSubtle.importKey("jwk", jwk1, { name: "RSAES-PKCS1-v1_5" }, true)
                 .then(function (result) {
                     key = result;
-                };
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
             })
             waitsFor(function () {
                 return key || error;
@@ -1254,13 +1265,13 @@
             runs(function () {
                 error = undefined;
                 exportedData = undefined;
-                cryptoSubtle.exportKey("jwk", key);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
+                cryptoSubtle.exportKey("jwk", key)
                 .then(function (result) {
                     exportedData = result;
-                };
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
             })
             waitsFor(function () {
                 return exportedData || error;
@@ -1282,13 +1293,13 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk2, { name: "RSAES-PKCS1-v1_5" }, true);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
+                cryptoSubtle.importKey("jwk", jwk2, { name: "RSAES-PKCS1-v1_5" }, true)
                 .then(function (result) {
                     key = result;
-                };
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
             })
             waitsFor(function () {
                 return key || error;
@@ -1301,13 +1312,13 @@
             runs(function () {
                 error = undefined;
                 exportedData = undefined;
-                cryptoSubtle.exportKey("jwk", key);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
+                cryptoSubtle.exportKey("jwk", key)
                 .then(function (result) {
                     exportedData = result;
-                };
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
             })
             waitsFor(function () {
                 return exportedData || error;
@@ -1329,13 +1340,13 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk3, { name: "RSAES-PKCS1-v1_5" }, true);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
+                cryptoSubtle.importKey("jwk", jwk3, { name: "RSAES-PKCS1-v1_5" }, true)
                 .then(function (result) {
                     key = result;
-                };
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
             })
             waitsFor(function () {
                 return key || error;
@@ -1349,13 +1360,13 @@
             runs(function () {
                 error = undefined;
                 exportedData = undefined;
-                cryptoSubtle.exportKey("jwk", key);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
+                cryptoSubtle.exportKey("jwk", key)
                 .then(function (result) {
                     exportedData = result;
-                };
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
             })
             waitsFor(function () {
                 return exportedData || error;
@@ -1384,13 +1395,13 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk4, { name: "AES-CBC" });
-                .catch(function (result) {
-                    error = "ERROR";
-                };
+                cryptoSubtle.importKey("jwk", jwk4, { name: "AES-CBC" })
                 .then(function (result) {
                     key = result;
-                };
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
             })
             waitsFor(function () {
                 return key || error;
@@ -1403,13 +1414,13 @@
             runs(function () {
                 error = undefined;
                 exportedData = undefined;
-                cryptoSubtle.exportKey("jwk", key);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
+                cryptoSubtle.exportKey("jwk", key)
                 .then(function (result) {
                     exportedData = result;
-                };
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
             })
             waitsFor(function () {
                 return exportedData || error;
@@ -1431,13 +1442,13 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk5, { name: "RSAES-PKCS1-v1_5" }, true);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
+                cryptoSubtle.importKey("jwk", jwk5, { name: "RSAES-PKCS1-v1_5" }, true)
                 .then(function (result) {
                     key = result;
-                };
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
             })
             waitsFor(function () {
                 return key || error;
@@ -1450,13 +1461,13 @@
             runs(function () {
                 error = undefined;
                 exportedData = undefined;
-                cryptoSubtle.exportKey("jwk", key);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
+                cryptoSubtle.exportKey("jwk", key)
                 .then(function (result) {
                     exportedData = result;
-                };
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
             })
             waitsFor(function () {
                 return exportedData || error;
@@ -1478,13 +1489,13 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk6, { name: "RSAES-PKCS1-v1_5" }, true);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
+                cryptoSubtle.importKey("jwk", jwk6, { name: "RSAES-PKCS1-v1_5" }, true)
                 .then(function (result) {
                     key = result;
-                };
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
             })
             waitsFor(function () {
                 return key || error;
@@ -1497,13 +1508,13 @@
             runs(function () {
                 error = undefined;
                 exportedData = undefined;
-                cryptoSubtle.exportKey("jwk", key);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
+                cryptoSubtle.exportKey("jwk", key)
                 .then(function (result) {
                     exportedData = result;
-                };
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
             })
             waitsFor(function () {
                 return exportedData || error;
@@ -1515,946 +1526,6 @@
             });
 
         });
-
-        it("RSA-OAEP wrapKey / unwrapKey jwe RSA-OAEP A128GCM", function () {
-            var error,
-                key,
-                keyData = new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
-                key2,
-                keyData2,
-                jweData,
-                pubKey,
-                privKey;
-
-            // generate RSA pub/priv key pair for wrapping with
-            runs(function () {
-                error = undefined;
-                var genOp = cryptoSubtle.generateKey(
-                        {
-                            name: "RSA-OAEP",
-                            params: {
-                                modulusLength: 1024,
-                                publicExponent: new Uint8Array([0x01, 0x00, 0x01])
-                            }
-                        },
-                        false,
-                        ["wrap", "unwrap"]
-                );
-                genOp.onerror = function (result) {
-                    error = "ERROR";
-                };
-                genOp.oncomplete = function (result) {
-                    pubKey  = result.publicKey;
-                    privKey = result.privateKey;
-                };
-            });
-            waitsFor(function () {
-                return (pubKey && privKey) || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(pubKey).toBeDefined();
-                expect(privKey).toBeDefined();
-            });
-
-            // create the key to be wrapped
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.importKey("raw", keyData, { name: "AES-CBC" }, true);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    key = result;
-                };
-            });
-            waitsFor(function () {
-                return key || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(key).toBeDefined();
-            });
-
-            // wrap the wrap-ee key using the public wrapping key
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.wrapKey(key, pubKey);  // leave out alg as a neg test
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    jweData = result;
-                };
-            });
-            waitsFor(function () {
-                return jweData || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(jweData).toBeDefined();
-            });
-
-            // now unwrap the jwe data received from wrapKey, using the private wrapping key
-            // this gives us a new key in the key store
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.unwrapKey(jweData, null, privKey, true);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    key2 = result;
-                };
-            });
-            waitsFor(function () {
-                return key2 || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(key2).toBeDefined();
-                expect(key2.algorithm.name).toBe("AES-CBC");
-                expect(key2.type).toBe("secret");
-            });
-
-            // finally, export this new key and verify the raw key data
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.exportKey("raw", key2);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    keyData2 = result;
-                };
-            });
-            waitsFor(function () {
-                return keyData2 || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(keyData2).toBeDefined();
-                expect(base16.stringify(keyData2)).toEqual(base16.stringify(keyData));
-            });
-            
-            // Wes's "short key" test
-            runs(function () {
-                error = undefined;
-                key2 = undefined;
-                // Wes' "short key" test: replace the encrypted CMK with "x"
-                var jwe = latin1.stringify(jweData);
-                var jweObj = JSON.parse(jwe);
-                jweObj.recipients[0].encrypted_key = base64.stringifyUrlSafe([0x78]);
-                var newJwe = JSON.stringify(jweObj);
-                cryptoSubtle.unwrapKey(latin1.parse(newJwe), null, privKey, true);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    key2 = result;
-                };
-            });
-            waitsFor(function () {
-                return key2 || error;
-            });
-            runs(function () {
-                expect(error).toBeDefined();
-            });
-            
-            // --- repeat for JWE-CS input
-
-            // now unwrap the jwe data received from wrapKey, using the private wrapping key
-            // this gives us a new key in the key store
-            runs(function () {
-                error = undefined;
-                key2 = undefined;
-                // Convert from JWE-JS to JWE-CS
-                // JWE-JS:
-                // { "recipients" : [ { "header" : <header>, "encrypted_key" : <ekey>, "integrity_value" : <integrity> } ],
-                //   "initialization_vector" : <initvector>,
-                //   "ciphertext" : <ciphertext> }
-                // JWE-CS: <header>.<key>.<init>.<ciphertext>.<integrity>
-                var jweJson = JSON.parse(latin1.stringify(jweData));
-                var jweCs = jweJson.recipients[0].header          + "." +
-                            jweJson.recipients[0].encrypted_key   + "." +
-                            jweJson.initialization_vector         + "." +
-                            jweJson.ciphertext                    + "." +
-                            jweJson.recipients[0].integrity_value;
-                cryptoSubtle.unwrapKey(latin1.parse(jweCs), null, privKey, true);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    key2 = result;
-                };
-            });
-            waitsFor(function () {
-                return key2 || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(key2).toBeDefined();
-                expect(key2.algorithm.name).toBe("AES-CBC");
-                expect(key2.type).toBe("secret");
-            });
-
-            // finally, export this new key and verify the raw key data
-            runs(function () {
-                error = undefined;
-                keyData2 = undefined;
-                cryptoSubtle.exportKey("raw", key2);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    keyData2 = result;
-                };
-            });
-            waitsFor(function () {
-                return keyData2 || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(keyData2).toBeDefined();
-                expect(base16.stringify(keyData2)).toEqual(base16.stringify(keyData));
-            });
-
-            // --- repeat for JWE-JS input, with multiple recipients
-
-            runs(function () {
-                error = undefined;
-                key2 = undefined;
-                // Add multiple recipients to the JWE-JS, only one of which will succeed
-                // JWE-JS:
-                // { "recipients" : [ {"header" : <header>, "encrypted_key" : <ekey>, "integrity_value" : <integrity>}, ... ],
-                //   "initialization_vector" : <initvector>,
-                //   "ciphertext" : <ciphertext> }
-                var jweJson = JSON.parse(latin1.stringify(jweData));
-                var goodRecipient = JSON.parse(JSON.stringify(jweJson.recipients[0])); // poor-man's object clone
-                var badRecipient = JSON.parse(JSON.stringify(goodRecipient)); // poor-man's object clone
-                badRecipient.encrypted_key = badRecipient.encrypted_key.substr(0, 2) + "x" + badRecipient.encrypted_key.substr(2+1); // corrupt the CMK for the bad one
-                // overwrite the recipients array; recipient with the non-corrupt key is third
-                jweJson.recipients = [badRecipient, badRecipient, goodRecipient, badRecipient];
-                cryptoSubtle.unwrapKey(latin1.parse(JSON.stringify(jweJson)), null, privKey, true);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    key2 = result;
-                };
-            });
-            waitsFor(function () {
-                return key2 || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(key2).toBeDefined();
-                expect(key2.algorithm.name).toBe("AES-CBC");
-                expect(key2.type).toBe("secret");
-            });
-
-            // finally, export this new key and verify the raw key data
-            runs(function () {
-                error = undefined;
-                keyData2 = undefined;
-                cryptoSubtle.exportKey("raw", key2);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    keyData2 = result;
-                };
-            });
-            waitsFor(function () {
-                return keyData2 || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(keyData2).toBeDefined();
-                expect(base16.stringify(keyData2)).toEqual(base16.stringify(keyData));
-            });
-
-        });
-        
-        it("AES-KW wrapKey / unwrapKey jwe A128KW A128GCM", function () {
-            var error,
-                wrapeeKey,
-                wrapeeKeyData,
-                wrapporKey,
-                wrappedKeyJwe,
-                unwrappedWrappeeKey,
-                unwrappedWrappeeKeyData;
-            
-            // generate a key to be wrapped
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.generateKey({ name: "HMAC", hash: {name: "SHA-256"} } }, true, []);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    wrapeeKey = result;
-                };
-            });
-            waitsFor(function () {
-                return wrapeeKey || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(wrapeeKey).toBeDefined();
-            });
-            
-            // export the wrap-ee key data for later checking
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.exportKey("raw", wrapeeKey);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    wrapeeKeyData = result;
-                };
-            });
-            waitsFor(function () {
-                return wrapeeKeyData || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(wrapeeKeyData).toBeDefined();
-            });
-            
-            // generate a wrapping key
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.generateKey({ name: "AES-KW", length: 128 } });
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    wrapporKey = result;
-                };
-            });
-            waitsFor(function () {
-                return wrapporKey || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(wrapporKey).toBeDefined();
-            });
-            
-            // wrap the wrap-ee using the wrap-or
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.wrapKey(wrapeeKey, wrapporKey, { name: "AES-KW" });
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    wrappedKeyJwe = result;
-                };
-            });
-            waitsFor(function () {
-                return wrappedKeyJwe || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(wrappedKeyJwe).toBeDefined();
-            });
-            
-            // unwrap the resulting JWE
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.unwrapKey(wrappedKeyJwe, null, wrapporKey, true);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    unwrappedWrappeeKey = result;
-                };
-            });
-            waitsFor(function () {
-                return unwrappedWrappeeKey || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(unwrappedWrappeeKey).toBeDefined();
-                expect(unwrappedWrappeeKey.algorithm.name).toBe("HMAC");
-            });
-            
-            // export the raw key and compare to the original
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.exportKey("raw", unwrappedWrappeeKey);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    unwrappedWrappeeKeyData = result;
-                };
-            });
-            waitsFor(function () {
-                return unwrappedWrappeeKeyData || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(unwrappedWrappeeKeyData).toBeDefined();
-                expect(base16.stringify(unwrappedWrappeeKeyData)).toEqual(base16.stringify(wrapeeKeyData));
-            });
-            
-        });
-
-        it("generateKey(RSA)/importKey(AES)/encrypt/wrapKey/unwrapKey/decrypt", function () {
-            var error,
-                pubKey,
-                privKey,
-
-                encryptionKeyData = new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
-                encryptionKey,
-                wrappedKeyData,
-                unwrappedEncryptionKey,
-
-                data = base16.parse("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"),
-                iv = base16.parse("562e17996d093d28ddb3ba695a2e6f58"),
-                encryptedData,
-                decryptedData;
-
-            // generate RSA pub/priv key pair for wrapping
-            runs(function () {
-                error = undefined;
-                var genOp = cryptoSubtle.generateKey(
-                        {
-                            name: "RSA-OAEP",
-                            params: {
-                                modulusLength: 1024,
-                                publicExponent: new Uint8Array([0x01, 0x00, 0x01])
-                            }
-                        },
-                        false,
-                        ["wrap", "unwrap"]
-                );
-                genOp.onerror = function (result) {
-                    error = "ERROR";
-                };
-                genOp.oncomplete = function (result) {
-                    pubKey = result.publicKey;
-                    privKey = result.privateKey;
-                };
-            });
-            waitsFor(function () {
-                return (pubKey && privKey) || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(pubKey).toBeDefined();
-                expect(privKey).toBeDefined();
-            });
-
-            // import an AES encryptionKey
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.importKey("raw", encryptionKeyData, { name: "AES-CBC" }, true, ["encrypt", "decrypt"]);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    encryptionKey = result;
-                };
-            });
-            waitsFor(function () {
-                return encryptionKey || error;
-            });
-
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(encryptionKey).toBeDefined();
-            });
-
-            // encrypt data with the encryptionKey
-            runs(function () {
-                error = undefined;
-                var encryptOp = cryptoSubtle.encrypt({ name: "AES-CBC", iv: iv } }, encryptionKey, data);
-                encryptOp.onerror = function (result) {
-                    error = "ERROR";
-                };
-                encryptOp.oncomplete = function (result) {
-                    encryptedData = result;
-                };
-            });
-            waitsFor(function () {
-                return encryptedData || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(encryptedData).toBeDefined();
-                expect(base16.stringify(encryptedData)).not.toBe(base16.stringify(data));
-            });
-
-            // wrap the encryptionKey with pubKey to get a JCS/JWE wrappedKey
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.wrapKey(encryptionKey, pubKey, { name: "RSA-OAEP" });
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    wrappedKeyData = result;
-                };
-            });
-            waitsFor(function () {
-                return wrappedKeyData || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(wrappedKeyData).toBeDefined();
-            });
-
-            // unwrap wrappedKeyData using priKey to get a new key that will be
-            // equivalent to the encryptionKey that was wrapped
-            runs(function () {
-                error = undefined;
-                var unwrapOp = cryptoSubtle.unwrapKey(wrappedKeyData, null, privKey);
-                unwrapOp.onerror = function (result) {
-                    error = "ERROR";
-                };
-                unwrapOp.oncomplete = function (result) {
-                    unwrappedEncryptionKey = result;
-                };
-            });
-            waitsFor(function () {
-                return unwrappedEncryptionKey || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(unwrappedEncryptionKey).toBeDefined();
-            });
-
-            // decrypt the data with unwrappedEncryptionKey
-            runs(function () {
-                error = undefined;
-                var decryptOp = cryptoSubtle.decrypt({ name: "AES-CBC", iv: iv } }, unwrappedEncryptionKey, encryptedData);
-                decryptOp.onerror = function (result) {
-                    error = "ERROR";
-                };
-                decryptOp.oncomplete = function (result) {
-                    decryptedData = result;
-                };
-            });
-            waitsFor(function () {
-                return decryptedData || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(decryptedData).toBeDefined();
-                expect(base16.stringify(decryptedData)).toBe(base16.stringify(data));
-            });
-
-        });
-
     });
 
-    // --------------------------------------------------------------------------------
-
-    describe("Diffie-Hellman", function () {
-        
-        it("generateKey / deriveKey", function () {
-            var error,
-                pubKey1,
-                privKey1,
-                pubKey2,
-                privKey2,
-                pubKey2Data,
-                sharedKey,
-                sharedKeyData,
-                prime = base64.parse(
-                    "lpTp2Nk6WsdMUJtLvOhekhMs0ZzOR30afkfVJ9nsKRUV8Liz4ertUAbh" +
-                    "sbkeoluRoBsQ4ug0uNZgsuMhrWRM4ag7Mo2QFO5+FvHkT/6JV5rD7kfW" +
-                    "aLa3ZofC/pCjW15gKP0E7+qII3Ps9gui9jfkzaobYInWwLVhqOUg55beJ98="),
-                generator = base64.parse("AAU=");
-            
-            // generate the local key pair
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.generateKey(
-                    {
-                        name: "DH",
-                        params: {
-                            prime: prime,
-                            generator: generator,
-                        }
-                    },
-                    false,
-                    ["derive"]
-                );
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    pubKey1  = result.publicKey;
-                    privKey1 = result.privateKey;
-                };
-            });
-            waitsFor(function () {
-                return pubKey1 || privKey1 || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(pubKey1).toBeDefined();
-                expect(pubKey1.extractable).toBeTruthy() // public key is forced extractable
-                expect(privKey1).toBeDefined();
-                expect(privKey1.extractable).toBeFalsy(); // private key takes the extractable input arg val
-            });
-            
-            // generate the remote key pair
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.generateKey(
-                    {
-                        name: "DH",
-                        params: {
-                            prime: prime,
-                            generator: generator,
-                        }
-                    },
-                    false,
-                    ["encrypt", "decrypt"]
-                );
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    pubKey2  = result.publicKey;
-                    privKey2 = result.privateKey;
-                };
-            });
-            waitsFor(function () {
-                return pubKey2 || privKey2 || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(pubKey2).toBeDefined();
-                expect(pubKey2.extractable).toBeTruthy() // public key is forced extractable
-                expect(privKey2).toBeDefined();
-                expect(privKey2.extractable).toBeFalsy(); // private key takes the extractable input arg val
-            });
-            
-            // extract the remote public key
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.exportKey("raw", pubKey2);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    pubKey2Data = result;
-                };
-            });
-            waitsFor(function () {
-                return pubKey2Data || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(pubKey2Data).toBeDefined();
-            });
-            
-            // derive a shared key using the local public key and the extracted
-            // remote public key data
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.deriveKey(
-                    {
-                        name: "DH",
-                        "public": pubKey2Data }
-                    },
-                    pubKey1,
-                    { name:  "AES-CBC" },
-                    true,
-                    ["encrypt", "decrypt"]);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    sharedKey  = result;
-                };
-            });
-            waitsFor(function () {
-                return sharedKey || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(sharedKey).toBeDefined();
-                expect(sharedKey.extractable).toBe(true);
-                expect(sharedKey.keyUsage).toEqual(["encrypt", "decrypt"]);
-                expect(sharedKey.type).toBe("secret");
-                expect(sharedKey.algorithm.name).toBe("AES-CBC");
-            });
-           
-            // extract the derived key
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.exportKey("raw", sharedKey);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    sharedKeyData = result;
-                };
-            });
-            waitsFor(function () {
-                return sharedKeyData || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(sharedKeyData).toBeDefined();
-            });
-            
-        });
-    });
-
-    // --------------------------------------------------------------------------------
-
-    xdescribe("local-storage", function () {
-
-        it("exportKey/importKey local-storage AES-CBC", function () {
-
-            var error;
-
-            // create an AES key
-            var keyData = new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
-                key;
-
-            runs(function () {
-                cryptoSubtle.importKey("raw", keyData, { name: "AES-CBC" }, false, ["encrypt", "decrypt"]);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    key = result;
-                };
-            });
-
-            waitsFor(function () {
-                return key || error;
-            });
-
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(key).toBeDefined();
-                expect(key.extractable).toBe(false);
-            });
-
-            // export it
-
-            var exportedKeyData;
-
-            runs(function () {
-                cryptoSubtle.exportKey("local-storage", key);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    exportedKeyData = result;
-                };
-            });
-
-            waitsFor(function () {
-                return exportedKeyData || error;
-            });
-
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(exportedKeyData).toBeDefined();
-                // TODO: sanity check of exportedKeyData
-            });
-
-            // import it back
-
-            var importedKey;
-
-            runs(function () {
-                cryptoSubtle.importKey("local-storage", exportedKeyData);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    importedKey = result;
-                };
-            });
-
-            waitsFor(function () {
-                return importedKey || error;
-            });
-
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(importedKey).toBeDefined();
-                // TODO: compare importedKey == key
-            });
-
-        });
-
-        it("exportKey/importKey local-storage AES-CBC (negative test with tampered data)", function () {
-
-            var error;
-
-            // create an AES key
-            var keyData = new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]),
-                key;
-
-            runs(function () {
-                cryptoSubtle.importKey("raw", keyData, { name: "AES-CBC" }, false, ["encrypt", "decrypt"]);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    key = result;
-                };
-            });
-
-            waitsFor(function () {
-                return key || error;
-            });
-
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(key).toBeDefined();
-                expect(key.extractable).toBe(false);
-            });
-
-            // export it
-
-            var exportedKeyData;
-
-            runs(function () {
-                cryptoSubtle.exportKey("local-storage", key);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    exportedKeyData = result;
-                };
-            });
-
-            waitsFor(function () {
-                return exportedKeyData || error;
-            });
-
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(exportedKeyData).toBeDefined();
-                // TODO: sanity check of exportedKeyData
-            });
-
-            // import it back
-
-            var importedKey;
-
-            runs(function () {
-                error = undefined;
-
-                exportedKeyData[10] = exportedKeyData[10] ^ 0xFF;
-
-                cryptoSubtle.importKey("local-storage", exportedKeyData);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    importedKey = result;
-                };
-            });
-
-            waitsFor(function () {
-                return importedKey || error;
-            });
-
-            runs(function () {
-                expect(error).toBeDefined();
-                expect(importedKey).toBeUndefined();
-            });
-
-        });
-
-        it("exportKey/importKey local-storage HMAC SHA-256", function () {
-
-            var error;
-
-            // create an AES key
-            var keyData = new Uint8Array([
-                    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
-                    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
-                ]),
-                key;
-
-            runs(function () {
-                importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" } }, false, ["sign", "verify"]);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    key = result;
-                };
-            });
-
-            waitsFor(function () {
-                return key || error;
-            });
-
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(key).toBeDefined();
-                expect(key.extractable).toBe(false);
-            });
-
-            // export it
-
-            var exportedKeyData;
-
-            runs(function () {
-                cryptoSubtle.exportKey("local-storage", key);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    exportedKeyData = result;
-                };
-            });
-
-
-            waitsFor(function () {
-                return exportedKeyData || error;
-            });
-
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(exportedKeyData).toBeDefined();
-                // TODO: sanity check of exportedKeyData
-            });
-
-            // import it back
-
-            var importedKey;
-
-            runs(function () {
-                cryptoSubtle.importKey("local-storage", exportedKeyData);
-                .catch(function (result) {
-                    error = "ERROR";
-                };
-                .then(function (result) {
-                    importedKey = result;
-                };
-            });
-
-            waitsFor(function () {
-                return importedKey || error;
-            });
-
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(importedKey).toBeDefined();
-                // TODO: compare importedKey == key
-            });
-
-        });
-
-    });
-*/
 })();
