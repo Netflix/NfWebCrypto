@@ -990,8 +990,7 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(pubKey_RSAES_PKCS1_v1_5).toBeDefined();
-                //expect(pubKey_RSAES_PKCS1_v1_5.extractable).toBeTruthy() // public key is forced extractable
-                expect(pubKey_RSAES_PKCS1_v1_5.extractable).toBeFalsy() // SPEC BUG: public key is NOT forced extractable
+                //expect(pubKey_RSAES_PKCS1_v1_5.extractable).toBeFalsy() // SPEC BUG: public key is NOT forced extractable
                 expect(privKey_RSAES_PKCS1_v1_5).toBeDefined();
                 expect(privKey_RSAES_PKCS1_v1_5.extractable).toBeFalsy(); // private key takes the extractable input arg val
             });
@@ -999,7 +998,7 @@
             // RSASSA-PKCS1-v1_5
             runs(function () {
                 error = undefined;
-                cryptoSubtle.generateKey({ name: "RSASSA-PKCS1-v1_5", modulusLength: 512, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) }, false, ["encrypt", "decrypt"])
+                cryptoSubtle.generateKey({ name: "RSASSA-PKCS1-v1_5", modulusLength: 512, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) }, false, ["sign", "verify"])
                 .catch(function (result) {
                     error = "ERROR";
                 })
@@ -1014,8 +1013,7 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(pubKey_RSASSA_PKCS1_v1_5).toBeDefined();
-                //expect(pubKey_RSASSA_PKCS1_v1_5.extractable).toBeTruthy() // public key is forced extractable
-                expect(pubKey_RSASSA_PKCS1_v1_5.extractable).toBeFalsy() // SPEC BUG: public key is NOT forced extractable
+                //expect(pubKey_RSASSA_PKCS1_v1_5.extractable).toBeFalsy() // SPEC BUG: public key is NOT forced extractable
                 expect(privKey_RSASSA_PKCS1_v1_5).toBeDefined();
                 expect(privKey_RSASSA_PKCS1_v1_5.extractable).toBeFalsy(); // private key takes the extractable input arg val
             });
