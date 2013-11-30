@@ -57,80 +57,80 @@ End of (PolyCrypt) License Terms and Conditions.
 (function (window) {
     'use strict';
 
-    var navPlugin = window.navigator.plugins['NfWebCrypto'] || window.navigator.plugins['NetflixHelper'],
-        pluginDelegate = {},
-        operationId = 0,
-        that = {},
-        plugin;
+    var operationId = 0,
+        that = {};
 
-    if (!navPlugin) {
+    //--------------------------------------------------------------------------
+    // bridge for talking to the native code via post/handle message
+
+    var bridge = {
+
+        pendingPosts: [],
+        messageHandlers: [],
+
+        // start out by accumulating the posts, 
+        // this will be replaced once bridge is ready, to post to actual bridge
+        postMessage: function postMessage(messageJson) {
+            this.pendingPosts.push(messageJson);
+        },
+
+        addMessageHandler: function addMessageHandler(handler) {
+            this.messageHandlers.push(handler);
+        },
+
+        removeMessageHandler: function removeMessageHandler(handler) {
+            var messageHandlers = this.messageHandlers;
+            var index = messageHandlers.lastIndexOf(handler);
+            if (index >= 0) {
+                messageHandlers.splice(index, 1);
+            }
+        },
+
+        dispatchMessageHandlers: function dispatchMessageHandlers(messageJson) {
+            // make a copy, to cover the scenario of "removeMessageHandler" being called from inside the handler
+            var handlers = this.messageHandlers.slice();
+            var length = handlers.length;
+            for (var i = 0; i < length; i++) {
+                handlers[i](messageJson);
+            }
+        },
+
+        // wires the post message to actual plugin
+        wirePostMessage: function (realPostMessage) {
+            // grab the pending posts
+            var pendingPosts = this.pendingPosts;
+            this.pendingPosts = undefined;
+
+            // re-wire the post message function
+            this.postMessage = realPostMessage;
+
+            // replay accumulated message posts
+            for (var i = 0; i < pendingPosts.length; i++) {
+                this.postMessage(pendingPosts[i]);
+            }
+        }
+
+    };
+
+    //--------------------------------------------------------------------------
+    // wire the bridge
+
+    if (!tryLoadPlugin()) {
+        // nothing to wire the bridge to...
+
         // don't throw inline, not to block further scripts from executing
         window.setTimeout(function () {
             throw new Error('NfWebCrypto plugin not found, unable to create nfCrypt');
         }, 0);
         return;
+
     }
 
     // public api root
     // TODO: remove the methods from nfCrypto, they should only be on nfCrypto.subtle
-    window.nfCrypto = that;
+    window.nfCrypto = window.crypto;
     window.nfCrypto.subtle = that;
     window.nfCryptoKeys = that;
-
-    //--------------------------------------------------------------------------
-    // created before pluginObject, and accumulates messages to the plugin, then runs them once pluginObject is ready
-    var pendingHandlers = {},
-        pendingPosts = [];
-
-    // start with a fake plugin, that accumulates calls to it
-    plugin = {
-        addEventListener: function (type, handler) {
-            var handlers = pendingHandlers[type];
-            if (!handlers) {
-                pendingHandlers[type] = handlers = [];
-            }
-            handlers.push(handler)
-        },
-
-        removeEventListener: function (type, handler) {
-            var handlers = pendingHandlers[type];
-            if (handlers) {
-                var index = handlers.lastIndexOf(handler);
-                if (index >= 0) {
-                    handlers.splice(handler, 1);
-                }
-            }
-        },
-
-        postMessage: function (msgStr) {
-            pendingPosts.push(msgStr);
-        }
-    };
-
-    function pluginIsReady(pluginActual) {
-        var i;
-        var handlers;
-        var fakePlugin = plugin;
-        plugin = pluginActual;
-
-        // replay accumulated event subscribtions on actual plugin
-        for (var type in pendingHandlers) {
-            if (pendingHandlers.hasOwnProperty(type)) {
-                handlers = pendingHandlers[type];
-                for (i = 0; i < handlers.length; i++) {
-                    plugin.addEventListener(type, handlers[i]);
-                }
-            }
-        }
-        pendingHandlers = undefined;
-
-        // replay accumulated message posts
-        for (i = 0; i < pendingPosts.length; i++) {
-            plugin.postMessage(pendingPosts[i]);
-        }
-        pendingPosts = undefined;
-    };
-    //--------------------------------------------------------------------------
 
     //--------------------------------------------------------------------------
 
@@ -260,14 +260,13 @@ End of (PolyCrypt) License Terms and Conditions.
         // ---- DOM4 EventTarget end
 
         // handler for messages coming FROM the plugin
-        var _handleMessage = function (message) {
-            var data = JSON.parse(message.data);
+        var _handleMessage = function (data) {
             if (data.idx != myOpid) {
                 return; // message not for me
             }
             //console.log("TRACE _handleMessage enter");
             //console.log(message.data);
-            plugin.removeEventListener('message', _handleMessage);
+            bridge.removeMessageHandler(_handleMessage);
             var event = {};
             event.target = op;
             if (data.success == false) {
@@ -291,7 +290,7 @@ End of (PolyCrypt) License Terms and Conditions.
         };
 
         // Register for events coming back
-        plugin.addEventListener('message', _handleMessage);
+        bridge.addMessageHandler(_handleMessage);
 
         // send messages TO the plugin
         var postMessage = function (method, args) {
@@ -301,9 +300,7 @@ End of (PolyCrypt) License Terms and Conditions.
                 method: method,
                 argsObj: args
             }
-            var msgStr = JSON.stringify(msg);
-            //console.log(msgStr)
-            plugin.postMessage(msgStr);
+            bridge.postMessage(msg);
         };
         that.postMessage = postMessage;
 
@@ -434,9 +431,6 @@ End of (PolyCrypt) License Terms and Conditions.
             }
         });
 
-        // Register for events coming back
-        window.addEventListener('message', messenger._handleMessage);
-
         // Post the message to the plugin
         var args = {
             format: format,
@@ -455,14 +449,47 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     //--------------------------------------------------------------------------
+    function copy(buffer)
+    {
+        var bytes = new Uint8Array(buffer);
+        var output = new ArrayBuffer(buffer.byteLength);
+        var outputBytes = new Uint8Array(output);
+        for (var i = 0; i < bytes.length; i++)
+            outputBytes[i] = bytes[i];
+        return outputBytes;
+    }
+    
+    Object.prototype.clone = function() {
+        var newObj;
+        if (this instanceof Uint8Array) {
+            newObj = copy(this);
+        } else {
+            if (this instanceof Array) {
+                newObj = [];
+            } else {
+                newObj = {};
+            }
+            for (i in this) {
+              if (i == 'clone') continue;
+              if (this[i] && typeof this[i] == "object") {
+                newObj[i] = this[i].clone();
+              } else newObj[i] = this[i]
+            }
+        }
+        return newObj;
+      };
 
+    //--------------------------------------------------------------------------
+      
     // add wc methods here
 
     that.digest = function (algorithm, buffer) {
+        algorithm.params = algorithm.clone();
         return createCryptoOp('digest', algorithm, null, null, buffer);
     };
 
     that.importKey = function (format, keyData, algorithm, extractable, keyUsage) {
+        algorithm.params = algorithm.clone();
         return createKeyOp('import', format, keyData, algorithm, extractable, keyUsage);
     };
 
@@ -471,6 +498,7 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.encrypt = function (algorithm, key, buffer) {
+        algorithm.params = algorithm.clone();
         if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("iv")) {
             algorithm.params.iv = b64encode(algorithm.params.iv);
         }
@@ -481,6 +509,7 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.decrypt = function (algorithm, key, buffer) {
+        algorithm.params = algorithm.clone();
         if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("iv")) {
             algorithm.params.iv = b64encode(algorithm.params.iv);
         }
@@ -491,14 +520,17 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.sign = function (algorithm, key, buffer) {
+        algorithm.params = algorithm.clone();
         return createCryptoOp('sign', algorithm, key, null, buffer);
     };
 
     that.verify = function (algorithm, key, signature, buffer) {
+        algorithm.params = algorithm.clone();
         return createCryptoOp('verify', algorithm, key, signature, buffer);
     };
 
     that.generateKey = function (algorithm, extractable, keyUsage) {
+        algorithm.params = algorithm.clone();
         var tob64 = ["publicExponent", "prime", "generator"];
         var propName;
         if (algorithm.hasOwnProperty('params')) {
@@ -513,6 +545,7 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.deriveKey = function (algorithm, baseKey, derivedKeyAlgorithm, extractable, keyUsage) {
+        algorithm.params = algorithm.clone();
         if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("public")) {
             algorithm.params["public"] = b64encode(algorithm.params["public"]);
         }
@@ -520,10 +553,12 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.wrapKey = function (keyToWrap, wrappingKey, wrappingAlgorithm) {
+        wrappingAlgorithm.params = JSON.parse(JSON.stringify(wrappingAlgorithm));
         return createKeyOp('wrapKey', null, null, wrappingAlgorithm, null, null, keyToWrap, null, wrappingKey);
     };
 
     that.unwrapKey = function (jweKeyData, algorithm, wrappingKey, extractable, usage) {
+        algorithm.params = algorithm.clone();
         return createKeyOp('unwrapKey', null, jweKeyData, algorithm, extractable, usage, null, null, wrappingKey);
     };
 
@@ -548,31 +583,53 @@ End of (PolyCrypt) License Terms and Conditions.
 
     //--------------------------------------------------------------------------
 
-    // Runs immediately. Loads the plugin and starts the native code.
-    function onLoad() {
-        window.removeEventListener('load', onLoad);
-        var body = window.document.body;
+    // Once window is loaded... 
+    // Load the plugin, start the native code, and wire the bridge to it.
 
-        var pluginObject = window.document.createElement('object');
-        pluginObject.setAttribute('type', navPlugin[0].type);
-        pluginObject.setAttribute('style', 'position:fixed;left:0;top:0;width:1px;height:1px;visibility:hidden');
-
-        pluginObject.addEventListener('message', handleReadyMessage, false);
-
-        function handleReadyMessage(message) {
-            pluginObject.removeEventListener('message', handleReadyMessage);
-            var obj = JSON.parse(message.data);
-            if (obj.success && obj.method === 'ready') {
-                setTimeout(function() {
-                    pluginIsReady(pluginObject);
-                }, 1);
-            }
+    function tryLoadPlugin() {
+        var navPlugin = window.navigator.plugins['NfWebCrypto'] || window.navigator.plugins['NetflixHelper'];
+        if (navPlugin) {
+            window.addEventListener('load', onLoad);
+            return true;
         }
 
-        // Insert the plugin object into the document body. This starts the
-        // native code. This should be done last.
-        body.appendChild(pluginObject);
+        function onLoad() {
+            window.removeEventListener('load', onLoad);
+
+            var pluginObject = window.document.createElement('object');
+            pluginObject.setAttribute('type', navPlugin[0].type);
+            pluginObject.setAttribute('style', 'position:fixed;left:0;top:0;width:1px;height:1px;visibility:hidden');
+            pluginObject.addEventListener('message', onPluginMessage, false);
+
+            function handleReadyMessage(messageJson) {
+                if (messageJson.success && messageJson.method === 'ready') {
+                    bridge.removeMessageHandler(handleReadyMessage);
+                    setTimeout(function () {
+                        onPluginReady(pluginObject);
+                    }, 1);
+                }
+            };
+            bridge.addMessageHandler(handleReadyMessage);
+
+            // Insert the plugin object into the document body. This starts the
+            // native code. This should be done last.
+            window.document.body.appendChild(pluginObject);
+        };
     };
-    window.addEventListener('load', onLoad);
+
+    function onPluginMessage(e) {
+        var messageString = e.data;
+        var messageJson = JSON.parse(messageString);
+        // console.log('Message from plugin: ' + messageString);
+        bridge.dispatchMessageHandlers(messageJson);
+    };
+
+    function onPluginReady(pluginObject) {
+        bridge.wirePostMessage(function postMessageToPlugin(messageJson) {
+            var messageString = JSON.stringify(messageJson);
+            // console.log('Message to plugin: ' + messageString);
+            pluginObject.postMessage(messageString);
+        });
+    };
 
 })(window);
