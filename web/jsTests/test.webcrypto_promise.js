@@ -1103,6 +1103,161 @@
             });
         });
 
+        it("RSAES-PKCS1-v1_5 encrypt/decrypt known answer", function () {
+            // Because the random data in PKCS1.5 padding makes the encryption output non-
+            // deterministic, we cannot easily do a typical known-answer test for RSA
+            // encryption / decryption. Instead we will take a known-good encrypted
+            // message, decrypt it, re-encrypt it, then decrypt again, verifying that the
+            // original known cleartext is the result.
+
+            var spkiPubKeyData = base16.parse(
+                "30819f300d06092a864886f70d010101050003818d0030818902818100a8" +
+                "d30894b93f376f7822229bfd2483e50da944c4ab803ca31979e0f47e70bf" +
+                "683c687c6b3e80f280a237cea3643fd1f7f10f7cc664dbc2ecd45be53e1c" +
+                "9b15a53c37dbdad846c0f8340c472abc7821e4aa7df185867bf38228ac3e" +
+                "cc1d97d3c8b57e21ea6ba57b2bc3814a436e910ee8ab64a0b7743a927e94" +
+                "4d3420401f7dd50203010001"
+            );
+            var pkcs8PrivKeyData = base16.parse(
+                "30820276020100300d06092a864886f70d0101010500048202603082025c" +
+                "02010002818100a8d30894b93f376f7822229bfd2483e50da944c4ab803c" +
+                "a31979e0f47e70bf683c687c6b3e80f280a237cea3643fd1f7f10f7cc664" +
+                "dbc2ecd45be53e1c9b15a53c37dbdad846c0f8340c472abc7821e4aa7df1" +
+                "85867bf38228ac3ecc1d97d3c8b57e21ea6ba57b2bc3814a436e910ee8ab" +
+                "64a0b7743a927e944d3420401f7dd5020301000102818100896cdffb50a0" +
+                "691bd00ad9696933243a7c5861a64684e8d74b91aed0d76c28234da9303e" +
+                "8c6ea2f89b141a9d5ea9a4ddd3d8eb9503dcf05ba0b1fd76060b281e3ae4" +
+                "b9d497fb5519bdf1127db8ad412d6a722686c78df3e3002acca960c6b2a2" +
+                "42a83ace5410693c03ce3d74cb9c9a7bacc8e271812920d1f53fee9312ef" +
+                "4eb1024100d09c14418ce92af7cc62f7cdc79836d8c6e3d0d33e7229cc11" +
+                "d732cbac75aa4c56c92e409a3ccbe75d4ce63ac5adca33080690782c6371" +
+                "e3628134c3534ca603024100cf2d3206f6deea2f39b70351c51f85436200" +
+                "5aa8f643e49e22486736d536e040dc30a2b4f9be3ab212a88d1891280874" +
+                "b9a170cdeb22eaf61c27c4b082c7d1470240638411a5b3b307ec6e744802" +
+                "c2d4ba556f8bfe72c7b76e790b89bd91ac13f5c9b51d04138d80b3450c1d" +
+                "4337865601bf96748b36c8f627be719f71ac3c70b441024065ce92cfe34e" +
+                "a58bf173a2b8f3024b4d5282540ac581957db3e11a7f528535ec098808dc" +
+                "a0013ffcb3b88a25716757c86c540e07d2ad8502cdd129118822c30f0240" +
+                "420a4983040e9db46eb29f1315a0d7b41cf60428f7460fce748e9a1a7d22" +
+                "d7390fa328948e7e9d1724401374e99d45eb41474781201378a4330e8e80" +
+                "8ce63551"
+            );
+            var cleartext = base16.parse(
+                "ec358ed141c45d7e03d4c6338aebad718e8bcbbf8f8ee6f8d9f4b9ef06d8" +
+                "84739a398c6bcbc688418b2ff64761dc0ccd40e7d52bed03e06946d0957a" +
+                "eef9e822"
+            );
+            var ciphertext = base16.parse(
+                "6106441c2b7a4b1a16260ed1ae4fe6135247345dc8e674754bbda6588c6c" +
+                "0d95a3d4d26bb34cdbcbe327723e80343bd7a15cd4c91c3a44e6cb9c6cd6" +
+                "7ad2e8bf41523188d9b36dc364a838642dcbc2c25e85dfb2106ba47578ca" +
+                "3bbf8915055aea4fa7c3cbfdfbcc163f04c234fb6d847f39bab9612ecbee" +
+                "04626e945c3ccf42"
+            );
+            var algorithm = { name: "RSAES-PKCS1-v1_5" };
+            var publicKey, privateKey;
+            var error;
+            var decrypted1, encrypted, decrypted2;
+
+            // import the keys
+            runs(function () {
+                error = undefined;
+                cryptoSubtle.importKey("spki", spkiPubKeyData, algorithm, true, ["encrypt"])
+                .then(function (result) {
+                    publicKey = result;
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
+            });
+            waitsFor(function () {
+                return publicKey || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(publicKey).toBeDefined();
+                expect(publicKey.type).toBe("public");
+            });
+            runs(function () {
+                error = undefined;
+                cryptoSubtle.importKey("pkcs8", pkcs8PrivKeyData, algorithm, true, ["decrypt"])
+                .then(function (result) {
+                    privateKey = result;
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
+            });
+            waitsFor(function () {
+                return privateKey || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(privateKey).toBeDefined();
+                expect(privateKey.type).toBe("private");
+            });
+            
+            // decrypt the known-good ciphertext
+            runs(function () {
+                error = undefined;
+                cryptoSubtle.decrypt(algorithm, privateKey, ciphertext)
+                .then(function (result) {
+                    decrypted1 = result && new Uint8Array(result);
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
+            });
+            waitsFor(function () {
+                return decrypted1 || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(decrypted1).toBeDefined();
+                expect(base16.stringify(decrypted1)).toBe(base16.stringify(cleartext));
+            });
+            
+            // encrypt
+            runs(function () {
+                error = undefined;
+                cryptoSubtle.encrypt(algorithm, publicKey, decrypted1)
+                .then(function (result) {
+                    encrypted = result && new Uint8Array(result);
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
+            });
+            waitsFor(function () {
+                return encrypted || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(encrypted).toBeDefined();
+            });
+
+            // decrypt again
+            runs(function () {
+                error = undefined;
+                cryptoSubtle.decrypt(algorithm, privateKey, encrypted)
+                .then(function (result) {
+                    decrypted2 = result && new Uint8Array(result);
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
+            });
+            waitsFor(function () {
+                return decrypted2 || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(decrypted2).toBeDefined();
+                expect(base16.stringify(decrypted2)).toBe(base16.stringify(cleartext));
+            });
+          
+        });
+
         it("RSASSA-PKCS1-v1_5 SHA-256 sign/verify round trip", function () {
             var error;
 
@@ -1260,161 +1415,6 @@
                 expect(verified).toBe(false);
             });
 
-        });
-
-        it("RSAES-PKCS1-v1_5 encrypt/decrypt known answer", function () {
-            // Because the random data in PKCS1.5 padding makes the encryption output non-
-            // deterministic, we cannot easily do a typical known-answer test for RSA
-            // encryption / decryption. Instead we will take a known-good encrypted
-            // message, decrypt it, re-encrypt it, then decrypt again, verifying that the
-            // original known cleartext is the result.
-
-            var spkiPubKeyData = base16.parse(
-                "30819f300d06092a864886f70d010101050003818d0030818902818100a8" +
-                "d30894b93f376f7822229bfd2483e50da944c4ab803ca31979e0f47e70bf" +
-                "683c687c6b3e80f280a237cea3643fd1f7f10f7cc664dbc2ecd45be53e1c" +
-                "9b15a53c37dbdad846c0f8340c472abc7821e4aa7df185867bf38228ac3e" +
-                "cc1d97d3c8b57e21ea6ba57b2bc3814a436e910ee8ab64a0b7743a927e94" +
-                "4d3420401f7dd50203010001"
-            );
-            var pkcs8PrivKeyData = base16.parse(
-                "30820276020100300d06092a864886f70d0101010500048202603082025c" +
-                "02010002818100a8d30894b93f376f7822229bfd2483e50da944c4ab803c" +
-                "a31979e0f47e70bf683c687c6b3e80f280a237cea3643fd1f7f10f7cc664" +
-                "dbc2ecd45be53e1c9b15a53c37dbdad846c0f8340c472abc7821e4aa7df1" +
-                "85867bf38228ac3ecc1d97d3c8b57e21ea6ba57b2bc3814a436e910ee8ab" +
-                "64a0b7743a927e944d3420401f7dd5020301000102818100896cdffb50a0" +
-                "691bd00ad9696933243a7c5861a64684e8d74b91aed0d76c28234da9303e" +
-                "8c6ea2f89b141a9d5ea9a4ddd3d8eb9503dcf05ba0b1fd76060b281e3ae4" +
-                "b9d497fb5519bdf1127db8ad412d6a722686c78df3e3002acca960c6b2a2" +
-                "42a83ace5410693c03ce3d74cb9c9a7bacc8e271812920d1f53fee9312ef" +
-                "4eb1024100d09c14418ce92af7cc62f7cdc79836d8c6e3d0d33e7229cc11" +
-                "d732cbac75aa4c56c92e409a3ccbe75d4ce63ac5adca33080690782c6371" +
-                "e3628134c3534ca603024100cf2d3206f6deea2f39b70351c51f85436200" +
-                "5aa8f643e49e22486736d536e040dc30a2b4f9be3ab212a88d1891280874" +
-                "b9a170cdeb22eaf61c27c4b082c7d1470240638411a5b3b307ec6e744802" +
-                "c2d4ba556f8bfe72c7b76e790b89bd91ac13f5c9b51d04138d80b3450c1d" +
-                "4337865601bf96748b36c8f627be719f71ac3c70b441024065ce92cfe34e" +
-                "a58bf173a2b8f3024b4d5282540ac581957db3e11a7f528535ec098808dc" +
-                "a0013ffcb3b88a25716757c86c540e07d2ad8502cdd129118822c30f0240" +
-                "420a4983040e9db46eb29f1315a0d7b41cf60428f7460fce748e9a1a7d22" +
-                "d7390fa328948e7e9d1724401374e99d45eb41474781201378a4330e8e80" +
-                "8ce63551"
-            );
-            var cleartext = base16.parse(
-                "ec358ed141c45d7e03d4c6338aebad718e8bcbbf8f8ee6f8d9f4b9ef06d8" +
-                "84739a398c6bcbc688418b2ff64761dc0ccd40e7d52bed03e06946d0957a" +
-                "eef9e822"
-            );
-            var ciphertext = base16.parse(
-                "6106441c2b7a4b1a16260ed1ae4fe6135247345dc8e674754bbda6588c6c" +
-                "0d95a3d4d26bb34cdbcbe327723e80343bd7a15cd4c91c3a44e6cb9c6cd6" +
-                "7ad2e8bf41523188d9b36dc364a838642dcbc2c25e85dfb2106ba47578ca" +
-                "3bbf8915055aea4fa7c3cbfdfbcc163f04c234fb6d847f39bab9612ecbee" +
-                "04626e945c3ccf42"
-            );
-            var algorithm = { name: "RSAES-PKCS1-v1_5" };
-            var publicKey, privateKey;
-            var error;
-            var decrypted1, encrypted, decrypted2;
-
-            // import the keys
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.importKey("spki", spkiPubKeyData, algorithm, true, ["encrypt"])
-                .then(function (result) {
-                    publicKey = result;
-                })
-                .catch(function (result) {
-                    error = "ERROR";
-                })
-            });
-            waitsFor(function () {
-                return publicKey || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(publicKey).toBeDefined();
-                expect(publicKey.type).toBe("public");
-            });
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.importKey("pkcs8", pkcs8PrivKeyData, algorithm, true, ["decrypt"])
-                .then(function (result) {
-                    privateKey = result;
-                })
-                .catch(function (result) {
-                    error = "ERROR";
-                })
-            });
-            waitsFor(function () {
-                return privateKey || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(privateKey).toBeDefined();
-                expect(privateKey.type).toBe("private");
-            });
-            
-            // decrypt the known-good ciphertext
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.decrypt(algorithm, privateKey, ciphertext)
-                .then(function (result) {
-                    decrypted1 = result && new Uint8Array(result);
-                })
-                .catch(function (result) {
-                    error = "ERROR";
-                })
-            });
-            waitsFor(function () {
-                return decrypted1 || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(decrypted1).toBeDefined();
-                expect(base16.stringify(decrypted1)).toBe(base16.stringify(cleartext));
-            });
-            
-            // encrypt
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.encrypt(algorithm, publicKey, decrypted1)
-                .then(function (result) {
-                    encrypted = result && new Uint8Array(result);
-                })
-                .catch(function (result) {
-                    error = "ERROR";
-                })
-            });
-            waitsFor(function () {
-                return encrypted || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(encrypted).toBeDefined();
-            });
-
-            // decrypt again
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.decrypt(algorithm, privateKey, encrypted)
-                .then(function (result) {
-                    decrypted2 = result && new Uint8Array(result);
-                })
-                .catch(function (result) {
-                    error = "ERROR";
-                })
-            });
-            waitsFor(function () {
-                return decrypted2 || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(decrypted2).toBeDefined();
-                expect(base16.stringify(decrypted2)).toBe(base16.stringify(cleartext));
-            });
-          
         });
 
     });
