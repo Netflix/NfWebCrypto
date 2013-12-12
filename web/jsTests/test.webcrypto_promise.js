@@ -18,6 +18,24 @@
 
 (function () {
     "use strict";
+    
+    function compareByProperties(o1, o2) {
+        if (o1 === o2) {
+            return true;
+        }
+        if (!o1 || !o2) {
+            return false;
+        }
+        for (var k in o1) {
+            if (o1.hasOwnProperty(k)) {
+                // if o2 doesn't have this property, or it's different... we are done, return false
+                if (!o2.hasOwnProperty(k) || o1[k] !== o2[k]) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
 
     // get "crypto" from the right namespace
     var crypto,
@@ -202,14 +220,7 @@
             cipherText = base64.parse('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'),
             iv = base64.parse('Zzm0jwUF1gwiw75Jex8tVQ=='),
             algorithmNoIv = { name: "AES-CBC" },
-            algorithm = { name: "AES-CBC", iv: iv },
-            jwk = latin1.parse(JSON.stringify({
-                alg:    "A128CBC",
-                kty:    "oct",
-                use:    "enc",
-                extractable:    true,
-                k:      base64.stringifyUrlSafe(rawKeyData),
-            }));
+            algorithm = { name: "AES-CBC", iv: iv };
 
         var error,
             symmetricKey1;
@@ -347,7 +358,7 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(keyData).toBeDefined();
-                expect(keyData.length).toEqual(keyLength / 8);
+                expect(keyData.byteLength).toEqual(keyLength / 8);
                 expect(base16.stringify(keyData)).not.toEqual(base16.stringify([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]));
             });
 
@@ -376,13 +387,17 @@
             runs(function () {
                 error = undefined;
                 keyData = undefined;
-                cryptoSubtle.exportKey("raw", key)
-                .then(function (result) {
-                    keyData = result;
-                })
-                .catch(function (result) {
+                try {
+                    cryptoSubtle.exportKey("raw", key)
+                    .then(function (result) {
+                        keyData = result;
+                    })
+                    .catch(function (result) {
+                        error = "ERROR";
+                    })
+                } catch(e) {
                     error = "ERROR";
-                })
+                }
             });
 
             waitsFor(function () {
@@ -531,13 +546,13 @@
         it("generateKey HMAC SHA-256, export", function () {
             var error;
 
-            var keyLength = 256,
+            var keyLengthBytes = 32,
                 key,
                 keyData;
 
             runs(function () {
                 error = undefined;
-                cryptoSubtle.generateKey({ name: "HMAC", hash: {name: "SHA-256"}, length: keyLength }, true, [])
+                cryptoSubtle.generateKey({ name: "HMAC", hash: {name: "SHA-256"}, length: keyLengthBytes }, true, [])
                 .then(function (result) {
                     key = result;
                 })
@@ -573,14 +588,14 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(keyData).toBeDefined();
-                expect(keyData.length).toEqual(keyLength / 8);
+                expect(keyData.byteLength).toEqual(keyLengthBytes);
                 expect(base16.stringify(keyData)).not.toEqual(base16.stringify([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]));
             });
 
             runs(function () {
                 error = undefined;
                 key = undefined;
-                cryptoSubtle.generateKey({ name: "AES-CBC", length: keyLength }, false, [])
+                cryptoSubtle.generateKey({ name: "HMAC", hash: {name: "SHA-256"}, length: keyLengthBytes }, false, [])
                 .then(function (result) {
                     key = result;
                 })
@@ -602,13 +617,17 @@
             runs(function () {
                 error = undefined;
                 keyData = undefined;
-                cryptoSubtle.exportKey("raw", key)
-                .then(function (result) {
-                    keyData = result;
-                })
-                .catch(function (result) {
+                try {
+                    cryptoSubtle.exportKey("raw", key)
+                    .then(function (result) {
+                        keyData = result;
+                    })
+                    .catch(function (result) {
+                        error = "ERROR";
+                    })
+                } catch(e) {
                     error = "ERROR";
-                })
+                }
             });
 
             waitsFor(function () {
@@ -649,9 +668,9 @@
                             "d226de88d39f16fb"
                     )),
                     e: base64.stringifyUrlSafe(base16.parse("010001")),
-                    extractable: true,
+                    ext: true,
                 }));
-                cryptoSubtle.importKey("jwk", jwkKeyData, { name: "RSAES-PKCS1-v1_5" })
+                cryptoSubtle.importKey("jwk", jwkKeyData, { name: "RSAES-PKCS1-v1_5" }, true, [])
                 .then(function (result) {
                     key = result;
                 })
@@ -799,7 +818,7 @@
             });
         });
 
-        it("importKey/exportKey pkcs8 RSAES-PKCS1-v1_5 private key", function () {
+        it("importKey pkcs8 RSAES-PKCS1-v1_5 private key", function () {
             var error,
                 privKey,
                 pkcs8PrivKeyData2;
@@ -824,30 +843,9 @@
                 expect(privKey).toBeDefined();
                 expect(privKey.type).toBe("private");
                 expect(privKey.extractable).toBe(true);
-                //expect(privKey.algorithm.name).toBe("RSAES-PKCS1-v1_5");
+                expect(privKey.algorithm.name).toBe("RSAES-PKCS1-v1_5");
             });
 
-            // export the private key back out, raw pkcs8 data should be the same
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.exportKey("pkcs8", privKey)
-                .then(function (result) {
-                    pkcs8PrivKeyData2 = result;
-                })
-                .catch(function (result) {
-                    error = "ERROR";
-                })
-            });
-
-            waitsFor(function () {
-                return pkcs8PrivKeyData2 || error;
-            });
-
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(pkcs8PrivKeyData2).toBeDefined();
-                expect(base16.stringify(pkcs8PrivKeyData2)).toBe(base16.stringify(pkcs8PrivKeyData));
-            });
         });
 
         it("importKey RSAES-PKCS1-v1_5 key pair, encrypt/decrypt round trip", function () {
@@ -975,7 +973,7 @@
             // RSAES-PKCS1-v1_5
             runs(function () {
                 error = undefined;
-                cryptoSubtle.generateKey({ name: "RSAES-PKCS1-v1_5", modulusLength: 512, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) }, false, ["encrypt", "decrypt"])
+                cryptoSubtle.generateKey({ name: "RSAES-PKCS1-v1_5", modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) }, false, ["encrypt", "decrypt"])
                 .then(function (result) {
                     pubKey_RSAES_PKCS1_v1_5 = result.publicKey;
                     privKey_RSAES_PKCS1_v1_5 = result.privateKey;
@@ -998,7 +996,7 @@
             // RSASSA-PKCS1-v1_5
             runs(function () {
                 error = undefined;
-                cryptoSubtle.generateKey({ name: "RSASSA-PKCS1-v1_5", modulusLength: 512, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) }, false, ["sign", "verify"])
+                cryptoSubtle.generateKey({ name: "RSASSA-PKCS1-v1_5", modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) }, false, ["sign", "verify"])
                 .catch(function (result) {
                     error = "ERROR";
                 })
@@ -1269,7 +1267,7 @@
                 error = undefined;
                 cryptoSubtle.sign({ name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, privKey_RSASSA_PKCS1_v1_5, data)
                 .then(function (result) {
-                    signature = result;
+                    signature = result && new Uint8Array(result);
                 })
                 .catch(function (result) {
                     error = "ERROR";
@@ -1434,13 +1432,13 @@
                 alg:    "A128CBC",
                 kty:    "oct",
                 use:    "enc",
-                extractable:    true,
+                ext:    true,
                 k:      base64.stringifyUrlSafe(key128),
             }));
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk1, { name: "RSAES-PKCS1-v1_5" }, true)
+                cryptoSubtle.importKey("jwk", jwk1, { name: "AES-CBC" }, true, [])
                 .then(function (result) {
                     key = result;
                 })
@@ -1461,7 +1459,7 @@
                 exportedData = undefined;
                 cryptoSubtle.exportKey("jwk", key)
                 .then(function (result) {
-                    exportedData = result;
+                    exportedData = result && new Uint8Array(result);
                 })
                 .catch(function (result) {
                     error = "ERROR";
@@ -1473,7 +1471,9 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(key).toBeDefined();
-                expect(JSON.parse(latin1.stringify(exportedData))).toEqual(JSON.parse(latin1.stringify(jwk1)));
+                var json1 = JSON.parse(latin1.stringify(jwk1));
+                var json2 = JSON.parse(latin1.stringify(exportedData));
+                expect(compareByProperties(json1, json2)).toBeTruthy();
             });
             
         });
@@ -1483,13 +1483,13 @@
                 alg:    "HS256",
                 kty:    "oct",
                 use:    "sig",
-                extractable:    true,
+                ext:    true,
                 k:      base64.stringifyUrlSafe(key256),
             }));
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk3, { name: "RSAES-PKCS1-v1_5" }, true)
+                cryptoSubtle.importKey("jwk", jwk3, {name: "HMAC", hash: {name: "SHA-256" }}, true, [])
                 .then(function (result) {
                     key = result;
                 })
@@ -1511,7 +1511,7 @@
                 exportedData = undefined;
                 cryptoSubtle.exportKey("jwk", key)
                 .then(function (result) {
-                    exportedData = result;
+                    exportedData = result && new Uint8Array(result);
                 })
                 .catch(function (result) {
                     error = "ERROR";
@@ -1523,7 +1523,9 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(key).toBeDefined();
-                expect(JSON.parse(latin1.stringify(exportedData))).toEqual(JSON.parse(latin1.stringify(jwk3)));
+                var json1 = JSON.parse(latin1.stringify(jwk3));
+                var json2 = JSON.parse(latin1.stringify(exportedData));
+                expect(compareByProperties(json1, json2)).toBeTruthy();
             });
         });
 
@@ -1540,12 +1542,13 @@
                             "d226de88d39f16fb"
                 )),
                 e:      base64.stringifyUrlSafe(base16.parse("010001")),
-                extractable: true,
+                ext:    true,
+                use:    "enc"
             }));
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk4, { name: "AES-CBC" })
+                cryptoSubtle.importKey("jwk", jwk4, { name: "RSAES-PKCS1-v1_5" }, true, [])
                 .then(function (result) {
                     key = result;
                 })
@@ -1566,7 +1569,7 @@
                 exportedData = undefined;
                 cryptoSubtle.exportKey("jwk", key)
                 .then(function (result) {
-                    exportedData = result;
+                    exportedData = result && new Uint8Array(result);
                 })
                 .catch(function (result) {
                     error = "ERROR";
@@ -1578,7 +1581,9 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(key).toBeDefined();
-                expect(JSON.parse(latin1.stringify(exportedData))).toEqual(JSON.parse(latin1.stringify(jwk4)));
+                var json1 = JSON.parse(latin1.stringify(jwk4));
+                var json2 = JSON.parse(latin1.stringify(exportedData));
+                expect(compareByProperties(json1, json2)).toBeTruthy();
             });
         });
 
@@ -1587,13 +1592,13 @@
                 alg:    "A128KW",
                 kty:    "oct",
                 use:    "wrap",
-                extractable:    true,
+                ext:    true,
                 k:      base64.stringifyUrlSafe(key128),
             }));
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk5, { name: "RSAES-PKCS1-v1_5" }, true)
+                cryptoSubtle.importKey("jwk", jwk5, { name: "AES-KW" }, true, [])
                 .then(function (result) {
                     key = result;
                 })
@@ -1614,7 +1619,7 @@
                 exportedData = undefined;
                 cryptoSubtle.exportKey("jwk", key)
                 .then(function (result) {
-                    exportedData = result;
+                    exportedData = result && new Uint8Array(result);
                 })
                 .catch(function (result) {
                     error = "ERROR";
@@ -1626,7 +1631,9 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(key).toBeDefined();
-                expect(JSON.parse(latin1.stringify(exportedData))).toEqual(JSON.parse(latin1.stringify(jwk5)));
+                var json1 = JSON.parse(latin1.stringify(jwk5));
+                var json2 = JSON.parse(latin1.stringify(exportedData));
+                expect(compareByProperties(json1, json2)).toBeTruthy();
             });
         });
 
@@ -1635,13 +1642,13 @@
                 alg:    "A256KW",
                 kty:    "oct",
                 use:    "wrap",
-                extractable:    true,
+                ext:    true,
                 k:      base64.stringifyUrlSafe(key256),
             }));
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk6, { name: "RSAES-PKCS1-v1_5" }, true)
+                cryptoSubtle.importKey("jwk", jwk6, { name: "AES-KW" }, true)
                 .then(function (result) {
                     key = result;
                 })
@@ -1662,7 +1669,7 @@
                 exportedData = undefined;
                 cryptoSubtle.exportKey("jwk", key)
                 .then(function (result) {
-                    exportedData = result;
+                    exportedData = result && new Uint8Array(result);
                 })
                 .catch(function (result) {
                     error = "ERROR";
@@ -1674,7 +1681,9 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(key).toBeDefined();
-                expect(JSON.parse(latin1.stringify(exportedData))).toEqual(JSON.parse(latin1.stringify(jwk6)));
+                var json1 = JSON.parse(latin1.stringify(jwk6));
+                var json2 = JSON.parse(latin1.stringify(exportedData));
+                expect(compareByProperties(json1, json2)).toBeTruthy();
             });
 
         });
@@ -1829,8 +1838,8 @@
             // Generate an RSAES-PKCS1-v1_5 key pair
             runs(function () {
                 error = undefined;
-                //cryptoSubtle.generateKey({ name: "RSAES-PKCS1-v1_5", modulusLength: 512, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) }, false, ["wrap", "unwrap"])
-                cryptoSubtle.generateKey({ name: "RSAES-PKCS1-v1_5", modulusLength: 512, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) }, false, [])
+                //cryptoSubtle.generateKey({ name: "RSAES-PKCS1-v1_5", modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) }, false, ["wrap", "unwrap"])
+                cryptoSubtle.generateKey({ name: "RSAES-PKCS1-v1_5", modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) }, false, [])
                 .then(function (result) {
                     wraporKeyPublic = result.publicKey;
                     wraporKeyPrivate = result.privateKey;
