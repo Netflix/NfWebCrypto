@@ -78,6 +78,11 @@ End of (PolyCrypt) License Terms and Conditions.
     
 
     that.importKey = function (format, keyData, algorithm, extractable, keyUsage) {
+        if (format == "jwk") {
+            var str = latin1.stringify(keyData);
+            var newstr = str.replace("ext","extractable");
+            keyData = latin1.parse(newstr);
+        }
         return new Promise(function(resolve, reject) {
             var op = nfCrypto.importKey(format, keyData, algorithm, extractable, keyUsage);
             op.oncomplete = function (e) {
@@ -93,7 +98,13 @@ End of (PolyCrypt) License Terms and Conditions.
         return new Promise(function(resolve, reject) {
             var op = nfCrypto.exportKey(format, key);
             op.oncomplete = function (e) {
-                resolve(e.target.result);
+                var res = e.target.result;
+                var str = latin1.stringify(res);
+                if (str.search("extractable")) {
+                    var newstr = str.replace("extractable", "ext");
+                    res = latin1.parse(newstr);
+                }
+                resolve(res);
             };
             op.onerror = function (e) {
                 reject(new TypeError);
