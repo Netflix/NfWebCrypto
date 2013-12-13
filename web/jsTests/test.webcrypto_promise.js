@@ -669,7 +669,15 @@
 
             runs(function () {
                 error = undefined;
-                cryptoSubtle.generateKey({ name: "HMAC", hash: {name: "SHA-256"}, length: keyLengthBytes }, true, [])
+                cryptoSubtle.generateKey(
+                    {
+                        name: "HMAC",
+                        hash: {name: "SHA-256"},
+                        length: keyLengthBytes
+                    },
+                    true,
+                    []
+                )
                 .then(function (result) {
                     key = result;
                 })
@@ -712,7 +720,15 @@
             runs(function () {
                 error = undefined;
                 key = undefined;
-                cryptoSubtle.generateKey({ name: "HMAC", hash: {name: "SHA-256"}, length: keyLengthBytes }, false, [])
+                cryptoSubtle.generateKey(
+                    {
+                        name: "HMAC",
+                        hash: {name: "SHA-256"},
+                        length: keyLengthBytes
+                    },
+                    false,
+                    []
+                )
                 .then(function (result) {
                     key = result;
                 })
@@ -784,11 +800,15 @@
             var error, pubKey, privKey;
             runs(function () {
                 error = undefined;
-                cryptoSubtle.generateKey({
-                    name: "RSAES-PKCS1-v1_5",
-                    modulusLength: 1024,
-                    publicExponent: new Uint8Array([0x01, 0x00, 0x01]) },
-                    false, ["encrypt", "decrypt"])
+                cryptoSubtle.generateKey(
+                    {
+                        name: "RSAES-PKCS1-v1_5",
+                        modulusLength: 1024,
+                        publicExponent: new Uint8Array([0x01, 0x00, 0x01])
+                    },
+                    false,
+                    ["encrypt", "decrypt"]
+                )
                 .then(function (result) {
                     pubKey = result.publicKey;
                     privKey = result.privateKey;
@@ -804,7 +824,7 @@
                 expect(error).toBeUndefined();
                 expect(pubKey).toBeDefined();
                 expect(pubKey.algorithm.name).toBeAnyOf(["RSAES-PKCS1-v1_5", "rsa-pkcs1-v1_5"]);
-                expect(pubKey.extractable).toBeTruthy() // Spec update: public key forced extractable
+                expect(pubKey.extractable).toBeTruthy() // public key forced extractable
                 expect(privKey).toBeDefined();
                 expect(privKey.algorithm.name).toBeAnyOf(["RSAES-PKCS1-v1_5", "rsa-pkcs1-v1_5"]);
                 expect(privKey.extractable).toBeFalsy(); // private key takes the extractable input arg val
@@ -815,11 +835,15 @@
             var error, pubKey, privKey;
             runs(function () {
                 error = undefined;
-                cryptoSubtle.generateKey({
-                    name: "RSA-OAEP",
-                    modulusLength: 1024,
-                    publicExponent: new Uint8Array([0x01, 0x00, 0x01]) },
-                    false, ["encrypt", "decrypt"])
+                cryptoSubtle.generateKey(
+                    {
+                        name: "RSA-OAEP",
+                        modulusLength: 1024,
+                        publicExponent: new Uint8Array([0x01, 0x00, 0x01])
+                    },
+                    false,
+                    ["encrypt", "decrypt"]
+                )
                 .then(function (result) {
                     pubKey = result.publicKey;
                     privKey = result.privateKey;
@@ -835,7 +859,7 @@
                 expect(error).toBeUndefined();
                 expect(pubKey).toBeDefined();
                 expect(pubKey.algorithm.name).toBeAnyOf(["RSA-OAEP", "rsa-oaep"]);
-                //expect(pubKey.extractable).toBeTruthy() // Spec update: public key forced extractable
+                expect(pubKey.extractable).toBeTruthy() // public key forced extractable
                 expect(privKey).toBeDefined();
                 expect(privKey.algorithm.name).toBeAnyOf(["RSA-OAEP", "rsa-oaep"]);
                 expect(privKey.extractable).toBeFalsy(); // private key takes the extractable input arg val
@@ -846,11 +870,15 @@
             var error, pubKey, privKey;
             runs(function () {
                 error = undefined;
-                cryptoSubtle.generateKey({
-                    name: "RSASSA-PKCS1-v1_5",
-                    modulusLength: 1024,
-                    publicExponent: new Uint8Array([0x01, 0x00, 0x01]) },
-                    false, ["sign", "verify"])
+                cryptoSubtle.generateKey(
+                    {
+                        name: "RSASSA-PKCS1-v1_5",
+                        modulusLength: 1024,
+                        publicExponent: new Uint8Array([0x01, 0x00, 0x01])
+                    },
+                    false,
+                    ["sign", "verify"]
+                )
                 .catch(function (result) {
                     error = "ERROR";
                 })
@@ -866,7 +894,7 @@
                 expect(error).toBeUndefined();
                 expect(pubKey).toBeDefined();
                 expect(pubKey.algorithm.name).toBeAnyOf(["RSASSA-PKCS1-v1_5", "rsassa-pkcs1-v1_5"]);
-                //expect(pubKey.extractable).toBeTruthy(); // Spec update: public key forced extractable
+                expect(pubKey.extractable).toBeTruthy(); // public key forced extractable
                 expect(privKey).toBeDefined();
                 expect(privKey.algorithm.name).toBeAnyOf(["RSASSA-PKCS1-v1_5", "rsassa-pkcs1-v1_5"]);
                 expect(privKey.extractable).toBeFalsy(); // private key takes the extractable input arg val
@@ -1030,7 +1058,15 @@
             // Generate a fresh key pair.
             runs(function () {
                 error = undefined;
-                cryptoSubtle.generateKey({ name: "RSAES-PKCS1-v1_5", modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) }, false, ["encrypt", "decrypt"])
+                cryptoSubtle.generateKey(
+                    {
+                        name: "RSAES-PKCS1-v1_5",
+                        modulusLength: 1024,
+                        publicExponent: new Uint8Array([0x01, 0x00, 0x01])
+                    },
+                    false,
+                    ["encrypt", "decrypt"]
+                )
                 .then(function (result) {
                     pubKey_RSAES_PKCS1_v1_5 = result.publicKey;
                     privKey_RSAES_PKCS1_v1_5 = result.privateKey;
@@ -1045,7 +1081,7 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(pubKey_RSAES_PKCS1_v1_5).toBeDefined();
-                //expect(pubKey_RSAES_PKCS1_v1_5.extractable).toBeFalsy() // SPEC BUG: public key is NOT forced extractable
+                expect(pubKey_RSAES_PKCS1_v1_5.extractable).toBeTruthy(); // public key forced extractable
                 expect(privKey_RSAES_PKCS1_v1_5).toBeDefined();
                 expect(privKey_RSAES_PKCS1_v1_5.extractable).toBeFalsy(); // private key takes the extractable input arg val
             });
@@ -1261,7 +1297,15 @@
             // Generate a fresh key pair.
             runs(function () {
                 error = undefined;
-                cryptoSubtle.generateKey({ name: "RSA-OAEP", modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) }, false, ["encrypt", "decrypt"])
+                cryptoSubtle.generateKey(
+                    {
+                        name: "RSA-OAEP",
+                        modulusLength: 1024,
+                        publicExponent: new Uint8Array([0x01, 0x00, 0x01])
+                    },
+                    false,
+                    ["encrypt", "decrypt"]
+                )
                 .then(function (result) {
                     pubKey = result.publicKey;
                     privKey = result.privateKey;
@@ -1276,7 +1320,7 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(pubKey).toBeDefined();
-                //expect(pubKey.extractable).toBeFalsy() // SPEC BUG: public key is NOT forced extractable
+                expect(pubKey.extractable).toBeTruthy(); // public key forced extractable
                 expect(privKey).toBeDefined();
                 expect(privKey.extractable).toBeFalsy(); // private key takes the extractable input arg val
             });
@@ -1598,7 +1642,15 @@
             // Generate a fresh key pair
             runs(function () {
                 error = undefined;
-                cryptoSubtle.generateKey({ name: "RSASSA-PKCS1-v1_5", modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) }, false, ["sign", "verify"])
+                cryptoSubtle.generateKey(
+                    {
+                        name: "RSASSA-PKCS1-v1_5",
+                        modulusLength: 1024,
+                        publicExponent: new Uint8Array([0x01, 0x00, 0x01])
+                    },
+                    false,
+                    ["sign", "verify"]
+                )
                 .catch(function (result) {
                     error = "ERROR";
                 })
@@ -1613,7 +1665,7 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(pubKey_RSASSA_PKCS1_v1_5).toBeDefined();
-                //expect(pubKey_RSASSA_PKCS1_v1_5.extractable).toBeFalsy() // SPEC BUG: public key is NOT forced extractable
+                expect(pubKey_RSASSA_PKCS1_v1_5.extractable).toBeTruthy() // public key is forced extractable
                 expect(privKey_RSASSA_PKCS1_v1_5).toBeDefined();
                 expect(privKey_RSASSA_PKCS1_v1_5.extractable).toBeFalsy(); // private key takes the extractable input arg val
             });
@@ -2418,7 +2470,15 @@
             // Generate an RSAES-PKCS1-v1_5 key pair
             runs(function () {
                 error = undefined;
-                cryptoSubtle.generateKey({ name: "RSAES-PKCS1-v1_5", modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) }, false, ["wrapKey", "unwrapKey"])
+                cryptoSubtle.generateKey(
+                    {
+                        name: "RSAES-PKCS1-v1_5",
+                        modulusLength: 1024,
+                        publicExponent: new Uint8Array([0x01, 0x00, 0x01])
+                    },
+                    false,
+                    ["wrapKey", "unwrapKey"]
+                )
                 .then(function (result) {
                     wraporKeyPublic = result.publicKey;
                     wraporKeyPrivate = result.privateKey;
@@ -2433,7 +2493,9 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(wraporKeyPublic).toBeDefined();
+                expect(wraporKeyPublic.extractable).toBeTruthy() // public key is forced extractable
                 expect(wraporKeyPrivate).toBeDefined();
+                expect(wraporKeyPrivate.extractable).toBeFalsy() // private key takes input extractable
             });
             
             // Wrap the key using the public wrappor key
@@ -2535,11 +2597,15 @@
             // Generate an RSA-OAEP key pair
             runs(function () {
                 error = undefined;
-                cryptoSubtle.generateKey({
-                    name: "RSA-OAEP",
-                    modulusLength: 1024,
-                    publicExponent: new Uint8Array([0x01, 0x00, 0x01])
-                }, false, ["wrapKey", "unwrapKey"])
+                cryptoSubtle.generateKey(
+                    {
+                        name: "RSA-OAEP",
+                        modulusLength: 1024,
+                        publicExponent: new Uint8Array([0x01, 0x00, 0x01])
+                    },
+                    false,
+                    ["wrapKey", "unwrapKey"]
+                )
                 .then(function (result) {
                     wraporKeyPublic = result.publicKey;
                     wraporKeyPrivate = result.privateKey;
@@ -2554,7 +2620,9 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(wraporKeyPublic).toBeDefined();
+                expect(wraporKeyPublic.extractable).toBeTruthy() // public key is forced extractable
                 expect(wraporKeyPrivate).toBeDefined();
+                expect(wraporKeyPrivate.extractable).toBeFalsy() // private key takes input extractable
             });
             
             var wrapAlgorithm = { name: "RSA-OAEP", hash: {name: "SHA-256"} };
