@@ -1540,7 +1540,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::rsaCrypt(uint32_t keyHandle,
     }
 
     // verify the provided key is intended for this algorithm
-    if (!isKeyAlgMatch(keyHandle, RSAES_PKCS1_V1_5))
+    if (!isKeyAlgMatch(keyHandle, RSAES_PKCS1_V1_5) && !isKeyAlgMatch(keyHandle, RSA_OAEP))
     {
         DLOG() << "CadmiumCrypto::rsaCrypt: operation incompatible with key algorithm\n";
         return CAD_ERR_KEY_USAGE;
@@ -1551,17 +1551,20 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::rsaCrypt(uint32_t keyHandle,
 
     DLOG() << "CadmiumCrypto::rsaCrypt: inData = " << truncateLong(dataInStr64) << endl;
 
+    const RsaContext::Padding padding =
+            isKeyAlgMatch(keyHandle, RSA_OAEP) ? RsaContext::PKCS1_OAEP : RsaContext::PKCS1;
+
     // do the operation
     Vuc resultVec;
     if (cipherOp == DOENCRYPT)
     {
-        bool success = keyMap_[keyHandle].pRsaContext->publicEncrypt(dataVec, resultVec);
+        bool success = keyMap_[keyHandle].pRsaContext->publicEncrypt(dataVec, resultVec, padding);
         if (!success)
             return CAD_ERR_CIPHERERROR;
     }
     else
     {
-        bool success = keyMap_[keyHandle].pRsaContext->privateDecrypt(dataVec, resultVec);
+        bool success = keyMap_[keyHandle].pRsaContext->privateDecrypt(dataVec, resultVec, padding);
         if (!success)
             return CAD_ERR_CIPHERERROR;
     }

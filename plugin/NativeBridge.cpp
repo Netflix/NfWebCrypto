@@ -658,7 +658,7 @@ bool NativeBridge::encryptDecrypt(const string& cmdIndex, Variant& argsVar,
     bool doEncrypt;
     getVal<bool>(argsVar, "doEncrypt", cmdIndex, doEncrypt);
     string resultData64;
-    if (algType == CadmiumCrypto::RSAES_PKCS1_V1_5)
+    if (algType == CadmiumCrypto::RSAES_PKCS1_V1_5 || algType == CadmiumCrypto::RSA_OAEP)
     {
         // do the operation
         CadErr err;
