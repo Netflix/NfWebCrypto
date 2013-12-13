@@ -401,21 +401,16 @@
     describe("AES-KW", function () {
         
         var algorithm = { name: "AES-KW" };
-        var error, symmetricKey1;
-
-        // The following test vector is from http://www.ietf.org/rfc/rfc3394.txt
-        // 4.1 Wrap 128 bits of Key Data with a 128-bit KEK
-        var rawKeyData = base16.parse("000102030405060708090A0B0C0D0E0F"),
-            cleartext = base16.parse("00112233445566778899AABBCCDDEEFF"),
-            cipherText = base16.parse("1FA68B0A8112B447AEF34BD8FB5A7B829D3E862371D2CFE5");
+        var error, wrappingKey;
+        var rawKeyData = base16.parse("000102030405060708090A0B0C0D0E0F");
         
         it("importKey raw AES-KW 128 bit", function () {
 
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey('raw', rawKeyData, algorithm, false, ["encrypt", "decrypt"])
+                cryptoSubtle.importKey('raw', rawKeyData, algorithm, false, ["wrapKey", "unwrapKey"])
                     .then(function (result) {
-                        symmetricKey1 = result;
+                        wrappingKey = result;
                     })
                     .catch(function (e) {
                         error = "ERROR";
@@ -423,72 +418,14 @@
             });
 
             waitsFor(function () {
-                return symmetricKey1 || error;
+                return wrappingKey || error;
             });
 
             runs(function () {
                 expect(error).toBeUndefined();
-                expect(symmetricKey1).toBeDefined();
-                expect(symmetricKey1.extractable).toBe(false);
-                expect(symmetricKey1.type).toBe("secret");
-            });
-
-        });
-
-        it("decrypt AES-KW 128 known answer", function () {
-
-            var decryptedData;
-
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.decrypt(algorithm, symmetricKey1, cipherText)
-                    .then(function (result) {
-                        decryptedData = result && new Uint8Array(result);
-                    })
-                    .catch(function (e) {
-                        error = "decrypt ERROR";
-                    });
-            });
-
-            waitsFor(function () {
-                return decryptedData || error;
-            });
-
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(decryptedData).toBeDefined();
-                expect(base16.stringify(decryptedData)).toEqual(base16.stringify(cleartext));
-            });
-
-        });
-
-        it("encrypt AES-KW 128 known answer", function () {
-
-            runs(function () {
-                expect(symmetricKey1).toBeDefined("should be executed after import raw");
-            });
-
-            var encryptedData;
-
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.encrypt(algorithm, symmetricKey1, cleartext)
-                    .then(function (result) {
-                        encryptedData = result && new Uint8Array(result);
-                    })
-                    .catch(function (e) {
-                        error = "encrypt ERROR";
-                    });
-            });
-
-            waitsFor(function () {
-                return encryptedData || error;
-            });
-
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(encryptedData).toBeDefined();
-                expect(base16.stringify(encryptedData)).toEqual(base16.stringify(cipherText));
+                expect(wrappingKey).toBeDefined();
+                expect(wrappingKey.extractable).toBe(false);
+                expect(wrappingKey.type).toBe("secret");
             });
 
         });
@@ -1752,10 +1689,10 @@
         });
         
         it("RSASSA-PKCS1-v1_5 SHA-256 verify known answer", function () {
-            var pubKeyDataSpki = base64.parse("MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAm84o+RfF7KdJgbE6lggYAdUxOArfgCsGCq33+kwAK/Jmf3VnNo1NOGlRpLQUFAqYRqG29u4wl8fH0YCn0v8JNjrxPWP83Hf5Xdnh7dHHwHSMc0LxA2MyYlGzn3jOF5dG/3EUmUKPEjK/SKnxeKfNRKBWnm0K1rzCmMUpiZz1pxgEB/cIJow6FrDAt2Djt4L1u6sJ/FOy/zA1Hf4mZhytgabDfapxAzsks+HF9rMr3wXW5lSP6y2lM+gjjX/bjqMLJQ6iqDi6++7ScBh0oNHmgUxsSFE3aBRBaCL1kz0HOYJe26UqJqMLQ71SwvjgM+KnxZvKa1ZHzQ+7vFTwE7+yxwIDAQAB"),
-                data = base64.parse("eyJub25yZXBsYXlhYmxlIjpmYWxzZSwia2V5cmVzcG9uc2VkYXRhIjp7Im1hc3RlcnRva2VuIjp7InRva2VuZGF0YSI6ImV5SnpaWEYxWlc1alpXNTFiV0psY2lJNk9ETXNJbkpsYm1WM1lXeDNhVzVrYjNjaU9qRXpOalV4T1RRM05qa3NJbk5sYzNOcGIyNWtZWFJoSWpvaVFsRkRRVUZCUlVKRlJ6aERNM2hvY25aV1FqQmFibVZtTnpoUk1IRlhUMEZ2Ulc0eWFVcHRRMlJ0YUZZeWJGTjZTbXBVUjBoWmRFdDNOamRaT1dreVdtTXhabEZ1TW00MVMwZDVjVkp2YURORlZGUTBSbTFKUW1sU1ZIRnlLMlp4TjNJNVNscDRTSGhxYVRORVMyaHdiWGQwVURkQ2JVNWtkRlkxWlV4bmF6RXpjMDVqVldOMWVFeEdUVEpxTTI1R1MwOXpjbWcxWjJOMFZ6VkdVMnBWTmxGS1QyTnBUM2d3TTJ4TVpqQnlNRU5KZWpKU1NVeGpSMGhpU0ZSTlJtSmlURGh5Wmt4eU4wazJUa2g0TVVSblZXMXlOSGd5Tnl0Rk1Hc3hjbkV5U1d4Vk0xTmFORlJYYUVkNWMzVnVUVlpJTW5SNFptTlhSVDBpTENKbGVIQnBjbUYwYVc5dUlqb3hNelkxTVRrME9ESTVMQ0p6WlhKcFlXeHVkVzFpWlhJaU9qWTNOemswT1RZd016RTJOak01TkRSOSIsInNpZ25hdHVyZSI6IkFRRUFnUUFCQVNDOFNyTXI5ZDZZQVhha2tvV0VxNmRGK215akdZbDJCZFRFVWdYS04zQ3kySFg4aGlFPSJ9LCJzY2hlbWUiOiJBU1lNTUVUUklDX1dSQVBQRUQiLCJrZXlkYXRhIjp7ImtleXBhaXJpZCI6InJzYUtleXBhaXJJZCIsImhtYWNrZXkiOiJaWGxLYUdKSFkybFBhVXBUVlRCRmRGUXdSa1pWUTBselNXMVdkVmw1U1RaSmEwVjRUV3BvU0ZFd01HbG1VUzU2WjE5dlZIZHBUVTVpTkdsUFRHUlBaR1UwWldsdFJHOW1ObWt0VTNjMVpqZDFObWRQUTE5Zk1GbG1XblJsWHpsMVduQkRNVEpDTUZnNWJtcGFhVzFuTUZOWlYxaFZTVVJ3VDNNNGJHSnlPV1ZKTUdsc2NuTmFiRXQ0YUd4TE1taDZjR3d4TW1sV1ptSjVTVGhvUjI1b2MxZElia2hYY21KcmQwRmpMWEp4V2tobVREZFNjVE5RTlZwek4xVk1kREpXVEhWMU9FVlRiRlJQTVVSak1qSXdibU53UVZOVVJXUTFPRTl2VlhkQ2NVcHlabXhmU0U1M1FWOTBUMlJUZUhadlVWSm5OekJSZEhKdGFGQlFjbUpFVkZScFVqaFBUazV5VVU1aVNrRmZlRUZZUmxoSFZucHhRVzV0YkRCbVpVVTRWVXhoYVdkV1Ftb3hlSEJ4YUMxaU9YUnZiRlpGTTBzd1pGaFZSRGN4TTNoYVppMHhjV2N4UVZSV2NXMUVVWFpNVDNwbmRqUjZXbXRxVTBnNFRVZHJkVEF6ZWpsMFJFRldUbXhZV25Cb2RIRjVPRzFWWVVsblJIQTJkVTB4ZWxkc2FWVkNUbWN1T1hnNFYwUlZPRFoxTjFaRVRqRktkRzlHVFdOZlVTNXFXVWt5WDBoeFRuWTRXbFZXVm1kalozRjFXbVZOY3pkblpIVjBRekpMTUVSNlZsWnBTa04wYVhKTGRHZDJSWEZqVGpoclF6ZEpaamQyWTE5UU9XMDVSREJoYmpWM01rdFRhR3RsVEVoMlFVTnlNa2RGWlZsQ1ZXVk1aa3BLYm5BMldYbE5iVEpKYVhVdFdtRm9VR2RrWjNkU1RYSlZUMnhmU0ZwM2F6SkxkVlk1YkRGcWVqQkVVSFZzU0hKNGVrNHhaeTVtWmxsalJuZEZkWEZmVDNOMVUweGhTVEp1YW5GQiIsImVuY3J5cHRpb25rZXkiOiJaWGxLYUdKSFkybFBhVXBUVlRCRmRGUXdSa1pWUTBselNXMVdkVmw1U1RaSmEwVjRUV3BvU0ZFd01HbG1VUzQwVkZWWWExZHRiMFp3V1ZWRWEyTTJkVFk0Y1RoR1gzbGFRVVZFZVVWNlNEbFRaMHRtYldKV1dIaG9SMDlmVm5Oc1ZqSkNkRGR1U1ROYVIzTldSV2R2TjFoUVdsOVRZV3gzY0ZCTVdsRjJTR1JYU21kbVVFSmhiMDVxUWxKMVIxQkZkSGQwZHpocldHTkNjWEZXWkZGU1dWaHFXa3BOY21KUlpsOVZTVzB4U1ZSMk5sODVZazgxVkROM1kwbG5VVVZwUmt4ME0zTktTa00wYURscFpUZExhWG8xWmpkc2RUWlVORmgzYzFaM1ZYZGhlVEJ2TTFJeVMwc3hXRkJsWjBWU2F6RmFRa3RoWjJKUVFtbzJiRzl0UVRVMlpsVnVkMEZqUlZBMFlWOXZlVGRXZFV0SVNXSnRjSEF3WVVWdVNtOUpjRVJGTTFGTVJESk1kbU5NZW5FMVVVOUJURms1TkZWeU15MTFjRVoyTFY5amExbDBTRzFzWVhaclYzQkpZbFpaVG05WGNrZGtVbUZzZFdSMVRuRTRaa1JGY0UxWGJtWTJVMDlLT0cxVlRVRTFSMVJoYjFsa2JUY3lhUzFJYjJoSFFuZ3hZMmN1TldadGJpMVFSRGg1TVVoWFVIbHFPV1JqVlZscVVTNTNZakJhWDA1VE5uZFBhRWQyYkVkbFYxaHJZbHBsZUhKVFFqUk9MVkJQZHpGNFdUWmpUV0pHVmtWQmVtY3dieTB3VWw4emVWVk1iM2R2YjB3eFdVODNTRTlMVDI5NGQxWnZPRjh3TFVNMGMxa3hjamx1UW1aTFpsZDJNMDVMYUhVd2FXeG1ka1ZUZWs5d1dWOVBURzVEZUVkU1FWOURTMU11TTFGMFlVZHdkM0UyZVVseVFYQmFUM1JPV1ZOdlFRPT0ifX0sInJlbmV3YWJsZSI6ZmFsc2UsImNhcGFiaWxpdGllcyI6eyJjb21wcmVzc2lvbmFsZ29zIjpbIkdaSVAiLCJMWlciXX0sIm1lc3NhZ2VpZCI6MjE1MDU1OTgwfQ=="),
-                baddata = base64.parse("eyJuAAAAZXBsYXlhYmxlIjpmYWxzZSwia2V5cmVzcG9uc2VkYXRhIjp7Im1hc3RlcnRva2VuIjp7InRva2VuZGF0YSI6ImV5SnpaWEYxWlc1alpXNTFiV0psY2lJNk9ETXNJbkpsYm1WM1lXeDNhVzVrYjNjaU9qRXpOalV4T1RRM05qa3NJbk5sYzNOcGIyNWtZWFJoSWpvaVFsRkRRVUZCUlVKRlJ6aERNM2hvY25aV1FqQmFibVZtTnpoUk1IRlhUMEZ2Ulc0eWFVcHRRMlJ0YUZZeWJGTjZTbXBVUjBoWmRFdDNOamRaT1dreVdtTXhabEZ1TW00MVMwZDVjVkp2YURORlZGUTBSbTFKUW1sU1ZIRnlLMlp4TjNJNVNscDRTSGhxYVRORVMyaHdiWGQwVURkQ2JVNWtkRlkxWlV4bmF6RXpjMDVqVldOMWVFeEdUVEpxTTI1R1MwOXpjbWcxWjJOMFZ6VkdVMnBWTmxGS1QyTnBUM2d3TTJ4TVpqQnlNRU5KZWpKU1NVeGpSMGhpU0ZSTlJtSmlURGh5Wmt4eU4wazJUa2g0TVVSblZXMXlOSGd5Tnl0Rk1Hc3hjbkV5U1d4Vk0xTmFORlJYYUVkNWMzVnVUVlpJTW5SNFptTlhSVDBpTENKbGVIQnBjbUYwYVc5dUlqb3hNelkxTVRrME9ESTVMQ0p6WlhKcFlXeHVkVzFpWlhJaU9qWTNOemswT1RZd016RTJOak01TkRSOSIsInNpZ25hdHVyZSI6IkFRRUFnUUFCQVNDOFNyTXI5ZDZZQVhha2tvV0VxNmRGK215akdZbDJCZFRFVWdYS04zQ3kySFg4aGlFPSJ9LCJzY2hlbWUiOiJBU1lNTUVUUklDX1dSQVBQRUQiLCJrZXlkYXRhIjp7ImtleXBhaXJpZCI6InJzYUtleXBhaXJJZCIsImhtYWNrZXkiOiJaWGxLYUdKSFkybFBhVXBUVlRCRmRGUXdSa1pWUTBselNXMVdkVmw1U1RaSmEwVjRUV3BvU0ZFd01HbG1VUzU2WjE5dlZIZHBUVTVpTkdsUFRHUlBaR1UwWldsdFJHOW1ObWt0VTNjMVpqZDFObWRQUTE5Zk1GbG1XblJsWHpsMVduQkRNVEpDTUZnNWJtcGFhVzFuTUZOWlYxaFZTVVJ3VDNNNGJHSnlPV1ZKTUdsc2NuTmFiRXQ0YUd4TE1taDZjR3d4TW1sV1ptSjVTVGhvUjI1b2MxZElia2hYY21KcmQwRmpMWEp4V2tobVREZFNjVE5RTlZwek4xVk1kREpXVEhWMU9FVlRiRlJQTVVSak1qSXdibU53UVZOVVJXUTFPRTl2VlhkQ2NVcHlabXhmU0U1M1FWOTBUMlJUZUhadlVWSm5OekJSZEhKdGFGQlFjbUpFVkZScFVqaFBUazV5VVU1aVNrRmZlRUZZUmxoSFZucHhRVzV0YkRCbVpVVTRWVXhoYVdkV1Ftb3hlSEJ4YUMxaU9YUnZiRlpGTTBzd1pGaFZSRGN4TTNoYVppMHhjV2N4UVZSV2NXMUVVWFpNVDNwbmRqUjZXbXRxVTBnNFRVZHJkVEF6ZWpsMFJFRldUbXhZV25Cb2RIRjVPRzFWWVVsblJIQTJkVTB4ZWxkc2FWVkNUbWN1T1hnNFYwUlZPRFoxTjFaRVRqRktkRzlHVFdOZlVTNXFXVWt5WDBoeFRuWTRXbFZXVm1kalozRjFXbVZOY3pkblpIVjBRekpMTUVSNlZsWnBTa04wYVhKTGRHZDJSWEZqVGpoclF6ZEpaamQyWTE5UU9XMDVSREJoYmpWM01rdFRhR3RsVEVoMlFVTnlNa2RGWlZsQ1ZXVk1aa3BLYm5BMldYbE5iVEpKYVhVdFdtRm9VR2RrWjNkU1RYSlZUMnhmU0ZwM2F6SkxkVlk1YkRGcWVqQkVVSFZzU0hKNGVrNHhaeTVtWmxsalJuZEZkWEZmVDNOMVUweGhTVEp1YW5GQiIsImVuY3J5cHRpb25rZXkiOiJaWGxLYUdKSFkybFBhVXBUVlRCRmRGUXdSa1pWUTBselNXMVdkVmw1U1RaSmEwVjRUV3BvU0ZFd01HbG1VUzQwVkZWWWExZHRiMFp3V1ZWRWEyTTJkVFk0Y1RoR1gzbGFRVVZFZVVWNlNEbFRaMHRtYldKV1dIaG9SMDlmVm5Oc1ZqSkNkRGR1U1ROYVIzTldSV2R2TjFoUVdsOVRZV3gzY0ZCTVdsRjJTR1JYU21kbVVFSmhiMDVxUWxKMVIxQkZkSGQwZHpocldHTkNjWEZXWkZGU1dWaHFXa3BOY21KUlpsOVZTVzB4U1ZSMk5sODVZazgxVkROM1kwbG5VVVZwUmt4ME0zTktTa00wYURscFpUZExhWG8xWmpkc2RUWlVORmgzYzFaM1ZYZGhlVEJ2TTFJeVMwc3hXRkJsWjBWU2F6RmFRa3RoWjJKUVFtbzJiRzl0UVRVMlpsVnVkMEZqUlZBMFlWOXZlVGRXZFV0SVNXSnRjSEF3WVVWdVNtOUpjRVJGTTFGTVJESk1kbU5NZW5FMVVVOUJURms1TkZWeU15MTFjRVoyTFY5amExbDBTRzFzWVhaclYzQkpZbFpaVG05WGNrZGtVbUZzZFdSMVRuRTRaa1JGY0UxWGJtWTJVMDlLT0cxVlRVRTFSMVJoYjFsa2JUY3lhUzFJYjJoSFFuZ3hZMmN1TldadGJpMVFSRGg1TVVoWFVIbHFPV1JqVlZscVVTNTNZakJhWDA1VE5uZFBhRWQyYkVkbFYxaHJZbHBsZUhKVFFqUk9MVkJQZHpGNFdUWmpUV0pHVmtWQmVtY3dieTB3VWw4emVWVk1iM2R2YjB3eFdVODNTRTlMVDI5NGQxWnZPRjh3TFVNMGMxa3hjamx1UW1aTFpsZDJNMDVMYUhVd2FXeG1ka1ZUZWs5d1dWOVBURzVEZUVkU1FWOURTMU11TTFGMFlVZHdkM0UyZVVseVFYQmFUM1JPV1ZOdlFRPT0ifX0sInJlbmV3YWJsZSI6ZmFsc2UsImNhcGFiaWxpdGllcyI6eyJjb21wcmVzc2lvbmFsZ29zIjpbIkdaSVAiLCJMWlciXX0sIm1lc3NhZ2VpZCI6MjE1MDU1OTgwfQ=="),
-                signature = base64.parse("EP9n/RwVsPojZhUHZI4Y0bkC6eweUUFIl9/tEyXh7D7/ffYtanHilXmtI6r4EL7TgE0yKRtUclIbirNCb1qwtgH1qycJqN8gIKzQkKE7tPO1mkwP1EVRIhY2Ryxs4hKjnAdi+JT/RLbAQuTAUD7aN3WhsrY8KWb96N72m1STzL4FrfPaHJGqe59zysu6RCqUy1UlG2mPaRn3EJ9nRmZT+Ga5rLhgrzyHzozVb9Rn0zLZz8OZamf0vCqwjf6bOwEP0WcADZS3b7J2N0/bX+j5XQpHlqYcUzj2GUWHLtLRzw10IlzfSr4ggwVbkMGc3o5wdLFaWwKmXtCf109UAlnynw==");
+            var pubKeyDataSpki = base64.parse("MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAm84o+RfF7KdJgbE6lggYAdUxOArfgCsGCq33+kwAK/Jmf3VnNo1NOGlRpLQUFAqYRqG29u4wl8fH0YCn0v8JNjrxPWP83Hf5Xdnh7dHHwHSMc0LxA2MyYlGzn3jOF5dG/3EUmUKPEjK/SKnxeKfNRKBWnm0K1rzCmMUpiZz1pxgEB/cIJow6FrDAt2Djt4L1u6sJ/FOy/zA1Hf4mZhytgabDfapxAzsks+HF9rMr3wXW5lSP6y2lM+gjjX/bjqMLJQ6iqDi6++7ScBh0oNHmgUxsSFE3aBRBaCL1kz0HOYJe26UqJqMLQ71SwvjgM+KnxZvKa1ZHzQ+7vFTwE7+yxwIDAQAB");
+            var data = base64.parse("eyJub25yZXBsYXlhYmxlIjpmYWxzZSwia2V5cmVzcG9uc2VkYXRhIjp7Im1hc3RlcnRva2VuIjp7InRva2VuZGF0YSI6ImV5SnpaWEYxWlc1alpXNTFiV0psY2lJNk9ETXNJbkpsYm1WM1lXeDNhVzVrYjNjaU9qRXpOalV4T1RRM05qa3NJbk5sYzNOcGIyNWtZWFJoSWpvaVFsRkRRVUZCUlVKRlJ6aERNM2hvY25aV1FqQmFibVZtTnpoUk1IRlhUMEZ2Ulc0eWFVcHRRMlJ0YUZZeWJGTjZTbXBVUjBoWmRFdDNOamRaT1dreVdtTXhabEZ1TW00MVMwZDVjVkp2YURORlZGUTBSbTFKUW1sU1ZIRnlLMlp4TjNJNVNscDRTSGhxYVRORVMyaHdiWGQwVURkQ2JVNWtkRlkxWlV4bmF6RXpjMDVqVldOMWVFeEdUVEpxTTI1R1MwOXpjbWcxWjJOMFZ6VkdVMnBWTmxGS1QyTnBUM2d3TTJ4TVpqQnlNRU5KZWpKU1NVeGpSMGhpU0ZSTlJtSmlURGh5Wmt4eU4wazJUa2g0TVVSblZXMXlOSGd5Tnl0Rk1Hc3hjbkV5U1d4Vk0xTmFORlJYYUVkNWMzVnVUVlpJTW5SNFptTlhSVDBpTENKbGVIQnBjbUYwYVc5dUlqb3hNelkxTVRrME9ESTVMQ0p6WlhKcFlXeHVkVzFpWlhJaU9qWTNOemswT1RZd016RTJOak01TkRSOSIsInNpZ25hdHVyZSI6IkFRRUFnUUFCQVNDOFNyTXI5ZDZZQVhha2tvV0VxNmRGK215akdZbDJCZFRFVWdYS04zQ3kySFg4aGlFPSJ9LCJzY2hlbWUiOiJBU1lNTUVUUklDX1dSQVBQRUQiLCJrZXlkYXRhIjp7ImtleXBhaXJpZCI6InJzYUtleXBhaXJJZCIsImhtYWNrZXkiOiJaWGxLYUdKSFkybFBhVXBUVlRCRmRGUXdSa1pWUTBselNXMVdkVmw1U1RaSmEwVjRUV3BvU0ZFd01HbG1VUzU2WjE5dlZIZHBUVTVpTkdsUFRHUlBaR1UwWldsdFJHOW1ObWt0VTNjMVpqZDFObWRQUTE5Zk1GbG1XblJsWHpsMVduQkRNVEpDTUZnNWJtcGFhVzFuTUZOWlYxaFZTVVJ3VDNNNGJHSnlPV1ZKTUdsc2NuTmFiRXQ0YUd4TE1taDZjR3d4TW1sV1ptSjVTVGhvUjI1b2MxZElia2hYY21KcmQwRmpMWEp4V2tobVREZFNjVE5RTlZwek4xVk1kREpXVEhWMU9FVlRiRlJQTVVSak1qSXdibU53UVZOVVJXUTFPRTl2VlhkQ2NVcHlabXhmU0U1M1FWOTBUMlJUZUhadlVWSm5OekJSZEhKdGFGQlFjbUpFVkZScFVqaFBUazV5VVU1aVNrRmZlRUZZUmxoSFZucHhRVzV0YkRCbVpVVTRWVXhoYVdkV1Ftb3hlSEJ4YUMxaU9YUnZiRlpGTTBzd1pGaFZSRGN4TTNoYVppMHhjV2N4UVZSV2NXMUVVWFpNVDNwbmRqUjZXbXRxVTBnNFRVZHJkVEF6ZWpsMFJFRldUbXhZV25Cb2RIRjVPRzFWWVVsblJIQTJkVTB4ZWxkc2FWVkNUbWN1T1hnNFYwUlZPRFoxTjFaRVRqRktkRzlHVFdOZlVTNXFXVWt5WDBoeFRuWTRXbFZXVm1kalozRjFXbVZOY3pkblpIVjBRekpMTUVSNlZsWnBTa04wYVhKTGRHZDJSWEZqVGpoclF6ZEpaamQyWTE5UU9XMDVSREJoYmpWM01rdFRhR3RsVEVoMlFVTnlNa2RGWlZsQ1ZXVk1aa3BLYm5BMldYbE5iVEpKYVhVdFdtRm9VR2RrWjNkU1RYSlZUMnhmU0ZwM2F6SkxkVlk1YkRGcWVqQkVVSFZzU0hKNGVrNHhaeTVtWmxsalJuZEZkWEZmVDNOMVUweGhTVEp1YW5GQiIsImVuY3J5cHRpb25rZXkiOiJaWGxLYUdKSFkybFBhVXBUVlRCRmRGUXdSa1pWUTBselNXMVdkVmw1U1RaSmEwVjRUV3BvU0ZFd01HbG1VUzQwVkZWWWExZHRiMFp3V1ZWRWEyTTJkVFk0Y1RoR1gzbGFRVVZFZVVWNlNEbFRaMHRtYldKV1dIaG9SMDlmVm5Oc1ZqSkNkRGR1U1ROYVIzTldSV2R2TjFoUVdsOVRZV3gzY0ZCTVdsRjJTR1JYU21kbVVFSmhiMDVxUWxKMVIxQkZkSGQwZHpocldHTkNjWEZXWkZGU1dWaHFXa3BOY21KUlpsOVZTVzB4U1ZSMk5sODVZazgxVkROM1kwbG5VVVZwUmt4ME0zTktTa00wYURscFpUZExhWG8xWmpkc2RUWlVORmgzYzFaM1ZYZGhlVEJ2TTFJeVMwc3hXRkJsWjBWU2F6RmFRa3RoWjJKUVFtbzJiRzl0UVRVMlpsVnVkMEZqUlZBMFlWOXZlVGRXZFV0SVNXSnRjSEF3WVVWdVNtOUpjRVJGTTFGTVJESk1kbU5NZW5FMVVVOUJURms1TkZWeU15MTFjRVoyTFY5amExbDBTRzFzWVhaclYzQkpZbFpaVG05WGNrZGtVbUZzZFdSMVRuRTRaa1JGY0UxWGJtWTJVMDlLT0cxVlRVRTFSMVJoYjFsa2JUY3lhUzFJYjJoSFFuZ3hZMmN1TldadGJpMVFSRGg1TVVoWFVIbHFPV1JqVlZscVVTNTNZakJhWDA1VE5uZFBhRWQyYkVkbFYxaHJZbHBsZUhKVFFqUk9MVkJQZHpGNFdUWmpUV0pHVmtWQmVtY3dieTB3VWw4emVWVk1iM2R2YjB3eFdVODNTRTlMVDI5NGQxWnZPRjh3TFVNMGMxa3hjamx1UW1aTFpsZDJNMDVMYUhVd2FXeG1ka1ZUZWs5d1dWOVBURzVEZUVkU1FWOURTMU11TTFGMFlVZHdkM0UyZVVseVFYQmFUM1JPV1ZOdlFRPT0ifX0sInJlbmV3YWJsZSI6ZmFsc2UsImNhcGFiaWxpdGllcyI6eyJjb21wcmVzc2lvbmFsZ29zIjpbIkdaSVAiLCJMWlciXX0sIm1lc3NhZ2VpZCI6MjE1MDU1OTgwfQ==");
+            var baddata = base64.parse("eyJuAAAAZXBsYXlhYmxlIjpmYWxzZSwia2V5cmVzcG9uc2VkYXRhIjp7Im1hc3RlcnRva2VuIjp7InRva2VuZGF0YSI6ImV5SnpaWEYxWlc1alpXNTFiV0psY2lJNk9ETXNJbkpsYm1WM1lXeDNhVzVrYjNjaU9qRXpOalV4T1RRM05qa3NJbk5sYzNOcGIyNWtZWFJoSWpvaVFsRkRRVUZCUlVKRlJ6aERNM2hvY25aV1FqQmFibVZtTnpoUk1IRlhUMEZ2Ulc0eWFVcHRRMlJ0YUZZeWJGTjZTbXBVUjBoWmRFdDNOamRaT1dreVdtTXhabEZ1TW00MVMwZDVjVkp2YURORlZGUTBSbTFKUW1sU1ZIRnlLMlp4TjNJNVNscDRTSGhxYVRORVMyaHdiWGQwVURkQ2JVNWtkRlkxWlV4bmF6RXpjMDVqVldOMWVFeEdUVEpxTTI1R1MwOXpjbWcxWjJOMFZ6VkdVMnBWTmxGS1QyTnBUM2d3TTJ4TVpqQnlNRU5KZWpKU1NVeGpSMGhpU0ZSTlJtSmlURGh5Wmt4eU4wazJUa2g0TVVSblZXMXlOSGd5Tnl0Rk1Hc3hjbkV5U1d4Vk0xTmFORlJYYUVkNWMzVnVUVlpJTW5SNFptTlhSVDBpTENKbGVIQnBjbUYwYVc5dUlqb3hNelkxTVRrME9ESTVMQ0p6WlhKcFlXeHVkVzFpWlhJaU9qWTNOemswT1RZd016RTJOak01TkRSOSIsInNpZ25hdHVyZSI6IkFRRUFnUUFCQVNDOFNyTXI5ZDZZQVhha2tvV0VxNmRGK215akdZbDJCZFRFVWdYS04zQ3kySFg4aGlFPSJ9LCJzY2hlbWUiOiJBU1lNTUVUUklDX1dSQVBQRUQiLCJrZXlkYXRhIjp7ImtleXBhaXJpZCI6InJzYUtleXBhaXJJZCIsImhtYWNrZXkiOiJaWGxLYUdKSFkybFBhVXBUVlRCRmRGUXdSa1pWUTBselNXMVdkVmw1U1RaSmEwVjRUV3BvU0ZFd01HbG1VUzU2WjE5dlZIZHBUVTVpTkdsUFRHUlBaR1UwWldsdFJHOW1ObWt0VTNjMVpqZDFObWRQUTE5Zk1GbG1XblJsWHpsMVduQkRNVEpDTUZnNWJtcGFhVzFuTUZOWlYxaFZTVVJ3VDNNNGJHSnlPV1ZKTUdsc2NuTmFiRXQ0YUd4TE1taDZjR3d4TW1sV1ptSjVTVGhvUjI1b2MxZElia2hYY21KcmQwRmpMWEp4V2tobVREZFNjVE5RTlZwek4xVk1kREpXVEhWMU9FVlRiRlJQTVVSak1qSXdibU53UVZOVVJXUTFPRTl2VlhkQ2NVcHlabXhmU0U1M1FWOTBUMlJUZUhadlVWSm5OekJSZEhKdGFGQlFjbUpFVkZScFVqaFBUazV5VVU1aVNrRmZlRUZZUmxoSFZucHhRVzV0YkRCbVpVVTRWVXhoYVdkV1Ftb3hlSEJ4YUMxaU9YUnZiRlpGTTBzd1pGaFZSRGN4TTNoYVppMHhjV2N4UVZSV2NXMUVVWFpNVDNwbmRqUjZXbXRxVTBnNFRVZHJkVEF6ZWpsMFJFRldUbXhZV25Cb2RIRjVPRzFWWVVsblJIQTJkVTB4ZWxkc2FWVkNUbWN1T1hnNFYwUlZPRFoxTjFaRVRqRktkRzlHVFdOZlVTNXFXVWt5WDBoeFRuWTRXbFZXVm1kalozRjFXbVZOY3pkblpIVjBRekpMTUVSNlZsWnBTa04wYVhKTGRHZDJSWEZqVGpoclF6ZEpaamQyWTE5UU9XMDVSREJoYmpWM01rdFRhR3RsVEVoMlFVTnlNa2RGWlZsQ1ZXVk1aa3BLYm5BMldYbE5iVEpKYVhVdFdtRm9VR2RrWjNkU1RYSlZUMnhmU0ZwM2F6SkxkVlk1YkRGcWVqQkVVSFZzU0hKNGVrNHhaeTVtWmxsalJuZEZkWEZmVDNOMVUweGhTVEp1YW5GQiIsImVuY3J5cHRpb25rZXkiOiJaWGxLYUdKSFkybFBhVXBUVlRCRmRGUXdSa1pWUTBselNXMVdkVmw1U1RaSmEwVjRUV3BvU0ZFd01HbG1VUzQwVkZWWWExZHRiMFp3V1ZWRWEyTTJkVFk0Y1RoR1gzbGFRVVZFZVVWNlNEbFRaMHRtYldKV1dIaG9SMDlmVm5Oc1ZqSkNkRGR1U1ROYVIzTldSV2R2TjFoUVdsOVRZV3gzY0ZCTVdsRjJTR1JYU21kbVVFSmhiMDVxUWxKMVIxQkZkSGQwZHpocldHTkNjWEZXWkZGU1dWaHFXa3BOY21KUlpsOVZTVzB4U1ZSMk5sODVZazgxVkROM1kwbG5VVVZwUmt4ME0zTktTa00wYURscFpUZExhWG8xWmpkc2RUWlVORmgzYzFaM1ZYZGhlVEJ2TTFJeVMwc3hXRkJsWjBWU2F6RmFRa3RoWjJKUVFtbzJiRzl0UVRVMlpsVnVkMEZqUlZBMFlWOXZlVGRXZFV0SVNXSnRjSEF3WVVWdVNtOUpjRVJGTTFGTVJESk1kbU5NZW5FMVVVOUJURms1TkZWeU15MTFjRVoyTFY5amExbDBTRzFzWVhaclYzQkpZbFpaVG05WGNrZGtVbUZzZFdSMVRuRTRaa1JGY0UxWGJtWTJVMDlLT0cxVlRVRTFSMVJoYjFsa2JUY3lhUzFJYjJoSFFuZ3hZMmN1TldadGJpMVFSRGg1TVVoWFVIbHFPV1JqVlZscVVTNTNZakJhWDA1VE5uZFBhRWQyYkVkbFYxaHJZbHBsZUhKVFFqUk9MVkJQZHpGNFdUWmpUV0pHVmtWQmVtY3dieTB3VWw4emVWVk1iM2R2YjB3eFdVODNTRTlMVDI5NGQxWnZPRjh3TFVNMGMxa3hjamx1UW1aTFpsZDJNMDVMYUhVd2FXeG1ka1ZUZWs5d1dWOVBURzVEZUVkU1FWOURTMU11TTFGMFlVZHdkM0UyZVVseVFYQmFUM1JPV1ZOdlFRPT0ifX0sInJlbmV3YWJsZSI6ZmFsc2UsImNhcGFiaWxpdGllcyI6eyJjb21wcmVzc2lvbmFsZ29zIjpbIkdaSVAiLCJMWlciXX0sIm1lc3NhZ2VpZCI6MjE1MDU1OTgwfQ==");
+            var signature = base64.parse("EP9n/RwVsPojZhUHZI4Y0bkC6eweUUFIl9/tEyXh7D7/ffYtanHilXmtI6r4EL7TgE0yKRtUclIbirNCb1qwtgH1qycJqN8gIKzQkKE7tPO1mkwP1EVRIhY2Ryxs4hKjnAdi+JT/RLbAQuTAUD7aN3WhsrY8KWb96N72m1STzL4FrfPaHJGqe59zysu6RCqUy1UlG2mPaRn3EJ9nRmZT+Ga5rLhgrzyHzozVb9Rn0zLZz8OZamf0vCqwjf6bOwEP0WcADZS3b7J2N0/bX+j5XQpHlqYcUzj2GUWHLtLRzw10IlzfSr4ggwVbkMGc3o5wdLFaWwKmXtCf109UAlnynw==");
 
             var error,
                 pubKey,
@@ -1782,8 +1719,6 @@
                 expect(error).toBeUndefined();
                 expect(pubKey).toBeDefined();
                 expect(pubKey.type).toBe("public");
-                // Should the public key forced to be extractable?
-                // TODO: expect(pubKey.extractable).toBe(true);  
             });
 
 
@@ -2234,7 +2169,7 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk5, { name: "AES-KW" }, true, ["wrap"])
+                cryptoSubtle.importKey("jwk", jwk5, { name: "AES-KW" }, true, ["wrapKey"])
                 .then(function (result) {
                     key = result;
                 })
@@ -2284,7 +2219,7 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk6, { name: "AES-KW" }, true, ["unwrap"])
+                cryptoSubtle.importKey("jwk", jwk6, { name: "AES-KW" }, true, ["unwrapKey"])
                 .then(function (result) {
                     key = result;
                 })
@@ -2327,7 +2262,7 @@
     
     // --------------------------------------------------------------------------------
 
-    describe("wrapKey/unwrapKey", function () {
+    describe("Key Wrapping Operations", function () {
 
         it("AES-KW wrap/unwrap known answer", function () {
             
@@ -2363,7 +2298,7 @@
             // Import the known wrap-or key
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey('raw', wraporKeyData, { name: "AES-KW" }, false, ["wrap", "unwrap"])
+                cryptoSubtle.importKey('raw', wraporKeyData, { name: "AES-KW" }, false, ["wrapKey", "unwrapKey"])
                     .then(function (result) {
                         wraporKey = result;
                     })
@@ -2425,7 +2360,7 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(wrapeeKey2).toBeDefined();
-                expect(wrapeeKey2.extractable).toBe(false);
+                expect(wrapeeKey2.extractable).toBe(true);
                 expect(wrapeeKey2.type).toBe("secret");
             });
             
@@ -2483,7 +2418,7 @@
             // Generate an RSAES-PKCS1-v1_5 key pair
             runs(function () {
                 error = undefined;
-                cryptoSubtle.generateKey({ name: "RSAES-PKCS1-v1_5", modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) }, false, ["wrap", "unwrap"])
+                cryptoSubtle.generateKey({ name: "RSAES-PKCS1-v1_5", modulusLength: 1024, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) }, false, ["wrapKey", "unwrapKey"])
                 .then(function (result) {
                     wraporKeyPublic = result.publicKey;
                     wraporKeyPrivate = result.privateKey;
@@ -2523,7 +2458,13 @@
             // Unwrap the wrapped key using the private wrappor key
             runs(function () {
                 error = undefined;
-                cryptoSubtle.unwrapKey('jwk', wrappedKeyData, wraporKeyPrivate, { name: "RSAES-PKCS1-v1_5" }, { name: "AES-CBC" }, true, [])
+                cryptoSubtle.unwrapKey(
+                        'jwk',
+                        wrappedKeyData,
+                        wraporKeyPrivate,
+                        { name: "RSAES-PKCS1-v1_5" }, { name: "AES-CBC" },
+                        true,
+                        [])
                     .then(function (result) {
                         wrapeeKey2 = result;
                     })
@@ -2537,7 +2478,7 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(wrapeeKey2).toBeDefined();
-                expect(wrapeeKey2.extractable).toBe(false);
+                expect(wrapeeKey2.extractable).toBe(true);
                 expect(wrapeeKey2.type).toBe("secret");
             });
             
@@ -2546,7 +2487,7 @@
                 error = undefined;
                 cryptoSubtle.exportKey("raw", wrapeeKey2)
                 .then(function (result) {
-                    wrapeeKeyData2 = result;
+                    wrapeeKeyData2 = result && new Uint8Array(result);
                 })
                 .catch(function (result) {
                     error = "ERROR";
@@ -2558,9 +2499,7 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(wrapeeKeyData2).toBeDefined();
-                var json1 = JSON.parse(latin1.stringify(wrapeeKeyData));
-                var json2 = JSON.parse(latin1.stringify(wrapeeKeyData2));
-                expect(json1).toEqual(json2);
+                expect(base16.stringify(wrapeeKeyData2)).toBe(base16.stringify(wrapeeKeyData));
             });
         });
         
@@ -2600,7 +2539,7 @@
                     name: "RSA-OAEP",
                     modulusLength: 1024,
                     publicExponent: new Uint8Array([0x01, 0x00, 0x01])
-                }, false, ["wrap", "unwrap"])
+                }, false, ["wrapKey", "unwrapKey"])
                 .then(function (result) {
                     wraporKeyPublic = result.publicKey;
                     wraporKeyPrivate = result.privateKey;
@@ -2663,7 +2602,7 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(wrapeeKey2).toBeDefined();
-                expect(wrapeeKey2.extractable).toBe(false);
+                expect(wrapeeKey2.extractable).toBe(true);
                 expect(wrapeeKey2.type).toBe("secret");
             });
             
@@ -2672,7 +2611,7 @@
                 error = undefined;
                 cryptoSubtle.exportKey("raw", wrapeeKey2)
                 .then(function (result) {
-                    wrapeeKeyData2 = result;
+                    wrapeeKeyData2 = result && new Uint8Array(result);
                 })
                 .catch(function (result) {
                     error = "ERROR";
@@ -2684,9 +2623,7 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(wrapeeKeyData2).toBeDefined();
-                var json1 = JSON.parse(latin1.stringify(wrapeeKeyData));
-                var json2 = JSON.parse(latin1.stringify(wrapeeKeyData2));
-                expect(json1).toEqual(json2);
+                expect(base16.stringify(wrapeeKeyData2)).toBe(base16.stringify(wrapeeKeyData));
             });
         });
         
