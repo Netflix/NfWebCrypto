@@ -284,8 +284,12 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::init(const Vuc& prngSeed)
 
 void CadmiumCrypto::CadmiumCryptoImpl::importPreSharedKeys()
 {
-    //const string currentOrigin(pDeviceInfo_->getOrigin());
-    const string currentOrigin("localhost");
+    const string currentOrigin(pDeviceInfo_->getOrigin());
+    if (!currentOrigin.size())
+    {
+        DLOG() << "CadmiumCrypto::importPreSharedKeys: invalid page origin, skipping key import\n";
+        return;
+    }
     SampleKeyProvision skp;
     const SampleKeyProvision::NamedKeyVec& keyVec(skp.getNamedKeyVec());
     DLOG() << "Importing pre-shared keys:\n";
@@ -295,6 +299,8 @@ void CadmiumCrypto::CadmiumCryptoImpl::importPreSharedKeys()
         bool originOk = false;
         for (vector<string>::const_iterator org = nk->origins.begin(); org != nk->origins.end(); ++org)
         {
+            if (!org->size())   // skip blank origin
+                continue;
             DLOG() << *org << " ";
             if (doesRightSideOfStringMatch(currentOrigin, *org))
             {
@@ -309,17 +315,23 @@ void CadmiumCrypto::CadmiumCryptoImpl::importPreSharedKeys()
                     "origin compatible with " << currentOrigin << ", skipping\n";
             continue;
         }
-        uint32_t keyHandle;
-        CadErr err = importKeyInternal(RAW, vucToStr64(nk->key), nk->algVar, nk->extractable,
-                nk->keyUsage, keyHandle);
-        if (err != CAD_ERR_OK)
-        {
-            DLOG() << "CadmiumCrypto::importPreSharedKeys: WARNING: preshared key " <<
-                    nk->name << " failed\n";
-            continue;
-        }
-        namedKeyMap_.insert(make_pair(nk->name, NamedKeySpec(keyHandle, nk->id)));
+        importNamedKey(*nk);
     }
+}
+
+uint32_t CadmiumCrypto::CadmiumCryptoImpl::importNamedKey(const NamedKey& nk)
+{
+    uint32_t keyHandle;
+    CadErr err = importKeyInternal(RAW, vucToStr64(nk.key), nk.algVar, nk.extractable,
+            nk.keyUsage, keyHandle);
+    if (err != CAD_ERR_OK)
+    {
+        DLOG() << "CadmiumCrypto::importPreSharedKeys: WARNING: preshared key " <<
+                nk.name << " failed\n";
+        return kInvalidKeyHandle;
+    }
+    namedKeyMap_.insert(make_pair(nk.name, NamedKeySpec(keyHandle, nk.id)));
+    return keyHandle;
 }
 
 // Create the AES-KW system key used for export/import wrapping.
@@ -384,14 +396,16 @@ void CadmiumCrypto::CadmiumCryptoImpl::createSystemKey()
     }
     //DLOG() << "\tkeyVuc\t\t\t\t= " << NtbaUtil::toHexString(keyVuc, "") << endl;
 
-    // save this system key
-    systemKeyHandle_ = nextKeyHandle_++;
+    DLOG() << "Created system key\n";
+
+    // make a NamedKey and store
     VariantMap algVar;
     algVar["name"] = toString(CadmiumCrypto::AES_KW);
     vector<CadmiumCrypto::KeyUsage> keyUsage;
     keyUsage.push_back(WRAP); keyUsage.push_back(UNWRAP);
-    const Key key(keyVuc, shared_ptr<RsaContext>(), SECRET, false, algVar, keyUsage);
-    keyMap_[systemKeyHandle_] = key;
+    const NamedKey nk("Kds", "", vector<string>(), keyVuc, SECRET, false, algVar, keyUsage);
+    systemKeyHandle_ = importNamedKey(nk);  // required for generateKey(SYSTEM) hack
+    assert(systemKeyHandle_ != kInvalidKeyHandle);
     //DLOG() << "\tsystemKeyHandle_ = " << systemKeyHandle_ << endl;
 }
 
@@ -1531,7 +1545,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::rsaCrypt(uint32_t keyHandle,
     }
 
     // verify the provided key is intended for this algorithm
-    if (!isKeyAlgMatch(keyHandle, RSAES_PKCS1_V1_5))
+    if (!isKeyAlgMatch(keyHandle, RSAES_PKCS1_V1_5) && !isKeyAlgMatch(keyHandle, RSA_OAEP))
     {
         DLOG() << "CadmiumCrypto::rsaCrypt: operation incompatible with key algorithm\n";
         return CAD_ERR_KEY_USAGE;
@@ -1542,17 +1556,20 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::rsaCrypt(uint32_t keyHandle,
 
     DLOG() << "CadmiumCrypto::rsaCrypt: inData = " << truncateLong(dataInStr64) << endl;
 
+    const RsaContext::Padding padding =
+            isKeyAlgMatch(keyHandle, RSA_OAEP) ? RsaContext::PKCS1_OAEP : RsaContext::PKCS1;
+
     // do the operation
     Vuc resultVec;
     if (cipherOp == DOENCRYPT)
     {
-        bool success = keyMap_[keyHandle].pRsaContext->publicEncrypt(dataVec, resultVec);
+        bool success = keyMap_[keyHandle].pRsaContext->publicEncrypt(dataVec, resultVec, padding);
         if (!success)
             return CAD_ERR_CIPHERERROR;
     }
     else
     {
-        bool success = keyMap_[keyHandle].pRsaContext->privateDecrypt(dataVec, resultVec);
+        bool success = keyMap_[keyHandle].pRsaContext->privateDecrypt(dataVec, resultVec, padding);
         if (!success)
             return CAD_ERR_CIPHERERROR;
     }

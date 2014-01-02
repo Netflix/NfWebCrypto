@@ -84,6 +84,7 @@ public:
     CadErr getSystemKeyHandle(uint32_t& systemKeyHandle) const;
 private:
     void importPreSharedKeys();
+    uint32_t importNamedKey(const NamedKey& nk);
     bool hasKey(uint32_t keyHandle) const;
     bool isUsageAllowed(uint32_t keyHandle, KeyUsage keyUsage);
     bool isKeyAlgMatch(uint32_t keyHandle, Algorithm algorithm);

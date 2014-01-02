@@ -54,76 +54,83 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 End of (PolyCrypt) License Terms and Conditions.
 */
 
-var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
-
 (function (window) {
     'use strict';
 
-    var pluginDelegate = {},
-        operationId = 0,
-        that = {},
-        plugin;
+    var operationId = 0,
+        that = {};
+
+    //--------------------------------------------------------------------------
+    // bridge for talking to the native code via post/handle message
+
+    var bridge = {
+
+        pendingPosts: [],
+        messageHandlers: [],
+
+        // start out by accumulating the posts, 
+        // this will be replaced once bridge is ready, to post to actual bridge
+        postMessage: function postMessage(messageJson) {
+            this.pendingPosts.push(messageJson);
+        },
+
+        addMessageHandler: function addMessageHandler(handler) {
+            this.messageHandlers.push(handler);
+        },
+
+        removeMessageHandler: function removeMessageHandler(handler) {
+            var messageHandlers = this.messageHandlers;
+            var index = messageHandlers.lastIndexOf(handler);
+            if (index >= 0) {
+                messageHandlers.splice(index, 1);
+            }
+        },
+
+        dispatchMessageHandlers: function dispatchMessageHandlers(messageJson) {
+            // make a copy, to cover the scenario of "removeMessageHandler" being called from inside the handler
+            var handlers = this.messageHandlers.slice();
+            var length = handlers.length;
+            for (var i = 0; i < length; i++) {
+                handlers[i](messageJson);
+            }
+        },
+
+        // wires the post message to actual plugin
+        wirePostMessage: function (realPostMessage) {
+            // grab the pending posts
+            var pendingPosts = this.pendingPosts;
+            this.pendingPosts = undefined;
+
+            // re-wire the post message function
+            this.postMessage = realPostMessage;
+
+            // replay accumulated message posts
+            for (var i = 0; i < pendingPosts.length; i++) {
+                this.postMessage(pendingPosts[i]);
+            }
+        }
+
+    };
+
+    //--------------------------------------------------------------------------
+    // wire the bridge
+
+    if (!tryLoadPlugin()) {
+        // nothing to wire the bridge to...
+
+        // don't throw inline, not to block further scripts from executing
+        window.setTimeout(function () {
+            throw new Error('NfWebCrypto plugin not found, unable to create nfCrypt');
+        }, 0);
+        return;
+
+    }
 
     // public api root
     // TODO: remove the methods from nfCrypto, they should only be on nfCrypto.subtle
-    window.nfCrypto = that;
+    window.nfCrypto = window.crypto;
     window.nfCrypto.subtle = that;
     window.nfCryptoKeys = that;
-
-    //--------------------------------------------------------------------------
-    // created before pluginObject, and accumulates messages to the plugin, then runs them once pluginObject is ready
-    var pendingHandlers = {},
-        pendingPosts = [];
-
-    // start with a fake plugin, that accumulates calls to it
-    plugin = {
-        addEventListener: function (type, handler) {
-            var handlers = pendingHandlers[type];
-            if (!handlers) {
-                pendingHandlers[type] = handlers = [];
-            }
-            handlers.push(handler)
-        },
-
-        removeEventListener: function (type, handler) {
-            var handlers = pendingHandlers[type];
-            if (handlers) {
-                var index = handlers.lastIndexOf(handler);
-                if (index >= 0) {
-                    handlers.splice(handler, 1);
-                }
-            }
-        },
-
-        postMessage: function (msgStr) {
-            pendingPosts.push(msgStr);
-        }
-    };
-
-    function pluginIsReady(pluginActual) {
-        var i;
-        var handlers;
-        var fakePlugin = plugin;
-        plugin = pluginActual;
-
-        // replay accumulated event subscribtions on actual plugin
-        for (var type in pendingHandlers) {
-            if (pendingHandlers.hasOwnProperty(type)) {
-                handlers = pendingHandlers[type];
-                for (i = 0; i < handlers.length; i++) {
-                    plugin.addEventListener(type, handlers[i]);
-                }
-            }
-        }
-        pendingHandlers = undefined;
-
-        // replay accumulated message posts
-        for (i = 0; i < pendingPosts.length; i++) {
-            plugin.postMessage(pendingPosts[i]);
-        }
-        pendingPosts = undefined;
-    };
-    //--------------------------------------------------------------------------
 
     //--------------------------------------------------------------------------
 
@@ -222,8 +229,11 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
 
         var dispatchEvent = function (e) {
             //console.log("TRACE dispatchEvent enter");
-            for (var l in listeners[e.type]) {
-                _fireListener(listeners[e.type][l], e);
+            var listenersForEvent = listeners[e.type];
+            for (var l in listenersForEvent) {
+            	if (listenersForEvent.hasOwnProperty(l)) {
+            	    _fireListener(listenersForEvent[l], e);
+            	}
             }
             // Cache the latest event received of each type
             lastEvent[e.type] = e;
@@ -234,9 +244,10 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
         // that take the event as its argument
         var _fireListener = function (listener, e) {
             //console.log("TRACE _fireListener enter");
-            if (typeof (listener) === 'function') {
+            var typeofListener = typeof (listener);
+            if (typeofListener === 'function') {
                 listener(e);
-            } else if ((typeof (listener) === 'object') &&
+            } else if ((typeofListener === 'object') &&
                 listener.hasOwnProperty('handleEvent') &&
                 (typeof (listener.handleEvent) === 'function')) {
                 listener.handleEvent(e);
@@ -249,14 +260,13 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
         // ---- DOM4 EventTarget end
 
         // handler for messages coming FROM the plugin
-        var _handleMessage = function (message) {
-            var data = JSON.parse(message.data);
+        var _handleMessage = function (data) {
             if (data.idx != myOpid) {
                 return; // message not for me
             }
             //console.log("TRACE _handleMessage enter");
             //console.log(message.data);
-            plugin.removeEventListener('message', _handleMessage);
+            bridge.removeMessageHandler(_handleMessage);
             var event = {};
             event.target = op;
             if (data.success == false) {
@@ -280,7 +290,7 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
         };
 
         // Register for events coming back
-        plugin.addEventListener('message', _handleMessage);
+        bridge.addMessageHandler(_handleMessage);
 
         // send messages TO the plugin
         var postMessage = function (method, args) {
@@ -290,9 +300,7 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
                 method: method,
                 argsObj: args
             }
-            var msgStr = JSON.stringify(msg);
-            //console.log(msgStr)
-            plugin.postMessage(msgStr);
+            bridge.postMessage(msg);
         };
         that.postMessage = postMessage;
 
@@ -423,9 +431,6 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
             }
         });
 
-        // Register for events coming back
-        window.addEventListener('message', messenger._handleMessage);
-
         // Post the message to the plugin
         var args = {
             format: format,
@@ -444,14 +449,47 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
     };
 
     //--------------------------------------------------------------------------
+    function copy(buffer)
+    {
+        var bytes = new Uint8Array(buffer);
+        var output = new ArrayBuffer(buffer.byteLength);
+        var outputBytes = new Uint8Array(output);
+        for (var i = 0; i < bytes.length; i++)
+            outputBytes[i] = bytes[i];
+        return outputBytes;
+    }
+    
+    Object.prototype.clone = function() {
+        var newObj;
+        if (this instanceof Uint8Array) {
+            newObj = copy(this);
+        } else {
+            if (this instanceof Array) {
+                newObj = [];
+            } else {
+                newObj = {};
+            }
+            for (i in this) {
+              if (i == 'clone') continue;
+              if (this[i] && typeof this[i] == "object") {
+                newObj[i] = this[i].clone();
+              } else newObj[i] = this[i]
+            }
+        }
+        return newObj;
+      };
 
+    //--------------------------------------------------------------------------
+      
     // add wc methods here
 
     that.digest = function (algorithm, buffer) {
+        algorithm.params = algorithm.clone();
         return createCryptoOp('digest', algorithm, null, null, buffer);
     };
 
     that.importKey = function (format, keyData, algorithm, extractable, keyUsage) {
+        algorithm.params = algorithm.clone();
         return createKeyOp('import', format, keyData, algorithm, extractable, keyUsage);
     };
 
@@ -460,6 +498,7 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
     };
 
     that.encrypt = function (algorithm, key, buffer) {
+        algorithm.params = algorithm.clone();
         if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("iv")) {
             algorithm.params.iv = b64encode(algorithm.params.iv);
         }
@@ -470,6 +509,7 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
     };
 
     that.decrypt = function (algorithm, key, buffer) {
+        algorithm.params = algorithm.clone();
         if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("iv")) {
             algorithm.params.iv = b64encode(algorithm.params.iv);
         }
@@ -480,14 +520,17 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
     };
 
     that.sign = function (algorithm, key, buffer) {
+        algorithm.params = algorithm.clone();
         return createCryptoOp('sign', algorithm, key, null, buffer);
     };
 
     that.verify = function (algorithm, key, signature, buffer) {
+        algorithm.params = algorithm.clone();
         return createCryptoOp('verify', algorithm, key, signature, buffer);
     };
 
     that.generateKey = function (algorithm, extractable, keyUsage) {
+        algorithm.params = algorithm.clone();
         var tob64 = ["publicExponent", "prime", "generator"];
         var propName;
         if (algorithm.hasOwnProperty('params')) {
@@ -502,6 +545,7 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
     };
 
     that.deriveKey = function (algorithm, baseKey, derivedKeyAlgorithm, extractable, keyUsage) {
+        algorithm.params = algorithm.clone();
         if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("public")) {
             algorithm.params["public"] = b64encode(algorithm.params["public"]);
         }
@@ -509,10 +553,12 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
     };
 
     that.wrapKey = function (keyToWrap, wrappingKey, wrappingAlgorithm) {
+        wrappingAlgorithm.params = JSON.parse(JSON.stringify(wrappingAlgorithm));
         return createKeyOp('wrapKey', null, null, wrappingAlgorithm, null, null, keyToWrap, null, wrappingKey);
     };
 
     that.unwrapKey = function (jweKeyData, algorithm, wrappingKey, extractable, usage) {
+        algorithm.params = algorithm.clone();
         return createKeyOp('unwrapKey', null, jweKeyData, algorithm, extractable, usage, null, null, wrappingKey);
     };
 
@@ -537,86 +583,53 @@ var pluginStartLoadTime, pluginEndLoadTime;  // FIXME, move out of global
 
     //--------------------------------------------------------------------------
 
-    // Loads the plugin and starts the native code.
-    function onLoad() {
-        window.removeEventListener('load', onLoad);
-        var body = window.document.body;
+    // Once window is loaded... 
+    // Load the plugin, start the native code, and wire the bridge to it.
+
+    function tryLoadPlugin() {
         var navPlugin = window.navigator.plugins['NfWebCrypto'] || window.navigator.plugins['NetflixHelper'];
-        var pluginObject = window.document.createElement('object');
-        var overlayDiv = document.createElement('div');
-
-        overlayDiv.style.cssText = 'position:fixed;z-index:1000;left:0;bottom:0;background-color:pink;color:blue;font-size:40px'
-        document.body.appendChild(overlayDiv);
-
         if (navPlugin) {
+            window.addEventListener('load', onLoad);
+            return true;
+        }
+
+        function onLoad() {
+            window.removeEventListener('load', onLoad);
+
+            var pluginObject = window.document.createElement('object');
             pluginObject.setAttribute('type', navPlugin[0].type);
-            overlayDiv.innerHTML = 'PPAPI Version';
-        } else {
-            pluginObject.setAttribute('type', 'application/x-pnacl');
-            pluginObject.setAttribute('src', 'http://lgud-padolph1.corp.netflix.com/pnacl/web/manifest.nmf');
-        }
-        pluginObject.setAttribute('id', 'NfWebCrypto');
-        pluginObject.setAttribute('style', 'position:fixed;left:0;top:0;width:1px;height:1px;visibility:hidden');
+            pluginObject.setAttribute('style', 'position:fixed;left:0;top:0;width:1px;height:1px;visibility:hidden');
+            pluginObject.addEventListener('message', onPluginMessage, false);
 
-        pluginObject.addEventListener('message', handleReadyMessage, false);
-        
-        if (!navPlugin) {
-            pluginObject.addEventListener('loadstart', moduleDidStartLoad, true);
-            pluginObject.addEventListener('progress', moduleLoadProgress, true);
-            pluginObject.addEventListener('error', moduleLoadError, true);
-            pluginObject.addEventListener('abort', moduleLoadAbort, true);
-            pluginObject.addEventListener('load', moduleDidLoad, true);
-            pluginObject.addEventListener('loadend', moduleDidEndLoad, true);
-        }
-        
-        // PNaCl specific callbacks
-        function moduleDidStartLoad() {
-            overlayDiv.innerHTML = 'loadstart';
-        }
-        function moduleLoadProgress(event) {
-            var loadPercent = 0.0;
-            var loadPercentString;
-            if (event.lengthComputable && event.total > 0) {
-                    loadPercent = event.loaded / event.total * 100.0;
-                    loadPercentString = loadPercent.toFixed(0) + '%';
-                    // console.log('progress: ' + event.url + ' ' + loadPercentString +
-                    //              ' (' + event.loaded + ' of ' + event.total + ' bytes)');
-                    overlayDiv.innerHTML = 'PNaCl loading...' + loadPercentString;
-            } else {
-                    // The total length is not yet known.
-                    overlayDiv.innerHTML = 'PNaCl loading...';
-            }
-        }
-        function moduleLoadError() {
-            overlayDiv.innerHTML = 'PNaCl error!';
-        }
-        function moduleLoadAbort() {
-            overlayDiv.innerHTML = 'PNaCl abort!';
-        }
-        function moduleDidLoad() {
-            overlayDiv.innerHTML = 'PNaCl load';
-        }
-        function moduleDidEndLoad() {
-            overlayDiv.innerHTML = 'PNaCl Version';
-        }
-        // End PNaCl specific callbacks
+            function handleReadyMessage(messageJson) {
+                if (messageJson.success && messageJson.method === 'ready') {
+                    bridge.removeMessageHandler(handleReadyMessage);
+                    setTimeout(function () {
+                        onPluginReady(pluginObject);
+                    }, 1);
+                }
+            };
+            bridge.addMessageHandler(handleReadyMessage);
 
-        function handleReadyMessage(message) {
-            pluginObject.removeEventListener('message', handleReadyMessage);
-            var obj = JSON.parse(message.data);
-            if (obj.success && obj.method === 'ready') {
-                pluginEndLoadTime = window.performance.now();
-                setTimeout(function() {
-                    pluginIsReady(pluginObject);
-                }, 1);
-            }
-        }
-
-        // Insert the plugin object into the document body. This starts the
-        // native code. This should be done last.
-        pluginStartLoadTime = window.performance.now();
-        body.appendChild(pluginObject);
+            // Insert the plugin object into the document body. This starts the
+            // native code. This should be done last.
+            window.document.body.appendChild(pluginObject);
+        };
     };
-    window.addEventListener('load', onLoad);
+
+    function onPluginMessage(e) {
+        var messageString = e.data;
+        var messageJson = JSON.parse(messageString);
+        // console.log('Message from plugin: ' + messageString);
+        bridge.dispatchMessageHandlers(messageJson);
+    };
+
+    function onPluginReady(pluginObject) {
+        bridge.wirePostMessage(function postMessageToPlugin(messageJson) {
+            var messageString = JSON.stringify(messageJson);
+            // console.log('Message to plugin: ' + messageString);
+            pluginObject.postMessage(messageString);
+        });
+    };
 
 })(window);

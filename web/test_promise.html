@@ -24,8 +24,9 @@
 
     <title>nfCrypto unit tests</title>
 
-    <!-- nfCrypt -->
+    <!-- nfCrypto -->
     <script type="text/javascript" src="nfcrypto.js"></script>
+    <script type="text/javascript" src="nfcrypto_promise.js"></script>
     
     
 
@@ -40,7 +41,9 @@
      <!-- Functional tests -->
       
         
-     	<script type="text/javascript" src="jsTests/test.webcrypto.js"></script>
+     	<script type="text/javascript" src="jsTests/test.webcrypto_promise.js"></script>
+     	
+     	<!--
      	<script type="text/javascript" src="jsTests/getkey.js"></script>   
         <script type="text/javascript" src="jsTests/importexportjwk.js"></script>
         <script type="text/javascript" src="jsTests/importexportpkcs8.js"></script>
@@ -55,6 +58,7 @@
         <script type="text/javascript" src="jsTests/digest_optimized.js"></script>
 		<script type="text/javascript" src="jsTests/generate.js"></script>
         <script type="text/javascript" src="jsTests/multithreaded.js"></script>
+        -->
 		
 		
 </head>
@@ -65,7 +69,7 @@
         (function () {
             var jasmineEnv = jasmine.getEnv();
             jasmineEnv.updateInterval = 250;
-            jasmineEnv.defaultTimeoutInterval = 100000;
+            jasmineEnv.defaultTimeoutInterval = 1000;
 
             var htmlReporter = new jasmine.HtmlReporter();
             jasmineEnv.addReporter(htmlReporter);

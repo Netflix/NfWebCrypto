@@ -658,7 +658,7 @@ bool NativeBridge::encryptDecrypt(const string& cmdIndex, Variant& argsVar,
     bool doEncrypt;
     getVal<bool>(argsVar, "doEncrypt", cmdIndex, doEncrypt);
     string resultData64;
-    if (algType == CadmiumCrypto::RSAES_PKCS1_V1_5)
+    if (algType == CadmiumCrypto::RSAES_PKCS1_V1_5 || algType == CadmiumCrypto::RSA_OAEP)
     {
         // do the operation
         CadErr err;
@@ -833,7 +833,7 @@ bool NativeBridge::signVerify(const string& cmdIndex, Variant& argsVar,
         string sigStr64;
         if (!getVal<string>(argsVar, "signature", cmdIndex, sigStr64))
             return false;
-        DLOG() << "\tsignature: " << sigStr64 << endl;
+        DLOG() << "\tsignature: " << truncateLong(sigStr64) << endl;
         return doVerify(cmdIndex, keyHandle, algType, hashType, dataStr64, sigStr64, returnVarMap);
     }
 }
