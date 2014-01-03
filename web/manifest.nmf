@@ -1,0 +1,12 @@
+{
+  // Required
+  "program": {
+    "portable": {
+      "pnacl-translate": {
+        "url": "nfwebcrypto.pexe",
+        "optlevel": 2
+      }
+    }
+  }
+}
+
