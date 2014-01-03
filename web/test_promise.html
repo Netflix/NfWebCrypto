@@ -25,7 +25,7 @@
     <title>nfCrypto unit tests</title>
 
     <!-- nfCrypto -->
-    <script type="text/javascript" src="nfcrypto.js"></script>
+    <script type="text/javascript" src="nfcrypto_pnacl.js"></script>
     <script type="text/javascript" src="nfcrypto_promise.js"></script>
     
     
@@ -65,22 +65,36 @@
 
 <body>
 
+    
     <script type="text/javascript">
-        (function () {
-            var jasmineEnv = jasmine.getEnv();
-            jasmineEnv.updateInterval = 250;
-            jasmineEnv.defaultTimeoutInterval = 1000;
+        function onLoad() {
+            window.removeEventListener('load', onLoad);
+            var plugin = window.document.getElementById("NfWebCrypto");
+            plugin.addEventListener('message', handleMessage, true);
+            function handleMessage(message) {
+                plugin.removeEventListener('message', handleMessage);
+                var obj = JSON.parse(message.data);
+                if (obj.success && obj.method === 'ready') {
+                    (function () {
+                        var jasmineEnv = jasmine.getEnv();
+                        jasmineEnv.updateInterval = 250;
+                        jasmineEnv.defaultTimeoutInterval = 1000;
 
-            var htmlReporter = new jasmine.HtmlReporter();
-            jasmineEnv.addReporter(htmlReporter);
+                        var htmlReporter = new jasmine.HtmlReporter();
+                        jasmineEnv.addReporter(htmlReporter);
 
-            jasmineEnv.specFilter = function (spec) {
-                return htmlReporter.specFilter(spec);
-            };
+                        jasmineEnv.specFilter = function (spec) {
+                            return htmlReporter.specFilter(spec);
+                        };
 
-            jasmineEnv.execute();
-        })();
+                        jasmineEnv.execute();
+                    })();
+                }
+            }
+        }
+        window.addEventListener('load', onLoad);
     </script>
+    
 
 </body>
 
