@@ -284,7 +284,8 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::init(const Vuc& prngSeed)
 
 void CadmiumCrypto::CadmiumCryptoImpl::importPreSharedKeys()
 {
-    const string currentOrigin(pDeviceInfo_->getOrigin());
+    //const string currentOrigin(pDeviceInfo_->getOrigin());
+    const string currentOrigin;
     if (!currentOrigin.size())
     {
         DLOG() << "CadmiumCrypto::importPreSharedKeys: invalid page origin, skipping key import\n";
