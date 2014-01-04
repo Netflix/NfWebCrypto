@@ -78,11 +78,6 @@ End of (PolyCrypt) License Terms and Conditions.
     
 
     that.importKey = function (format, keyData, algorithm, extractable, keyUsage) {
-        if (format == "jwk") {
-            var str = latin1.stringify(keyData);
-            var newstr = str.replace("ext","extractable");
-            keyData = latin1.parse(newstr);
-        }
         return new Promise(function(resolve, reject) {
             var op = nfCrypto.importKey(format, keyData, algorithm, extractable, keyUsage);
             op.oncomplete = function (e) {
@@ -100,10 +95,6 @@ End of (PolyCrypt) License Terms and Conditions.
             op.oncomplete = function (e) {
                 var res = e.target.result;
                 var str = latin1.stringify(res);
-                if (str.search("extractable")) {
-                    var newstr = str.replace("extractable", "ext");
-                    res = latin1.parse(newstr);
-                }
                 resolve(res);
             };
             op.onerror = function (e) {
@@ -184,9 +175,9 @@ End of (PolyCrypt) License Terms and Conditions.
         })
     };
 
-    that.wrapKey = function (keyToWrap, wrappingKey, wrappingAlgorithm) {
+    that.wrapKey = function (format, keyToWrap, wrappingKey, wrappingAlgorithm) {
         return new Promise(function(resolve, reject) {
-            var op = nfCrypto.wrapKey(keyToWrap, wrappingKey, wrappingAlgorithm);
+            var op = nfCrypto.wrapKey(format, keyToWrap, wrappingKey, wrappingAlgorithm);
             op.oncomplete = function (e) {
                 resolve(e.target.result);
             };
@@ -195,10 +186,10 @@ End of (PolyCrypt) License Terms and Conditions.
             };
         })
     };
-
-    that.unwrapKey = function (jweKeyData, algorithm, wrappingKey, extractable, usage) {
+    
+    that.unwrapKey = function (format, wrappedKey, unwrappingKey, unwrapAlgorithm, unwrappedKeyAlgorithm, extractable, usage) {
         return new Promise(function(resolve, reject) {
-            var op = nfCrypto.unwrapKey(jweKeyData, algorithm, wrappingKey, extractable, usage);
+            var op = nfCrypto.unwrapKey(format, wrappedKey, unwrappingKey, unwrapAlgorithm, unwrappedKeyAlgorithm, extractable, usage);
             op.oncomplete = function (e) {
                 resolve(e.target.result);
             };

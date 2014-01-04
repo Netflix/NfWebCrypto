@@ -1161,79 +1161,96 @@ bool NativeBridge::derive(const string& cmdIndex, Variant& argsVar,
 bool NativeBridge::unwrapKey(const string& cmdIndex, Variant& argsVar,
         VariantMap& returnVarMap)
 {
-    // return createKeyOp(  null, jweKeyData, algorithm, extractable,     usage,    null,           null, wrappingKey);
-    // var createKeyOp = (format,    keyData, algorithm, extractable, keyUsage, baseKey, derivedKeyType,         key)
+    // createKeyOp('unwrapKey', format, wrappedKey, unwrapAlgorithm, extractable, usage,    null,    null,           unwrappingKey, null,    unwrappedKeyAlgorithm);
+    // createKeyOp(type,        format, keyData,    algorithm,       unwrappedKeyExtractable, keyUsage, baseKey, derivedKeyType, wrappingKeyHandle,     keyName, unwrappedKeyAlg)
 
     // ------------ unwrapKey --------------
     // Unwrap a wrapped key
     // Input:
     //     argsObj: {
-    //         keyData:     string; JWE Compact Serialization, base64 encoded
-    //         keyHandle:   string, the handle of the key with which to decrypt
-    //                      the Content Master Key
-    //         algorithm:   object; in case the unwrapped JWK does not have an
-    //                      'alg' field, use this, otherwise ignore (optional)
-    //         extractable: boolean; in case the unwrapped JWK does not have an
-    //                      'extractable field, use this, otherwise ignore
-    //                      (optional)
+    //         format:      string; the format of the wrapped key once decrypted
+    //         keyData:     string; the wrapped key, base64 encoded
+    //         keyHandle:   string, the handle of the unwrapping key
+    //         algorithm:   object; the decrypt algorithm, must match unwrappingKey algorithm
+    //         unwrappedKeyAlg: object; applied to the unwrapped key
+    //         extractable: boolean; applied to the unwrapped key
     //         keyUsage:   Array of strings from the set "encrypt", "decrypt",
-    //                      "sign", "verify", "derive"; in case the unwrapped
-    //                      JDK does not have a 'use' field, use this, otherwise
-    //                      ignore (optional)
+    //                      "sign", "verify", "derive"; applied to the unwrapped key
     //     }
     // Output:
     //     payload: {
     //         handle:      the handle of the unwrapped key in the key store
     //         type:        string; one of "secret", "public", "private"
-    //         algorithm:   object; set to the value inside the wrapped key
-    //         extractable: string; resolved between input value and value inside
-    //                        the wrapped key
-    //         keyUsage:   Array of strings; resolved between input value and value
-    //                        inside the wrapped key
+    //         extractable: string; same as input extractable
+    //         algorithm:   object; same as input unwrappedKeyAlg
+    //         keyUsage:   Array of strings; same as input keyUsage
     //     }
 
-    // get key handle
-    int keyHandle;
-    if (!getVal<int>(argsVar, "keyHandle", cmdIndex, keyHandle))
+    // get the import format
+    string format;
+    if (!getVal<string>(argsVar, "format", cmdIndex, format))
         return false;
-    DLOG() << "\tkeyHandle: " << keyHandle << endl;
+    DLOG() << "\tformat: " << format << endl;
+    const CadmiumCrypto::KeyFormat keyFormat = stringToKeyFormat(format);
+    if (keyFormat == CadmiumCrypto::INVALID_KEYFORMAT)
+    {
+        DLOG() << "NativeBridge::importKey: unrecognized format specifier\n";
+        sendError(cmdIndex, CAD_ERR_BADARG);
+        return false;
+    }
 
     // get keyData
-    string keyDataStr;
-    if (!getVal<string>(argsVar, "keyData", cmdIndex, keyDataStr))
+    string wrappedKeyDataStr64;
+    if (!getVal<string>(argsVar, "keyData", cmdIndex, wrappedKeyDataStr64))
         return false;
-    DLOG() << "\tkeyData: " << truncateLong(keyDataStr) << endl;
+    DLOG() << "\twrapped keyData: " << truncateLong(wrappedKeyDataStr64) << endl;
 
-    // get (optional) algorithm
-    Variant algObj;
-    if (!getAlgorithmObj(argsVar, algObj))
+    // get the wrapping key handle
+    int wrappingKeyHandle;
+    if (!getVal<int>(argsVar, "keyHandle", cmdIndex, wrappingKeyHandle))
+        return false;
+    DLOG() << "\twrapping keyHandle: " << wrappingKeyHandle << endl;
+
+    // get the wrapping algorithm
+    Variant wrappingAlgObj;
+    if (!getAlgorithmObj(argsVar, wrappingAlgObj, "algorithm"))
     {
         sendError(cmdIndex, CAD_ERR_UNKNOWN_ALGO);
         return false;
     }
     // this API allows a null object for the algorithm
-    if (algObj.isNull())
-        DLOG() << "\talgorithm: null\n";
+    if (wrappingAlgObj.isNull())
+        DLOG() << "\twrapping algorithm: null\n";
     else
-        DLOG() << "\talgorithm: " << toString(toAlgorithm(algObj["name"].string())) << endl;
+        DLOG() << "\twrapping algorithm: " << toString(toAlgorithm(wrappingAlgObj["name"].string())) << endl;
 
-    // get (optional) extractable; if not present default to false
-    bool extractable;
-    if (!getVal<bool>(argsVar, "extractable", cmdIndex, extractable, false))
-        extractable = false;
-    DLOG() << "\textractable: " << boolalpha << extractable << noboolalpha << endl;
+    // get the algorithm to apply to the unwrapped key
+    Variant unwrappedKeyAlgObj;
+    if (!getAlgorithmObj(argsVar, unwrappedKeyAlgObj, "unwrappedKeyAlg"))
+    {
+        sendError(cmdIndex, CAD_ERR_UNKNOWN_ALGO);
+        return false;
+    }
+    DLOG() << "\tkey algorithm: " << toString(toAlgorithm(unwrappedKeyAlgObj["name"].string())) << endl;
 
-    // get (optional) keyUsage; if not present leave empty
+    // get the unwrappedKeyExtractable value to apply to the unwrapped key
+    bool unwrappedKeyExtractable;
+    if (!getVal<bool>(argsVar, "extractable", cmdIndex, unwrappedKeyExtractable, false))
+        unwrappedKeyExtractable = false;
+    DLOG() << "\textractable: " << boolalpha << unwrappedKeyExtractable << noboolalpha << endl;
+
+    // get the keyUsage value to apply to the unwrapped key
     bool isFound;
     VariantArray keyUsageVarAry = argsVar.mapValue<VariantArray>("keyUsage", &isFound);
-    vector<CadmiumCrypto::KeyUsage> keyUsageVec;
+    vector<CadmiumCrypto::KeyUsage> unwrappedKeyUsageVec;
     if (isFound)
-        keyUsageVec = toKeyUsageVec(keyUsageVarAry);
-    DLOG() << "\tkeyUsage: " << toString(keyUsageVec) << endl;
+        unwrappedKeyUsageVec = toKeyUsageVec(keyUsageVarAry);
+    DLOG() << "\tkeyUsage: " << toString(unwrappedKeyUsageVec) << endl;
 
     uint32_t unwrappedKeyHandle;
-    CadErr err = cadmiumCrypto_->unwrapJwe(keyDataStr, keyHandle, algObj,
-            extractable, keyUsageVec, unwrappedKeyHandle);
+    CadErr err = cadmiumCrypto_->unwrapKey(keyFormat, wrappedKeyDataStr64,
+            wrappingKeyHandle, wrappingAlgObj, unwrappedKeyAlgObj,
+            unwrappedKeyExtractable, unwrappedKeyUsageVec, unwrappedKeyHandle);
     if (isError(err, cmdIndex))
         return false;
 
@@ -1255,42 +1272,34 @@ bool NativeBridge::unwrapKey(const string& cmdIndex, Variant& argsVar,
 bool NativeBridge::wrapKey(const string& cmdIndex, Variant& argsVar,
         VariantMap& returnVarMap)
 {
-    // return createKeyOp('wrapKey', null,   null,    wrappingAlgorithm, null,        null,      keyToWrap, null,           wrappingKey);
-    // var createKeyOp = (type,      format, keyData, algorithm,         extractable, keyUsage, baseKey,   derivedKeyType, key        )
+    // createKeyOp('wrapKey', format, null,    wrappingAlgorithm, null,        null,     keyToWrap,       null,           wrappingKey, null,    null)
+    // createKeyOp(type,      format, keyData, algorithm,         extractable, keyUsage, baseKeyHandle,   derivedKeyType, keyHandle,   keyName, unwrappedKeyAlg)
 
     // Wrap an existing key
     // Input:
     //     argsObj: {
-    //         algorithm: object; the algorithm with which to wrap the baseKey
-    //         baseKeyHandle: string, the handle of the key that will be wrapped
-    //         keyHandle: string, The handle of the key to wrap the baseKey with.
-    //             This algorithm associated with this key must match the
-    //             'algorithm' parameter.
+    //         format: string; the export format of the key to be wrapped
+    //         baseKeyHandle: the key to wrap
+    //         keyHandle: the wrapping key
+    //         algorithm: object; the algorithm to wrap with
     //     }
     // Output:
     //     payload: {
-    //         buffer: string; JWE Compact Serialization of the wrapped key,
-    //             base64 encoded
+    //         buffer: string; the wrapped key, base64 encoded
     //     }
 
-    // get (optional) algorithm
-    Variant wrappingAlgoObj;
-    if (!getAlgorithmObj(argsVar, wrappingAlgoObj))
+    // get the wrapping format
+    string format;
+    if (!getVal<string>(argsVar, "format", cmdIndex, format))
+        return false;
+    DLOG() << "\tformat: " << format << endl;
+    const CadmiumCrypto::KeyFormat keyFormat = stringToKeyFormat(format);
+    if (keyFormat == CadmiumCrypto::INVALID_KEYFORMAT)
     {
-        sendError(cmdIndex, CAD_ERR_UNKNOWN_ALGO);
+        DLOG() << "NativeBridge::wrapKey: unrecognized format specifier\n";
+        sendError(cmdIndex, CAD_ERR_BADARG);
         return false;
     }
-    // this API allows a null object for the algorithm
-    if (wrappingAlgoObj.isNull())
-        DLOG() << "\talgorithm: null\n";
-    else
-        DLOG() << "\talgorithm: " << toString(toAlgorithm(wrappingAlgoObj["name"].string())) << endl;
-
-    // get handle of the wrapping key
-    int wrappingKeyHandle;
-    if (!getVal<int>(argsVar, "keyHandle", cmdIndex, wrappingKeyHandle))
-        return false;
-    DLOG() << "\twrap-or key handle: " << wrappingKeyHandle << endl;
 
     // get handle of the key to be wrapped
     int toBeWrappedKeyHandle;
@@ -1298,14 +1307,29 @@ bool NativeBridge::wrapKey(const string& cmdIndex, Variant& argsVar,
         return false;
     DLOG() << "\twrap-ee key handle: " << toBeWrappedKeyHandle << endl;
 
-    string wrappedKeyJcs;
-    CadErr err = cadmiumCrypto_->wrapJwe(toBeWrappedKeyHandle, wrappingKeyHandle,
-            wrappingAlgoObj, CadmiumCrypto::A128GCM, wrappedKeyJcs);
+    // get handle of the wrapping key
+    int wrappingKeyHandle;
+    if (!getVal<int>(argsVar, "keyHandle", cmdIndex, wrappingKeyHandle))
+        return false;
+    DLOG() << "\twrap-or key handle: " << wrappingKeyHandle << endl;
+
+    // get the wrapping algorithm
+    Variant wrappingAlgoObj;
+    if (!getAlgorithmObj(argsVar, wrappingAlgoObj, "algorithm"))
+    {
+        sendError(cmdIndex, CAD_ERR_UNKNOWN_ALGO);
+        return false;
+    }
+    DLOG() << "\talgorithm: " << toString(toAlgorithm(wrappingAlgoObj["name"].string())) << endl;
+
+    string wrappedKey;
+    CadErr err = cadmiumCrypto_->wrapKey(keyFormat, toBeWrappedKeyHandle,
+            wrappingKeyHandle, wrappingAlgoObj, wrappedKey);
     if (isError(err, cmdIndex))
         return false;
 
     // return the result
-    returnVarMap["payload"]["buffer"] = wrappedKeyJcs;
+    returnVarMap["payload"]["buffer"] = wrappedKey;
     setSuccess(returnVarMap);
 
     return true;

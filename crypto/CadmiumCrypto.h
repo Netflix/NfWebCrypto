@@ -398,6 +398,49 @@ public:
             const base::Variant& wrappingAlgoObj, JweEncMethod jweEncMethod,
             std::string& wrappedKeyJcs);
 
+    /** Unwrap a key
+     * This method unwraps a key as described in the Web Crypto spec, using an
+     * existing key in the keystore as the unwrapping key. This is just a
+     * combination of decrypt + import. The result is the handle of the imported
+     * key.
+     * @param[in] format The post-decrypt import format of the key being unwrapped.
+     * @param[in] wrappedKeyDataStr64 The base64-encoded wrapped key.
+     * @param[in] wrappingKeyHandle Handle of the key in the keystore with
+     *     which to decrypt the input data.
+     * @param[in] wrappingAlgObj The decryption algorithm, must match that of
+     *     the wrappingKey
+     * @param[in] unwrappedKeyAlgObj The algorithm to associate with the unwapped
+     *     key.
+     * @param[in] unwrappedKeyExtractable The extractable value to associate with
+     *     the unwrapped key.
+     * @param[in] unwrappedKeyUsageVec The key usages value to associate with the
+     *     unwrapped key.
+     * @param[out] unwrappedKeyHandle The handle of the unwrapped key in the keystore.
+     * @return CadErr, CAD_ERR_OK if no error
+     */
+    CadErr unwrapKey(KeyFormat format, const std::string& wrappedKeyDataStr64,
+            uint32_t wrappingKeyHandle, const base::Variant& wrappingAlgObj,
+            const base::Variant& unwrappedKeyAlgObj, bool unwrappedKeyExtractable,
+            const std::vector<KeyUsage>& unwrappedKeyUsageVec,
+            uint32_t& unwrappedKeyHandle);
+
+    /** Wrap an existing key
+     * This method wraps an existing key in the keystore according to the rules
+     * in the Web Crypto spec, using an existing wrapping key also in the
+     * keystore. This is just a combination of export + encrypt. The result is a
+     * base-64 encoded string of the exported, encrypted key data.
+     * @param[in] format The export format of the key to be wrapped.
+     * @param[in] toBeWrappedKeyHandle The handle of the key to be wrapped
+     * @param[in] wrappingKeyHandle The handle of the key to use in during the
+     *     key wrap process.
+     * @param[in] wrappingAlgoObj The encryption algorithm to the exported key.
+     * @param[out] wrappedKey The base64-encoded wrapped key.
+     * @return CadErr, CAD_ERR_OK if no error
+     */
+    CadErr wrapKey(KeyFormat format, uint32_t toBeWrappedKeyHandle,
+            uint32_t wrappingKeyHandle, const base::Variant& wrappingAlgoObj,
+            std::string& wrappedKey);
+
     //---------------- NON Web Crypto APIs------------------------------------//
 
     CadErr getDeviceId(std::string& deviceId) const;

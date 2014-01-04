@@ -73,6 +73,14 @@ public:
     CadErr wrapJwe(uint32_t toBeWrappedKeyHandle, uint32_t wrappingKeyHandle,
             const base::Variant& wrappingAlgoObj, JweEncMethod jweEncMethod,
             std::string& wrappedKeyJcs);
+    CadErr unwrapKey(KeyFormat format, const std::string& wrappedKeyDataStr64,
+            uint32_t wrappingKeyHandle, const base::Variant& wrappingAlgObj,
+            const base::Variant& unwrappedKeyAlgObj, bool unwrappedKeyExtractable,
+            const std::vector<KeyUsage>& unwrappedKeyUsageVec,
+            uint32_t& unwrappedKeyHandle);
+    CadErr wrapKey(KeyFormat format, uint32_t toBeWrappedKeyHandle,
+            uint32_t wrappingKeyHandle, const base::Variant& wrappingAlgoObj,
+            std::string& wrappedKey);
     CadErr symKeyGen(const base::Variant& algVar, bool extractable,
             const std::vector<KeyUsage> keyUsage, uint32_t &keyHandle);
     CadErr pbkdf2Derive(const std::string& salt, uint32_t iterations,
