@@ -393,7 +393,7 @@ End of (PolyCrypt) License Terms and Conditions.
 
     //--------------------------------------------------------------------------
     var createKeyOp = function (type, format, keyData, algorithm,
-            extractable, keyUsage, baseKey, derivedKeyType, key, keyName) {
+            extractable, keyUsage, baseKey, derivedKeyType, key, keyName, unwrappedKeyAlg) {
 
         var op = {},
         result = null,
@@ -442,6 +442,7 @@ End of (PolyCrypt) License Terms and Conditions.
             derivedAlgorithm : derivedKeyType,
             keyHandle: (key == null) ? key : key.handle,
             keyName: keyName,
+            unwrappedKeyAlg: unwrappedKeyAlg
         };
         messenger.postMessage(type, args);
 
@@ -552,14 +553,15 @@ End of (PolyCrypt) License Terms and Conditions.
         return createKeyOp("derive", null, null, algorithm, extractable, keyUsage, baseKey, derivedKeyAlgorithm, null)
     };
 
-    that.wrapKey = function (keyToWrap, wrappingKey, wrappingAlgorithm) {
-        wrappingAlgorithm.params = JSON.parse(JSON.stringify(wrappingAlgorithm));
-        return createKeyOp('wrapKey', null, null, wrappingAlgorithm, null, null, keyToWrap, null, wrappingKey);
+    that.wrapKey = function (format, keyToWrap, wrappingKey, wrappingAlgorithm) {
+        wrappingAlgorithm.params = wrappingAlgorithm.clone();
+        return createKeyOp('wrapKey', format, null, wrappingAlgorithm, null, null, keyToWrap, null, wrappingKey);
     };
-
-    that.unwrapKey = function (jweKeyData, algorithm, wrappingKey, extractable, usage) {
-        algorithm.params = algorithm.clone();
-        return createKeyOp('unwrapKey', null, jweKeyData, algorithm, extractable, usage, null, null, wrappingKey);
+    
+    that.unwrapKey = function (format, wrappedKey, unwrappingKey, unwrapAlgorithm, unwrappedKeyAlgorithm, extractable, usage) {
+        unwrapAlgorithm.params = unwrapAlgorithm.clone();
+        unwrappedKeyAlgorithm.params = unwrappedKeyAlgorithm.clone();
+        return createKeyOp('unwrapKey', format, wrappedKey, unwrapAlgorithm, extractable, usage, null, null, unwrappingKey, null, unwrappedKeyAlgorithm);
     };
 
     that.getRandomValues = function (abv) {
