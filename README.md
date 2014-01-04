@@ -1,7 +1,7 @@
-Netflix WebCrypto (NfWebCrypto) - NaCl Edition
+Netflix WebCrypto (NfWebCrypto) - PNaCl Edition
 ==============================================
 
-**NOTE: This branch is an experimental NaCl version of the NfWebCrypto plugin.
+**NOTE: This branch is an experimental PNaCl version of the NfWebCrypto plugin.
 There are significant hacks in this experiment that compromise the implementation.
 DO NOT USE except for experimentation!**
 
