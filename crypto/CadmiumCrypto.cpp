@@ -176,6 +176,25 @@ CadErr CadmiumCrypto::wrapJwe(uint32_t toBeWrappedKeyHandle, uint32_t wrappingKe
             jweEncMethod, wrappedKeyJcs);
 }
 
+CadErr CadmiumCrypto::unwrapKey(KeyFormat format, const string& wrappedKeyDataStr64,
+        uint32_t wrappingKeyHandle, const base::Variant& wrappingAlgObj,
+        const base::Variant& unwrappedKeyAlgObj, bool unwrappedKeyExtractable,
+        const vector<KeyUsage>& unwrappedKeyUsageVec,
+        uint32_t& unwrappedKeyHandle)
+{
+    return impl_->unwrapKey(format, wrappedKeyDataStr64, wrappingKeyHandle,
+            wrappingAlgObj, unwrappedKeyAlgObj, unwrappedKeyExtractable,
+            unwrappedKeyUsageVec, unwrappedKeyHandle);
+}
+
+CadErr CadmiumCrypto::wrapKey(KeyFormat format, uint32_t toBeWrappedKeyHandle,
+        uint32_t wrappingKeyHandle, const base::Variant& wrappingAlgoObj,
+        string& wrappedKey)
+{
+    return impl_->wrapKey(format, toBeWrappedKeyHandle, wrappingKeyHandle,
+            wrappingAlgoObj, wrappedKey);
+}
+
 CadErr CadmiumCrypto::pbkdf2Derive(const string& salt, uint32_t iterations,
         const base::Variant& prf, const string& password,
         const base::Variant& derivedAlgObj, bool extractable,

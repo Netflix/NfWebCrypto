@@ -1114,17 +1114,20 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::exportJwk(const Key& key, string& jwkSt
     // ---- 'use'
     // assume the the key.keyUsage vector is self-consistent and consistent with
     // key.algorithm, since this was checked when the key was created
-    vector<string> jwkUseStrVec;
-    for (size_t i = 0; i < key.keyUsage.size(); ++i)
-        jwkUseStrVec.push_back(keyUsageToJwkStrMap[key.keyUsage[i]]);
-    assert(jwkUseStrVec.size());
-    string jwkUseStr = jwkUseStrVec[0];
-    for (size_t i = 1; i < jwkUseStrVec.size(); ++i)
+    if (key.keyUsage.size())
     {
-        jwkUseStr.append(",");
-        jwkUseStr.append(jwkUseStrVec[i]);
+        vector<string> jwkUseStrVec;
+        for (size_t i = 0; i < key.keyUsage.size(); ++i)
+            jwkUseStrVec.push_back(keyUsageToJwkStrMap[key.keyUsage[i]]);
+        assert(jwkUseStrVec.size());
+        string jwkUseStr = jwkUseStrVec[0];
+        for (size_t i = 1; i < jwkUseStrVec.size(); ++i)
+        {
+            jwkUseStr.append(",");
+            jwkUseStr.append(jwkUseStrVec[i]);
+        }
+        jwkMap["use"] = jwkUseStr;
     }
-    jwkMap["use"] = jwkUseStr;
 
     // ---- 'alg'
     const size_t keyLengthBits = key.key.size() * 8;
@@ -2243,6 +2246,219 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::wrapJwe(uint32_t toBeWrappedKeyHandle,
     wrappedKeyJcsStr64 = Base64::encode(wrappedKeyJcsStr);
 
     return CAD_ERR_OK;
+}
+
+CadErr CadmiumCrypto::CadmiumCryptoImpl::unwrapKey(KeyFormat format,
+        const string& wrappedKeyDataStr64, uint32_t wrappingKeyHandle,
+        const base::Variant& wrappingAlgoObj, const base::Variant& unwrappedKeyAlgObj,
+        bool unwrappedKeyExtractable, const vector<KeyUsage>& unwrappedKeyUsageVec,
+        uint32_t& unwrappedKeyHandle)
+{
+    // wrappingAlgoObj may be null. If not make sure it is a supported algorithm.
+    // We support only RSAES, RSA-OAEP, and AES-KW algorithms
+    Algorithm wrappingAlgoType = INVALID_ALGORITHM;
+    if (!wrappingAlgoObj.isNull())
+    {
+        const string wrappingAlgoTypeStr = wrappingAlgoObj["name"].string();
+        wrappingAlgoType = toAlgorithm(wrappingAlgoTypeStr);
+        if (wrappingAlgoType != RSAES_PKCS1_V1_5 && wrappingAlgoType != RSA_OAEP && wrappingAlgoType != AES_KW)
+        {
+            DLOG() << "CadmiumCrypto::unwrapKey: Only RSA-ES, RSA-OAEP, and AES-KW algorithms supported\n";
+            return CAD_ERR_UNKNOWN_ALGO;    // FIXME: better error
+        }
+    }
+
+    // verify the wrapping key exists
+    if (!hasKey(wrappingKeyHandle))
+    {
+        DLOG() << "CadmiumCrypto::unwrapKey: key does not exist\n";
+        return CAD_ERR_BADKEYINDEX;
+    }
+
+    // check the wrapping key
+    if (!isUsageAllowed(wrappingKeyHandle, WRAP))
+    {
+        DLOG() << "CadmiumCrypto::unwrapKey: operation disallowed by keyUsage\n";
+        return CAD_ERR_KEY_USAGE;
+    }
+    const Key wrappingKey = keyMap_[wrappingKeyHandle];
+    const Algorithm wrappingKeyAlgoType = toAlgorithm(wrappingKey.algVar["name"].string());
+    // if provided, the API alg must match the wrapping key's alg
+    if (!wrappingAlgoObj.isNull() && (wrappingAlgoType != wrappingKeyAlgoType))
+    {
+        DLOG() << "CadmiumCrypto::unwrapKey: wrapping key and wrapping algorithm are inconsistent\n";
+        return CAD_ERR_UNKNOWN_ALGO;    // FIXME: better error
+    }
+
+    // Decrypt the input data
+    string keyDataStr64;
+    switch (wrappingKeyAlgoType)
+    {
+        case RSAES_PKCS1_V1_5:
+        case RSA_OAEP:
+        {
+            // make sure the key has an RSA context already
+            if (!wrappingKey.pRsaContext.get())
+            {
+                DLOG() << "CadmiumCrypto::unwrapKey: RSA wrapping key not initialized\n";
+                return CAD_ERR_UNKNOWN_ALGO;    // FIXME: better error
+            }
+            CadErr err = rsaCrypt(wrappingKeyHandle, wrappedKeyDataStr64, DODECRYPT, keyDataStr64);
+            if (err != CAD_ERR_OK)
+            {
+                DLOG() << "CadmiumCrypto::unwrapKey: RSA decrypt failed\n";
+                return err;
+            }
+            break;
+        }
+        case AES_KW:
+        {
+            // make sure the key is the right size for AES key wrap
+            const size_t wrappingKeyLengthBits = wrappingKey.key.size() * 8;
+            if (wrappingKeyLengthBits != 128 && wrappingKeyLengthBits != 256)
+            {
+                DLOG() << "CadmiumCrypto::unwrapKey: AES wrapping key must be 128 or 256 bits\n";
+                return CAD_ERR_UNKNOWN_ALGO;    // FIXME: better error
+            }
+            const Vuc encryptedKetData = str64toVuc(wrappedKeyDataStr64);
+            Vuc decryptedKeyData;
+            AesKeyWrapper aesKeyWrapper(wrappingKey.key);
+            if (!aesKeyWrapper.unwrap(encryptedKetData, decryptedKeyData))
+            {
+                DLOG() << "CadmiumCrypto::unwrapKey: AES-KW decrypt failed\n";
+                return CAD_ERR_UNKNOWN;    // FIXME: better error
+            }
+            keyDataStr64 = vucToStr64(decryptedKeyData);
+            break;
+        }
+        default:
+        {
+            // wrapping key alg must be either RSA or AES_KW
+            DLOG() << "CadmiumCrypto::unwrapKey: Only RSA and AES-KW algorithms supported\n";
+            return CAD_ERR_UNKNOWN_ALGO;    // FIXME: better error
+            break;  // not reached
+        }
+    }
+
+    // Import the decrypted key
+    CadErr err = importKey(format, keyDataStr64, unwrappedKeyAlgObj,
+            unwrappedKeyExtractable, unwrappedKeyUsageVec, unwrappedKeyHandle);
+    if (err != CAD_ERR_OK)
+    {
+        DLOG() << "CadmiumCrypto::unwrapKey: import key failed\n";
+        return err;
+    }
+
+    return CAD_ERR_OK;
+}
+
+CadErr CadmiumCrypto::CadmiumCryptoImpl::wrapKey(KeyFormat format,
+        uint32_t toBeWrappedKeyHandle, uint32_t wrappingKeyHandle,
+        const base::Variant& wrappingAlgoObj, std::string& wrappedKey64)
+{
+    if (!isInited_)
+        return CAD_ERR_NOT_INITIALIZED;
+
+    DLOG() << "CadmiumCrypto::wrapKey:\n";
+
+    // ---- Input checks
+
+    // wrappingAlgoObj may be null. If not make sure it is a supported algorithm.
+    // We support only RSAES, RSA-OAEP, and AES-KW algorithms
+    Algorithm wrappingAlgoType = INVALID_ALGORITHM;
+    if (!wrappingAlgoObj.isNull())
+    {
+        const string wrappingAlgoTypeStr = wrappingAlgoObj["name"].string();
+        wrappingAlgoType = toAlgorithm(wrappingAlgoTypeStr);
+        if (wrappingAlgoType != RSAES_PKCS1_V1_5 && wrappingAlgoType != RSA_OAEP && wrappingAlgoType != AES_KW)
+        {
+            DLOG() << "CadmiumCrypto::wrapKey: Only RSA-ES, RSA-OAEP, and AES-KW algorithms supported\n";
+            return CAD_ERR_UNKNOWN_ALGO;    // FIXME: better error
+        }
+    }
+
+    // verify the keys exist
+    if (!hasKey(toBeWrappedKeyHandle) || !hasKey(wrappingKeyHandle))
+    {
+        DLOG() << "CadmiumCrypto::wrapKey: key does not exist\n";
+        return CAD_ERR_BADKEYINDEX;
+    }
+
+    // check the wrapping key
+    if (!isUsageAllowed(wrappingKeyHandle, WRAP))
+    {
+        DLOG() << "CadmiumCrypto::wrapKey: operation disallowed by keyUsage\n";
+        return CAD_ERR_KEY_USAGE;
+    }
+    const Key wrappingKey = keyMap_[wrappingKeyHandle];
+    const Algorithm wrappingKeyAlgoType = toAlgorithm(wrappingKey.algVar["name"].string());
+    // if provided, the API alg must match the wrapping key's alg
+    if (!wrappingAlgoObj.isNull() && (wrappingAlgoType != wrappingKeyAlgoType))
+    {
+        DLOG() << "CadmiumCrypto::wrapKey: wrapping key and wrapping algorithm are inconsistent\n";
+        return CAD_ERR_UNKNOWN_ALGO;    // FIXME: better error
+    }
+
+    // export the key to be wrapped in the required format
+    string keyStr64;
+    CadErr err = exportKey(toBeWrappedKeyHandle, format, keyStr64);
+    if (err != CAD_ERR_OK)
+    {
+        DLOG() << "CadmiumCrypto::wrapKey: Key export failed\n";
+        return err;
+    }
+
+    // encrypt the key to be wrapped with the wrapping key
+    switch (wrappingKeyAlgoType)
+    {
+        case RSAES_PKCS1_V1_5:
+        case RSA_OAEP:
+        {
+            // make sure the key has an RSA context already
+            if (!wrappingKey.pRsaContext.get())
+            {
+                DLOG() << "CadmiumCrypto::wrapKey: RSA wrapping key not initialized\n";
+                return CAD_ERR_UNKNOWN_ALGO;    // FIXME: better error
+            }
+            CadErr err = rsaCrypt(wrappingKeyHandle, keyStr64, DOENCRYPT, wrappedKey64);
+            if (err != CAD_ERR_OK)
+            {
+                DLOG() << "CadmiumCrypto::wrapKey: RSA encrypt failed\n";
+                return err;
+            }
+            break;
+        }
+        case AES_KW:
+        {
+            // make sure the key is the right size for AES key wrap
+            const size_t wrappingKeyLengthBits = wrappingKey.key.size() * 8;
+            if (wrappingKeyAlgoType == AES_KW && wrappingKeyLengthBits != 128 && wrappingKeyLengthBits != 256)
+            {
+                DLOG() << "CadmiumCrypto::wrapKey: AES wrapping key must be 128 or 256 bits\n";
+                return CAD_ERR_UNKNOWN_ALGO;    // FIXME: better error
+            }
+            const Vuc keyToWrapVuc = str64toVuc(keyStr64);
+            Vuc wrappedKeyVuc;
+            AesKeyWrapper aesKeyWrapper(wrappingKey.key);
+            if (!aesKeyWrapper.wrap(keyToWrapVuc, wrappedKeyVuc))
+            {
+                DLOG() << "CadmiumCrypto::wrapKey: AES-KW encrypt failed\n";
+                return CAD_ERR_UNKNOWN;    // FIXME: better error
+            }
+            wrappedKey64 = vucToStr64(wrappedKeyVuc);
+            break;
+        }
+        default:
+        {
+            // wrapping key alg must be either RSA or AES_KW
+            DLOG() << "CadmiumCrypto::wrapKey: Only RSA and AES-KW algorithms supported\n";
+            return CAD_ERR_UNKNOWN_ALGO;    // FIXME: better error
+            break;  // not reached
+        }
+    }
+
+    return CAD_ERR_OK;
+
 }
 
 CadErr CadmiumCrypto::CadmiumCryptoImpl::symKeyGen(const Variant& algVar,
