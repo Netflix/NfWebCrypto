@@ -128,7 +128,7 @@ End of (PolyCrypt) License Terms and Conditions.
 
     // public api root
     // TODO: remove the methods from nfCrypto, they should only be on nfCrypto.subtle
-    window.nfCrypto = window.crypto;
+    window.nfCrypto = that;
     window.nfCrypto.subtle = that;
     window.nfCryptoKeys = that;
 
@@ -478,18 +478,24 @@ End of (PolyCrypt) License Terms and Conditions.
         }
         return newObj;
       };
+      
+      function fixAlgorithmParams(algorithm) {
+          if (algorithm && !algorithm.params) {
+              algorithm.params = algorithm.clone();
+          } 
+      }
 
     //--------------------------------------------------------------------------
       
     // add wc methods here
 
     that.digest = function (algorithm, buffer) {
-        algorithm.params = algorithm.clone();
+        fixAlgorithmParams(algorithm);
         return createCryptoOp('digest', algorithm, null, null, buffer);
     };
 
     that.importKey = function (format, keyData, algorithm, extractable, keyUsage) {
-        algorithm.params = algorithm.clone();
+        fixAlgorithmParams(algorithm);
         return createKeyOp('import', format, keyData, algorithm, extractable, keyUsage);
     };
 
@@ -498,7 +504,7 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.encrypt = function (algorithm, key, buffer) {
-        algorithm.params = algorithm.clone();
+        fixAlgorithmParams(algorithm);
         if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("iv")) {
             algorithm.params.iv = b64encode(algorithm.params.iv);
         }
@@ -509,7 +515,7 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.decrypt = function (algorithm, key, buffer) {
-        algorithm.params = algorithm.clone();
+        fixAlgorithmParams(algorithm);
         if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("iv")) {
             algorithm.params.iv = b64encode(algorithm.params.iv);
         }
@@ -520,17 +526,17 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.sign = function (algorithm, key, buffer) {
-        algorithm.params = algorithm.clone();
+        fixAlgorithmParams(algorithm);
         return createCryptoOp('sign', algorithm, key, null, buffer);
     };
 
     that.verify = function (algorithm, key, signature, buffer) {
-        algorithm.params = algorithm.clone();
+        fixAlgorithmParams(algorithm);
         return createCryptoOp('verify', algorithm, key, signature, buffer);
     };
 
     that.generateKey = function (algorithm, extractable, keyUsage) {
-        algorithm.params = algorithm.clone();
+        fixAlgorithmParams(algorithm);
         var tob64 = ["publicExponent", "prime", "generator"];
         var propName;
         if (algorithm.hasOwnProperty('params')) {
@@ -545,7 +551,7 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.deriveKey = function (algorithm, baseKey, derivedKeyAlgorithm, extractable, keyUsage) {
-        algorithm.params = algorithm.clone();
+        fixAlgorithmParams(algorithm);
         if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("public")) {
             algorithm.params["public"] = b64encode(algorithm.params["public"]);
         }
@@ -553,12 +559,12 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.wrapKey = function (keyToWrap, wrappingKey, wrappingAlgorithm) {
-        wrappingAlgorithm.params = JSON.parse(JSON.stringify(wrappingAlgorithm));
+        fixAlgorithmParams(wrappingAlgorithm);
         return createKeyOp('wrapKey', null, null, wrappingAlgorithm, null, null, keyToWrap, null, wrappingKey);
     };
 
     that.unwrapKey = function (jweKeyData, algorithm, wrappingKey, extractable, usage) {
-        algorithm.params = algorithm.clone();
+        fixAlgorithmParams(algorithm);
         return createKeyOp('unwrapKey', null, jweKeyData, algorithm, extractable, usage, null, null, wrappingKey);
     };
 
