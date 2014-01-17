@@ -1697,7 +1697,7 @@
             // verify data with the public key
             runs(function () {
                 error = undefined;
-                cryptoSubtle.verify({ name: "RSASSA-PKCS1-v1_5", hash: {name: "SHA-256"} }, pubKey_RSASSA_PKCS1_v1_5, signature, data)
+                cryptoSubtle.verify({ name: "RSASSA-PKCS1-v1_5", hash: {name: "SHA-256"} }, pubKey_RSASSA_PKCS1_v1_5, signature.buffer, data)
                 .then(function (result) {
                     verified = result;
                 })
