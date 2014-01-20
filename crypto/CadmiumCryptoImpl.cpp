@@ -683,7 +683,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
 
     // resolve conflicts between JWK and input args
 
-    // 'extractable' - should be the AND of the API and JWK values, if the latter exists
+    // 'ext' - should be the AND of the API and JWK values, if the latter exists
     bool myExtractable = jwkExt.empty() ?
             extractable : extractable && (jwkExt == "true");
 
