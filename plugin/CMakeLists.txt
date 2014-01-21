@@ -18,7 +18,7 @@ cmake_minimum_required (VERSION 2.8)
 # Version file
 # FIXME: pull version numbers from env vars first
 set(Plugin_VERSION_MAJOR "2")
-set(Plugin_VERSION_MINOR "0")
+set(Plugin_VERSION_MINOR "5")
 set(Plugin_VERSION_MICRO "0")
 configure_file (
   "${PROJECT_SOURCE_DIR}/plugin/Version.h.in"

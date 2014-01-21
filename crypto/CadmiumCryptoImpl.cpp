@@ -654,7 +654,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
     //      'alg:  'RSA1_5', 'A128' OPTIONAL
     //      'use': comma-sep list of (enconly, deconly, sigonly, vfyonly,
     //             drvkey, drvbits, wrap, unwrap, enc, sig, wrap) OPTIONAL
-    //      'use_details' Array of one or more from [encrypt, decrypt, sign,
+    //      'key_ops' Array of one or more from [encrypt, decrypt, sign,
     //             verify, wrapKey, unwrapKey, deriveKey, deriveBits]
     //      'ext': true or false OPTIONAL
     //      <type-specific parms> OPTIONAL
@@ -671,7 +671,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
     }
     const string jwkAlg = jwk.mapValue<string>("alg");
     const string jwkUse = jwk.mapValue<string>("use");
-    const VariantArray jwkUseDetails = jwk.mapValue<VariantArray>("use_details");
+    const VariantArray jwkUseDetails = jwk.mapValue<VariantArray>("key_ops");
     const string jwkExt = jwk.mapValue<string>("ext");
     DLOG() << "\tjwkKty = " << jwkKty << endl;
     if (jwkAlg.size()) DLOG() << "\tjwkAlg = " << jwkAlg << endl;
@@ -1141,7 +1141,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::exportJwk(const Key& key, string& jwkSt
         return CAD_ERR_INTERNAL;    // FIXME better error
     }
 
-    // ---- 'use_details'
+    // ---- 'key_ops'
     // assume the the key.keyUsage vector is self-consistent and consistent with
     // key.algorithm, since this was checked when the key was created
     if (key.keyUsage.size())
@@ -1155,7 +1155,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::exportJwk(const Key& key, string& jwkSt
         {
             jwkUseDetailsAry.push_back(jwkUseStrVec[i]);
         }
-        jwkMap["use_details"] = jwkUseDetailsAry;
+        jwkMap["key_ops"] = jwkUseDetailsAry;
     }
 
     // ---- 'use'

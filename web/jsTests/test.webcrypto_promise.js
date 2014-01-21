@@ -1405,7 +1405,7 @@
                 )),
                 e:      base64.stringifyUrlSafe(base16.parse("010001")),
                 ext:    true,
-                use_details:    ["encrypt"]
+                key_ops:    ["encrypt"]
             }));
 
             var privKeyJwk = latin1.parse(JSON.stringify({
@@ -1499,7 +1499,7 @@
                         "e61d44e163251e20c7f66eb305117cb8"
                 )),
                 ext:    true,
-                use_details:    ["decrypt"]
+                key_ops:    ["decrypt"]
             }));
             
             var cleartext = base16.parse(
@@ -1852,7 +1852,7 @@
             var jwk1 = latin1.parse(JSON.stringify({
                 alg:    "A128CBC",
                 kty:    "oct",
-                use_details:    ["encrypt"],
+                key_ops:    ["encrypt"],
                 ext:    true,
                 k:      base64.stringifyUrlSafe(key128),
             }));
@@ -1894,7 +1894,7 @@
                 expect(key).toBeDefined();
                 var json1 = JSON.parse(latin1.stringify(jwk1));
                 var json2 = JSON.parse(latin1.stringify(exportedData));
-                delete json2['use'];
+                if (json2.hasOwnProperty('use')) delete json2['use'];
                 expect(json1).toEqual(json2);
             });
             
@@ -1904,7 +1904,7 @@
             var jwk3 = latin1.parse(JSON.stringify({
                 alg:    "HS256",
                 kty:    "oct",
-                use_details:    ["sign"],
+                key_ops:    ["sign"],
                 ext:    true,
                 k:      base64.stringifyUrlSafe(key256),
             }));
@@ -1946,7 +1946,7 @@
                 expect(key).toBeDefined();
                 var json1 = JSON.parse(latin1.stringify(jwk3));
                 var json2 = JSON.parse(latin1.stringify(exportedData));
-                delete json2['use'];
+                if (json2.hasOwnProperty('use')) delete json2['use'];
                 expect(json1).toEqual(json2);
             });
         });
@@ -1979,7 +1979,7 @@
                 )),
                 e:      base64.stringifyUrlSafe(base16.parse("010001")),
                 ext:    true,
-                use_details:    ["decrypt"]
+                key_ops:    ["decrypt"]
             }));
             runs(function () {
                 key = undefined;
@@ -2019,7 +2019,7 @@
                 expect(key).toBeDefined();
                 var json1 = JSON.parse(latin1.stringify(jwk4));
                 var json2 = JSON.parse(latin1.stringify(exportedData));
-                delete json2['use'];
+                if (json2.hasOwnProperty('use')) delete json2['use'];
                 expect(json1).toEqual(json2);
             });
         });
@@ -2050,7 +2050,7 @@
                 )),
                 e:      base64.stringifyUrlSafe(base16.parse("010001")),
                 ext:    true,
-                use_details:    ["encrypt"]
+                key_ops:    ["encrypt"]
             }));
             runs(function () {
                 key = undefined;
@@ -2091,7 +2091,7 @@
                 expect(key).toBeDefined();
                 var json1 = JSON.parse(latin1.stringify(jwk));
                 var json2 = JSON.parse(latin1.stringify(exportedData));
-                delete json2['use'];
+                if (json2.hasOwnProperty('use')) delete json2['use'];
                 expect(json1).toEqual(json2);
             });
         });
@@ -2190,12 +2190,12 @@
                         "e61d44e163251e20c7f66eb305117cb8"
                 )),
                 ext:    true,
-                use_details:    ["decrypt"]
+                key_ops:    ["decrypt"]
             }));
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk, { name: "RSA-OAEP", hash: {name: "SHA-1"} }, true, [])
+                cryptoSubtle.importKey("jwk", jwk, { name: "RSA-OAEP", hash: {name: "SHA-1"} }, true, ["decrypt"])
                 .then(function (result) {
                     key = result;
                 })
@@ -2211,6 +2211,7 @@
                 expect(key).toBeDefined();
                 expect(key.algorithm.name).toBeAnyOf(["RSA-OAEP", "rsa-oaep"]);
                 expect(key.type).toBe("private");
+                expect(key.usages).toEqual(["decrypt"]);
             });
         });
 
@@ -2218,7 +2219,7 @@
             var jwk5 = latin1.parse(JSON.stringify({
                 alg:    "A128KW",
                 kty:    "oct",
-                use_details:    ["wrapKey"],
+                key_ops:    ["wrapKey"],
                 ext:    true,
                 k:      base64.stringifyUrlSafe(key128),
             }));
@@ -2260,7 +2261,7 @@
                 expect(key).toBeDefined();
                 var json1 = JSON.parse(latin1.stringify(jwk5));
                 var json2 = JSON.parse(latin1.stringify(exportedData));
-                delete json2['use'];
+                if (json2.hasOwnProperty('use')) delete json2['use'];
                 expect(json1).toEqual(json2);
             });
         });
@@ -2269,7 +2270,7 @@
             var jwk6 = latin1.parse(JSON.stringify({
                 alg:    "A256KW",
                 kty:    "oct",
-                use_details:    ["unwrapKey"],
+                key_ops:    ["unwrapKey"],
                 ext:    true,
                 k:      base64.stringifyUrlSafe(key256),
             }));
@@ -2311,7 +2312,7 @@
                 expect(key).toBeDefined();
                 var json1 = JSON.parse(latin1.stringify(jwk6));
                 var json2 = JSON.parse(latin1.stringify(exportedData));
-                delete json2['use'];
+                if (json2.hasOwnProperty('use')) delete json2['use'];
                 expect(json1).toEqual(json2);
             });
 
