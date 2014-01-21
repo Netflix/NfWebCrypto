@@ -393,7 +393,7 @@ End of (PolyCrypt) License Terms and Conditions.
 
     //--------------------------------------------------------------------------
     var createKeyOp = function (type, format, keyData, algorithm,
-            extractable, keyUsage, baseKey, derivedKeyType, key, keyName) {
+            extractable, keyUsage, baseKey, derivedKeyType, key, keyName, unwrappedKeyAlg) {
 
         var op = {},
         result = null,
@@ -442,6 +442,7 @@ End of (PolyCrypt) License Terms and Conditions.
             derivedAlgorithm : derivedKeyType,
             keyHandle: (key == null) ? key : key.handle,
             keyName: keyName,
+            unwrappedKeyAlg: unwrappedKeyAlg
         };
         messenger.postMessage(type, args);
 
@@ -449,53 +450,36 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     //--------------------------------------------------------------------------
-    function copy(buffer)
-    {
-        var bytes = new Uint8Array(buffer);
-        var output = new ArrayBuffer(buffer.byteLength);
-        var outputBytes = new Uint8Array(output);
-        for (var i = 0; i < bytes.length; i++)
-            outputBytes[i] = bytes[i];
-        return outputBytes;
+
+    function cloneObject(o) {
+        if (typeof o === 'object') {
+            if (o instanceof Uint8Array) {
+                return new Uint8Array(o);
+            } else if (o instanceof Array) {
+                return o.slice();
+            } else  {
+                var clone = {};
+                Object.keys(o).forEach(function (k) {
+                    clone[k] = cloneObject(o[k]);
+                });
+                return clone;
+            }
+        } else {
+            return o;
+        }
     }
     
-    Object.prototype.clone = function() {
-        var newObj;
-        if (this instanceof Uint8Array) {
-            newObj = copy(this);
-        } else {
-            if (this instanceof Array) {
-                newObj = [];
-            } else {
-                newObj = {};
-            }
-            for (i in this) {
-              if (i == 'clone') continue;
-              if (this[i] && typeof this[i] == "object") {
-                newObj[i] = this[i].clone();
-              } else newObj[i] = this[i]
-            }
-        }
-        return newObj;
-      };
-      
-      function fixAlgorithmParams(algorithm) {
-          if (algorithm && !algorithm.params) {
-              algorithm.params = algorithm.clone();
-          } 
-      }
-
     //--------------------------------------------------------------------------
       
     // add wc methods here
 
     that.digest = function (algorithm, buffer) {
-        fixAlgorithmParams(algorithm);
+        algorithm.params = cloneObject(algorithm);
         return createCryptoOp('digest', algorithm, null, null, buffer);
     };
 
     that.importKey = function (format, keyData, algorithm, extractable, keyUsage) {
-        fixAlgorithmParams(algorithm);
+        algorithm.params = cloneObject(algorithm);
         return createKeyOp('import', format, keyData, algorithm, extractable, keyUsage);
     };
 
@@ -504,7 +488,7 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.encrypt = function (algorithm, key, buffer) {
-        fixAlgorithmParams(algorithm);
+        algorithm.params = cloneObject(algorithm);
         if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("iv")) {
             algorithm.params.iv = b64encode(algorithm.params.iv);
         }
@@ -515,7 +499,7 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.decrypt = function (algorithm, key, buffer) {
-        fixAlgorithmParams(algorithm);
+        algorithm.params = cloneObject(algorithm);
         if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("iv")) {
             algorithm.params.iv = b64encode(algorithm.params.iv);
         }
@@ -526,17 +510,17 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.sign = function (algorithm, key, buffer) {
-        fixAlgorithmParams(algorithm);
+        algorithm.params = cloneObject(algorithm);
         return createCryptoOp('sign', algorithm, key, null, buffer);
     };
 
     that.verify = function (algorithm, key, signature, buffer) {
-        fixAlgorithmParams(algorithm);
+        algorithm.params = cloneObject(algorithm);
         return createCryptoOp('verify', algorithm, key, signature, buffer);
     };
 
     that.generateKey = function (algorithm, extractable, keyUsage) {
-        fixAlgorithmParams(algorithm);
+        algorithm.params = cloneObject(algorithm);
         var tob64 = ["publicExponent", "prime", "generator"];
         var propName;
         if (algorithm.hasOwnProperty('params')) {
@@ -551,21 +535,22 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.deriveKey = function (algorithm, baseKey, derivedKeyAlgorithm, extractable, keyUsage) {
-        fixAlgorithmParams(algorithm);
+        algorithm.params = cloneObject(algorithm);
         if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("public")) {
             algorithm.params["public"] = b64encode(algorithm.params["public"]);
         }
         return createKeyOp("derive", null, null, algorithm, extractable, keyUsage, baseKey, derivedKeyAlgorithm, null)
     };
 
-    that.wrapKey = function (keyToWrap, wrappingKey, wrappingAlgorithm) {
-        fixAlgorithmParams(wrappingAlgorithm);
-        return createKeyOp('wrapKey', null, null, wrappingAlgorithm, null, null, keyToWrap, null, wrappingKey);
+    that.wrapKey = function (format, keyToWrap, wrappingKey, wrappingAlgorithm) {
+        wrappingAlgorithm.params = cloneObject(wrappingAlgorithm);
+        return createKeyOp('wrapKey', format, null, wrappingAlgorithm, null, null, keyToWrap, null, wrappingKey);
     };
-
-    that.unwrapKey = function (jweKeyData, algorithm, wrappingKey, extractable, usage) {
-        fixAlgorithmParams(algorithm);
-        return createKeyOp('unwrapKey', null, jweKeyData, algorithm, extractable, usage, null, null, wrappingKey);
+    
+    that.unwrapKey = function (format, wrappedKey, unwrappingKey, unwrapAlgorithm, unwrappedKeyAlgorithm, extractable, usage) {
+        unwrapAlgorithm.params = cloneObject(unwrapAlgorithm);
+        unwrappedKeyAlgorithm.params = cloneObject(unwrappedKeyAlgorithm);
+        return createKeyOp('unwrapKey', format, wrappedKey, unwrapAlgorithm, extractable, usage, null, null, unwrappingKey, null, unwrappedKeyAlgorithm);
     };
 
     that.getRandomValues = function (abv) {
@@ -603,6 +588,7 @@ End of (PolyCrypt) License Terms and Conditions.
             window.removeEventListener('load', onLoad);
 
             var pluginObject = window.document.createElement('object');
+            pluginObject.setAttribute('id', 'NfWebCrypto');
             pluginObject.setAttribute('type', navPlugin[0].type);
             pluginObject.setAttribute('style', 'position:fixed;left:0;top:0;width:1px;height:1px;visibility:hidden');
             pluginObject.addEventListener('message', onPluginMessage, false);
@@ -610,9 +596,17 @@ End of (PolyCrypt) License Terms and Conditions.
             function handleReadyMessage(messageJson) {
                 if (messageJson.success && messageJson.method === 'ready') {
                     bridge.removeMessageHandler(handleReadyMessage);
-                    setTimeout(function () {
-                        onPluginReady(pluginObject);
-                    }, 1);
+                    var version = messageJson.payload.version;
+                    if (version == '2.5.0') {
+                        setTimeout(function () {
+                            onPluginReady(pluginObject);
+                        }, 1);
+                    } else {
+                        // don't throw inline, not to block further scripts from executing
+                        window.setTimeout(function () {
+                            throw new Error('Expected plugin version 2.5 but have version ' + version);
+                        }, 0);
+                    }
                 }
             };
             bridge.addMessageHandler(handleReadyMessage);

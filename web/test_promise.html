@@ -34,7 +34,6 @@
     <link rel="stylesheet" type="text/css" href="jasmine/jasmine.css" />
     <script type="text/javascript" src="jasmine/jasmine.js"></script>
     <script type="text/javascript" src="jasmine/jasmine-html.js"></script>
-    <script type="text/javascript" src="jsTests/stressTests/jquery-1.4.2.min.js"></script>
     <!-- utiltities -->
     <script type="text/javascript" src="jsTests/utils.js"></script>
 
@@ -66,6 +65,7 @@
 <body>
 
     <script type="text/javascript">
+    function onLoad() {
         (function () {
             var jasmineEnv = jasmine.getEnv();
             jasmineEnv.updateInterval = 250;
@@ -80,6 +80,8 @@
 
             jasmineEnv.execute();
         })();
+    }
+    window.addEventListener('load', onLoad);
     </script>
 
 </body>
