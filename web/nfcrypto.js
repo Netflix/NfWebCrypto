@@ -588,6 +588,7 @@ End of (PolyCrypt) License Terms and Conditions.
             window.removeEventListener('load', onLoad);
 
             var pluginObject = window.document.createElement('object');
+            pluginObject.setAttribute('id', 'NfWebCrypto');
             pluginObject.setAttribute('type', navPlugin[0].type);
             pluginObject.setAttribute('style', 'position:fixed;left:0;top:0;width:1px;height:1px;visibility:hidden');
             pluginObject.addEventListener('message', onPluginMessage, false);
@@ -595,9 +596,17 @@ End of (PolyCrypt) License Terms and Conditions.
             function handleReadyMessage(messageJson) {
                 if (messageJson.success && messageJson.method === 'ready') {
                     bridge.removeMessageHandler(handleReadyMessage);
-                    setTimeout(function () {
-                        onPluginReady(pluginObject);
-                    }, 1);
+                    var version = messageJson.payload.version;
+                    if (version == '2.5.0') {
+                        setTimeout(function () {
+                            onPluginReady(pluginObject);
+                        }, 1);
+                    } else {
+                        // don't throw inline, not to block further scripts from executing
+                        window.setTimeout(function () {
+                            throw new Error('Expected plugin version 2.5 but have version ' + version);
+                        }, 0);
+                    }
                 }
             };
             bridge.addMessageHandler(handleReadyMessage);

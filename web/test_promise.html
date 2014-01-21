@@ -65,20 +65,37 @@
 <body>
 
     <script type="text/javascript">
-        (function () {
-            var jasmineEnv = jasmine.getEnv();
-            jasmineEnv.updateInterval = 250;
-            jasmineEnv.defaultTimeoutInterval = 1000;
+    function onLoad() {
+        window.removeEventListener('load', onLoad);
+        var plugin = window.document.getElementById("NfWebCrypto");
+        plugin.addEventListener('message', handleMessage, true);
+        function handleMessage(message) {
+            plugin.removeEventListener('message', handleMessage);
+            var obj = JSON.parse(message.data);
+            if (obj.success && obj.method === 'ready') {
+                var version = obj.payload.version;
+                if (version == '2.5.0') {
+                    (function () {
+                        var jasmineEnv = jasmine.getEnv();
+                        jasmineEnv.updateInterval = 250;
+                        jasmineEnv.defaultTimeoutInterval = 1000;
 
-            var htmlReporter = new jasmine.HtmlReporter();
-            jasmineEnv.addReporter(htmlReporter);
+                        var htmlReporter = new jasmine.HtmlReporter();
+                        jasmineEnv.addReporter(htmlReporter);
 
-            jasmineEnv.specFilter = function (spec) {
-                return htmlReporter.specFilter(spec);
-            };
+                        jasmineEnv.specFilter = function (spec) {
+                            return htmlReporter.specFilter(spec);
+                        };
 
-            jasmineEnv.execute();
-        })();
+                        jasmineEnv.execute();
+                    })();
+                } else {
+                    throw new Error('Expected plugin version 2.5 but have version ' + version);
+                }
+            }
+        }
+    }
+    window.addEventListener('load', onLoad);
     </script>
 
 </body>

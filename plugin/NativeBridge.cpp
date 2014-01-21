@@ -301,7 +301,7 @@ void NativeBridge::sendReady(int errCode)
     VariantMap varMap;
     varMap["compat"] = compatList;
     stringstream version;
-    version << Plugin_VERSION_MAJOR << "." << Plugin_VERSION_MINOR;
+    version << Plugin_VERSION_MAJOR << "." << Plugin_VERSION_MINOR << "." << Plugin_VERSION_MICRO;
     varMap["version"] = version.str();
     msgVar["payload"] = Variant(varMap);
     send(msgVar);
