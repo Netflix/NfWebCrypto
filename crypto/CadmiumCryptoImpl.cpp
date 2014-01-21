@@ -290,13 +290,13 @@ CadmiumCrypto::CadmiumCryptoImpl::CadmiumCryptoImpl(IDeviceInfo * pDeviceInfo)
     jwkUseStrToMaskMap["enc"] = JWK_ENCONLY | JWK_DECONLY | JWK_WRAP | JWK_UNWRAP;
     jwkUseStrToMaskMap["sig"] = JWK_SIGONLY | JWK_VFYONLY;
 
-    keyUsageToJwkStrMap[ENCRYPT] = "enconly";
-    keyUsageToJwkStrMap[DECRYPT] = "deconly";
-    keyUsageToJwkStrMap[SIGN]    = "sigonly";
-    keyUsageToJwkStrMap[VERIFY]  = "vfyonly";
-    keyUsageToJwkStrMap[DERIVE]  = "drvkey";
-    keyUsageToJwkStrMap[WRAP]    = "wrap";
-    keyUsageToJwkStrMap[UNWRAP]  = "unwrap";
+    keyUsageToJwkStrMap[ENCRYPT] = "encrypt";
+    keyUsageToJwkStrMap[DECRYPT] = "decrypt";
+    keyUsageToJwkStrMap[SIGN]    = "sign";
+    keyUsageToJwkStrMap[VERIFY]  = "verify";
+    keyUsageToJwkStrMap[DERIVE]  = "deriveKey";
+    keyUsageToJwkStrMap[WRAP]    = "wrapKey";
+    keyUsageToJwkStrMap[UNWRAP]  = "unwrapKey";
 }
 
 CadmiumCrypto::CadmiumCryptoImpl::~CadmiumCryptoImpl()
@@ -654,6 +654,8 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
     //      'alg:  'RSA1_5', 'A128' OPTIONAL
     //      'use': comma-sep list of (enconly, deconly, sigonly, vfyonly,
     //             drvkey, drvbits, wrap, unwrap, enc, sig, wrap) OPTIONAL
+    //      'use_details' Array of one or more from [encrypt, decrypt, sign,
+    //             verify, wrapKey, unwrapKey, deriveKey, deriveBits]
     //      'ext': true or false OPTIONAL
     //      <type-specific parms> OPTIONAL
     // }
@@ -669,15 +671,24 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
     }
     const string jwkAlg = jwk.mapValue<string>("alg");
     const string jwkUse = jwk.mapValue<string>("use");
+    const VariantArray jwkUseDetails = jwk.mapValue<VariantArray>("use_details");
     const string jwkExt = jwk.mapValue<string>("ext");
     DLOG() << "\tjwkKty = " << jwkKty << endl;
     if (jwkAlg.size()) DLOG() << "\tjwkAlg = " << jwkAlg << endl;
     if (jwkUse.size()) DLOG() << "\tjwkUse = " << jwkUse << endl;
     if (!jwkExt.empty()) DLOG() << "\tjwkExt = " << jwkExt << endl;
 
+    if (!jwkUseDetails.empty()) {
+        DLOG() << "\tjwkUseDetails = [ ";
+        for (size_t i=0; i < jwkUseDetails.size(); ++i) {
+            DLOG() << jwkUseDetails[i].string() << " ";
+        }
+        DLOG() << "]" << endl;
+    }
+
     // resolve conflicts between JWK and input args
 
-    // 'extractable' - should be the AND of the API and JWK values, if the latter exists
+    // 'ext' - should be the AND of the API and JWK values, if the latter exists
     bool myExtractable = jwkExt.empty() ?
             extractable : extractable && (jwkExt == "true");
 
@@ -861,6 +872,25 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
             myKeyUsage.push_back(WRAP);
         if (jwkUseMask & JWK_UNWRAP)
             myKeyUsage.push_back(UNWRAP);
+    }
+    else if (jwkUseDetails.size())
+    {
+        for (size_t i=0; i < jwkUseDetails.size(); ++i) {
+            if (jwkUseDetails[i].string() == "encrypt")
+                myKeyUsage.push_back(ENCRYPT);
+            if (jwkUseDetails[i].string() == "decrypt")
+                myKeyUsage.push_back(DECRYPT);
+            if (jwkUseDetails[i].string() == "sign")
+                myKeyUsage.push_back(SIGN);
+            if (jwkUseDetails[i].string() == "verify")
+                myKeyUsage.push_back(VERIFY);
+            if (jwkUseDetails[i].string() == "deriveKey")
+                myKeyUsage.push_back(DERIVE);
+            if (jwkUseDetails[i].string() == "wrapKey")
+                myKeyUsage.push_back(WRAP);
+            if (jwkUseDetails[i].string() == "unwrapKey")
+                myKeyUsage.push_back(UNWRAP);
+        }
     }
     else
     {
@@ -1111,7 +1141,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::exportJwk(const Key& key, string& jwkSt
         return CAD_ERR_INTERNAL;    // FIXME better error
     }
 
-    // ---- 'use'
+    // ---- 'use_details'
     // assume the the key.keyUsage vector is self-consistent and consistent with
     // key.algorithm, since this was checked when the key was created
     if (key.keyUsage.size())
@@ -1120,13 +1150,41 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::exportJwk(const Key& key, string& jwkSt
         for (size_t i = 0; i < key.keyUsage.size(); ++i)
             jwkUseStrVec.push_back(keyUsageToJwkStrMap[key.keyUsage[i]]);
         assert(jwkUseStrVec.size());
-        string jwkUseStr = jwkUseStrVec[0];
-        for (size_t i = 1; i < jwkUseStrVec.size(); ++i)
+        VariantArray jwkUseDetailsAry;
+        for (size_t i = 0; i < jwkUseStrVec.size(); ++i)
         {
-            jwkUseStr.append(",");
-            jwkUseStr.append(jwkUseStrVec[i]);
+            jwkUseDetailsAry.push_back(jwkUseStrVec[i]);
         }
-        jwkMap["use"] = jwkUseStr;
+        jwkMap["use_details"] = jwkUseDetailsAry;
+    }
+
+    // ---- 'use'
+    if (key.keyUsage.size())
+    {
+        bool setEnc = false;
+        bool setSig = false;
+        for (size_t i = 0; i < key.keyUsage.size(); ++i)
+        {
+            switch (key.keyUsage[i])
+            {
+                case ENCRYPT:
+                case DECRYPT:
+                case DERIVE:
+                case UNWRAP:
+                case WRAP:
+                    setEnc = true;
+                    break;
+                case SIGN:
+                case VERIFY:
+                    setSig = true;
+                    break;
+                default:
+                    assert(false);
+                    break;
+            }
+        }
+        assert(setEnc != setSig);
+        jwkMap["use"] = setEnc ? "enc" : "sig";
     }
 
     // ---- 'alg'

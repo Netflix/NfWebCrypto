@@ -1405,7 +1405,7 @@
                 )),
                 e:      base64.stringifyUrlSafe(base16.parse("010001")),
                 ext:    true,
-                use:    "enc"
+                use_details:    ["encrypt"]
             }));
 
             var privKeyJwk = latin1.parse(JSON.stringify({
@@ -1499,7 +1499,7 @@
                         "e61d44e163251e20c7f66eb305117cb8"
                 )),
                 ext:    true,
-                use:    "enc"
+                use_details:    ["decrypt"]
             }));
             
             var cleartext = base16.parse(
@@ -1852,7 +1852,7 @@
             var jwk1 = latin1.parse(JSON.stringify({
                 alg:    "A128CBC",
                 kty:    "oct",
-                use:    "enconly",
+                use_details:    ["encrypt"],
                 ext:    true,
                 k:      base64.stringifyUrlSafe(key128),
             }));
@@ -1894,6 +1894,7 @@
                 expect(key).toBeDefined();
                 var json1 = JSON.parse(latin1.stringify(jwk1));
                 var json2 = JSON.parse(latin1.stringify(exportedData));
+                delete json2['use'];
                 expect(json1).toEqual(json2);
             });
             
@@ -1903,7 +1904,7 @@
             var jwk3 = latin1.parse(JSON.stringify({
                 alg:    "HS256",
                 kty:    "oct",
-                use:    "sigonly",
+                use_details:    ["sign"],
                 ext:    true,
                 k:      base64.stringifyUrlSafe(key256),
             }));
@@ -1945,6 +1946,7 @@
                 expect(key).toBeDefined();
                 var json1 = JSON.parse(latin1.stringify(jwk3));
                 var json2 = JSON.parse(latin1.stringify(exportedData));
+                delete json2['use'];
                 expect(json1).toEqual(json2);
             });
         });
@@ -1977,7 +1979,7 @@
                 )),
                 e:      base64.stringifyUrlSafe(base16.parse("010001")),
                 ext:    true,
-                use:    "deconly"
+                use_details:    ["decrypt"]
             }));
             runs(function () {
                 key = undefined;
@@ -2017,6 +2019,7 @@
                 expect(key).toBeDefined();
                 var json1 = JSON.parse(latin1.stringify(jwk4));
                 var json2 = JSON.parse(latin1.stringify(exportedData));
+                delete json2['use'];
                 expect(json1).toEqual(json2);
             });
         });
@@ -2047,7 +2050,7 @@
                 )),
                 e:      base64.stringifyUrlSafe(base16.parse("010001")),
                 ext:    true,
-                use:    "enconly"
+                use_details:    ["encrypt"]
             }));
             runs(function () {
                 key = undefined;
@@ -2088,6 +2091,7 @@
                 expect(key).toBeDefined();
                 var json1 = JSON.parse(latin1.stringify(jwk));
                 var json2 = JSON.parse(latin1.stringify(exportedData));
+                delete json2['use'];
                 expect(json1).toEqual(json2);
             });
         });
@@ -2186,7 +2190,7 @@
                         "e61d44e163251e20c7f66eb305117cb8"
                 )),
                 ext:    true,
-                use:    "enc"
+                use_details:    ["decrypt"]
             }));
             runs(function () {
                 key = undefined;
@@ -2214,7 +2218,7 @@
             var jwk5 = latin1.parse(JSON.stringify({
                 alg:    "A128KW",
                 kty:    "oct",
-                use:    "wrap",
+                use_details:    ["wrapKey"],
                 ext:    true,
                 k:      base64.stringifyUrlSafe(key128),
             }));
@@ -2256,6 +2260,7 @@
                 expect(key).toBeDefined();
                 var json1 = JSON.parse(latin1.stringify(jwk5));
                 var json2 = JSON.parse(latin1.stringify(exportedData));
+                delete json2['use'];
                 expect(json1).toEqual(json2);
             });
         });
@@ -2264,7 +2269,7 @@
             var jwk6 = latin1.parse(JSON.stringify({
                 alg:    "A256KW",
                 kty:    "oct",
-                use:    "unwrap",
+                use_details:    ["unwrapKey"],
                 ext:    true,
                 k:      base64.stringifyUrlSafe(key256),
             }));
@@ -2306,6 +2311,7 @@
                 expect(key).toBeDefined();
                 var json1 = JSON.parse(latin1.stringify(jwk6));
                 var json2 = JSON.parse(latin1.stringify(exportedData));
+                delete json2['use'];
                 expect(json1).toEqual(json2);
             });
 
