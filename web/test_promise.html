@@ -64,16 +64,17 @@
 
 <body>
 
-    
     <script type="text/javascript">
-        function onLoad() {
-            window.removeEventListener('load', onLoad);
-            var plugin = window.document.getElementById("NfWebCrypto");
-            plugin.addEventListener('message', handleMessage, true);
-            function handleMessage(message) {
-                plugin.removeEventListener('message', handleMessage);
-                var obj = JSON.parse(message.data);
-                if (obj.success && obj.method === 'ready') {
+    function onLoad() {
+        window.removeEventListener('load', onLoad);
+        var plugin = window.document.getElementById("NfWebCrypto");
+        plugin.addEventListener('message', handleMessage, true);
+        function handleMessage(message) {
+            plugin.removeEventListener('message', handleMessage);
+            var obj = JSON.parse(message.data);
+            if (obj.success && obj.method === 'ready') {
+                var version = obj.payload.version;
+                if (version == '2.5.0') {
                     (function () {
                         var jasmineEnv = jasmine.getEnv();
                         jasmineEnv.updateInterval = 250;
@@ -88,10 +89,13 @@
 
                         jasmineEnv.execute();
                     })();
+                } else {
+                    throw new Error('Expected plugin version 2.5 but have version ' + version);
                 }
             }
         }
-        window.addEventListener('load', onLoad);
+    }
+    window.addEventListener('load', onLoad);
     </script>
     
 

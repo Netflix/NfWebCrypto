@@ -301,7 +301,7 @@ void NativeBridge::sendReady(int errCode)
     VariantMap varMap;
     varMap["compat"] = compatList;
     stringstream version;
-    version << Plugin_VERSION_MAJOR << "." << Plugin_VERSION_MINOR;
+    version << Plugin_VERSION_MAJOR << "." << Plugin_VERSION_MINOR << "." << Plugin_VERSION_MICRO;
     varMap["version"] = version.str();
     msgVar["payload"] = Variant(varMap);
     send(msgVar);
@@ -472,7 +472,7 @@ bool NativeBridge::importKey(const string& cmdIndex, Variant& argsVar,
     //         type:        string; one of "secret", "public", "private"
     //         extractable: string; same as input if present else false
     //         algorithm:   object; name of the input algorithm
-    //         keyUsage:   Array of strings; same as input if present else empty
+    //         usages:   Array of strings; same as input if present else empty
     //     }
 
     // get format
@@ -918,14 +918,14 @@ bool NativeBridge::generate(const string& cmdIndex, Variant& argsVar,
     //             type:        string; "public"
     //             extractable: string; same as input if present else false
     //             algorithm:   object; name of the input algorithm
-    //             keyUsage:   Array of strings; same as input if present else empty
+    //             usages:   Array of strings; same as input if present else empty
     //         }
     //         privateKey: {
     //             handle:      the handle of this key in the key store
     //             type:        string; "private"
     //             extractable: string; same as input if present else false
     //             algorithm:   object; name of the input algorithm
-    //             keyUsage:   Array of strings; same as input if present else empty
+    //             usages:   Array of strings; same as input if present else empty
     //         }
 
     // extract normalized algorithm object
@@ -1074,7 +1074,7 @@ bool NativeBridge::derive(const string& cmdIndex, Variant& argsVar,
     //         type:        string; one of "secret", "public", "private"
     //         algorithm:   object; set to input derivedKeyAlgorithm
     //         extractable: boolean; set to input extractable
-    //         keyUsage:   Array of strings; set to input keyUsage
+    //         usages:   Array of strings; set to input keyUsage
     //     }
 
     // extract normalized algorithm object and validate
@@ -1183,7 +1183,7 @@ bool NativeBridge::unwrapKey(const string& cmdIndex, Variant& argsVar,
     //         type:        string; one of "secret", "public", "private"
     //         extractable: string; same as input extractable
     //         algorithm:   object; same as input unwrappedKeyAlg
-    //         keyUsage:   Array of strings; same as input keyUsage
+    //         usages:   Array of strings; same as input keyUsage
     //     }
 
     // get the import format
@@ -1468,7 +1468,7 @@ bool NativeBridge::keyHandleToKeyVarMap(uint32_t keyHandle, VariantMap& keyVarMa
     keyVarMap["type"]        = toString(keyType);
     keyVarMap["extractable"] = extractable;
     keyVarMap["algorithm"]   = algVar;
-    keyVarMap["keyUsage"]    = toKeyUsageVarAry(keyUsageVec);
+    keyVarMap["usages"]    = toKeyUsageVarAry(keyUsageVec);
     return true;
 }
 

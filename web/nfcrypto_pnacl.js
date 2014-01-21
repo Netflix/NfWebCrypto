@@ -644,9 +644,17 @@ var scriptRoot = ([].pop.call(document['getElementsByTagName']('script')))['src'
             function handleReadyMessage(messageJson) {
                 if (messageJson.success && messageJson.method === 'ready') {
                     bridge.removeMessageHandler(handleReadyMessage);
-                    setTimeout(function () {
-                        onPluginReady(pluginObject);
-                    }, 1);
+                    var version = messageJson.payload.version;
+                    if (version == '2.5.0') {
+                        setTimeout(function () {
+                            onPluginReady(pluginObject);
+                        }, 1);
+                    } else {
+                        // don't throw inline, not to block further scripts from executing
+                        window.setTimeout(function () {
+                            throw new Error('Expected plugin version 2.5 but have version ' + version);
+                        }, 0);
+                    }
                 }
             };
             bridge.addMessageHandler(handleReadyMessage);
