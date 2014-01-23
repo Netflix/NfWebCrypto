@@ -2219,7 +2219,7 @@
             var jwk5 = latin1.parse(JSON.stringify({
                 alg:    "A128KW",
                 kty:    "oct",
-                key_ops:    ["wrapKey"],
+                key_ops:    ["wrap"],
                 ext:    true,
                 k:      base64.stringifyUrlSafe(key128),
             }));
@@ -2270,7 +2270,7 @@
             var jwk6 = latin1.parse(JSON.stringify({
                 alg:    "A256KW",
                 kty:    "oct",
-                key_ops:    ["unwrapKey"],
+                key_ops:    ["unwrap"],
                 ext:    true,
                 k:      base64.stringifyUrlSafe(key256),
             }));
