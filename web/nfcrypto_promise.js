@@ -94,7 +94,6 @@ End of (PolyCrypt) License Terms and Conditions.
             var op = nfCrypto.exportKey(format, key);
             op.oncomplete = function (e) {
                 var res = e.target.result;
-                var str = latin1.stringify(res);
                 resolve(res);
             };
             op.onerror = function (e) {

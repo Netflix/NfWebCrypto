@@ -282,6 +282,9 @@ End of (PolyCrypt) License Terms and Conditions.
                         var dataBin = b64decode(data.payload.buffer);
                         data.payload = dataBin;
                     }
+                    if (data.payload.hasOwnProperty('algorithm') && data.payload.algorithm.hasOwnProperty('params')) {
+                        delete data.payload.algorithm['params'];
+                    }
                     event.type = 'complete';
                     setResult(data.payload);
                 }
@@ -474,13 +477,15 @@ End of (PolyCrypt) License Terms and Conditions.
     // add wc methods here
 
     that.digest = function (algorithm, buffer) {
-        algorithm.params = cloneObject(algorithm);
-        return createCryptoOp('digest', algorithm, null, null, buffer);
+        var algo = cloneObject(algorithm);
+        algo.params = cloneObject(algorithm);
+        return createCryptoOp('digest', algo, null, null, buffer);
     };
 
     that.importKey = function (format, keyData, algorithm, extractable, keyUsage) {
-        algorithm.params = cloneObject(algorithm);
-        return createKeyOp('import', format, keyData, algorithm, extractable, keyUsage);
+        var algo = cloneObject(algorithm);
+        algo.params = cloneObject(algorithm);
+        return createKeyOp('import', format, keyData, algo, extractable, keyUsage);
     };
 
     that.exportKey = function (format, key) {
@@ -488,69 +493,78 @@ End of (PolyCrypt) License Terms and Conditions.
     };
 
     that.encrypt = function (algorithm, key, buffer) {
-        algorithm.params = cloneObject(algorithm);
-        if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("iv")) {
-            algorithm.params.iv = b64encode(algorithm.params.iv);
+        var algo = cloneObject(algorithm);
+        algo.params = cloneObject(algorithm);
+        if (algo.hasOwnProperty('params') && algo.params.hasOwnProperty("iv")) {
+            algo.params.iv = b64encode(algo.params.iv);
         }
-        if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("additionalData")) {
-            algorithm.params.additionalData = b64encode(algorithm.params.additionalData);
+        if (algo.hasOwnProperty('params') && algo.params.hasOwnProperty("additionalData")) {
+            algo.params.additionalData = b64encode(algo.params.additionalData);
         }
-        return createCryptoOp('encrypt', algorithm, key, null, buffer);
+        return createCryptoOp('encrypt', algo, key, null, buffer);
     };
 
     that.decrypt = function (algorithm, key, buffer) {
-        algorithm.params = cloneObject(algorithm);
-        if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("iv")) {
-            algorithm.params.iv = b64encode(algorithm.params.iv);
+        var algo = cloneObject(algorithm);
+        algo.params = cloneObject(algorithm);
+        if (algo.hasOwnProperty('params') && algo.params.hasOwnProperty("iv")) {
+            algo.params.iv = b64encode(algo.params.iv);
         }
-        if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("additionalData")) {
-            algorithm.params.additionalData = b64encode(algorithm.params.additionalData);
+        if (algo.hasOwnProperty('params') && algo.params.hasOwnProperty("additionalData")) {
+            algo.params.additionalData = b64encode(algo.params.additionalData);
         }
-        return createCryptoOp('decrypt', algorithm, key, null, buffer);
+        return createCryptoOp('decrypt', algo, key, null, buffer);
     };
 
     that.sign = function (algorithm, key, buffer) {
-        algorithm.params = cloneObject(algorithm);
-        return createCryptoOp('sign', algorithm, key, null, buffer);
+        var algo = cloneObject(algorithm);
+        algo.params = cloneObject(algorithm);
+        return createCryptoOp('sign', algo, key, null, buffer);
     };
 
     that.verify = function (algorithm, key, signature, buffer) {
-        algorithm.params = cloneObject(algorithm);
-        return createCryptoOp('verify', algorithm, key, signature, buffer);
+        var algo = cloneObject(algorithm);
+        algo.params = cloneObject(algorithm);
+        return createCryptoOp('verify', algo, key, signature, buffer);
     };
 
     that.generateKey = function (algorithm, extractable, keyUsage) {
-        algorithm.params = cloneObject(algorithm);
+        var algo = cloneObject(algorithm);
+        algo.params = cloneObject(algorithm);
         var tob64 = ["publicExponent", "prime", "generator"];
         var propName;
-        if (algorithm.hasOwnProperty('params')) {
+        if (algo.hasOwnProperty('params')) {
             for (var i = 0; i < tob64.length; i++) {
                 propName = tob64[i];
-                if (algorithm.params.hasOwnProperty(propName)) {
-                    algorithm.params[propName] = b64encode(algorithm.params[propName]);
+                if (algo.params.hasOwnProperty(propName)) {
+                    algo.params[propName] = b64encode(algo.params[propName]);
                 }
             }
         }
-        return createKeyOp('generate', null, null, algorithm, extractable, keyUsage);
+        return createKeyOp('generate', null, null, algo, extractable, keyUsage);
     };
 
     that.deriveKey = function (algorithm, baseKey, derivedKeyAlgorithm, extractable, keyUsage) {
-        algorithm.params = cloneObject(algorithm);
-        if (algorithm.hasOwnProperty('params') && algorithm.params.hasOwnProperty("public")) {
-            algorithm.params["public"] = b64encode(algorithm.params["public"]);
+        var algo = cloneObject(algorithm);
+        algo.params = cloneObject(algorithm);
+        if (algo.hasOwnProperty('params') && algo.params.hasOwnProperty("public")) {
+            algo.params["public"] = b64encode(algo.params["public"]);
         }
-        return createKeyOp("derive", null, null, algorithm, extractable, keyUsage, baseKey, derivedKeyAlgorithm, null)
+        return createKeyOp("derive", null, null, algo, extractable, keyUsage, baseKey, derivedKeyAlgorithm, null)
     };
 
     that.wrapKey = function (format, keyToWrap, wrappingKey, wrappingAlgorithm) {
-        wrappingAlgorithm.params = cloneObject(wrappingAlgorithm);
-        return createKeyOp('wrapKey', format, null, wrappingAlgorithm, null, null, keyToWrap, null, wrappingKey);
+        var algo = cloneObject(wrappingAlgorithm);
+        algo.params = cloneObject(wrappingAlgorithm);
+        return createKeyOp('wrapKey', format, null, algo, null, null, keyToWrap, null, wrappingKey);
     };
     
     that.unwrapKey = function (format, wrappedKey, unwrappingKey, unwrapAlgorithm, unwrappedKeyAlgorithm, extractable, usage) {
-        unwrapAlgorithm.params = cloneObject(unwrapAlgorithm);
-        unwrappedKeyAlgorithm.params = cloneObject(unwrappedKeyAlgorithm);
-        return createKeyOp('unwrapKey', format, wrappedKey, unwrapAlgorithm, extractable, usage, null, null, unwrappingKey, null, unwrappedKeyAlgorithm);
+        var unwrapalgo = cloneObject(unwrapAlgorithm);
+        unwrapalgo.params = cloneObject(unwrapAlgorithm);
+        var unwrappedalgo = cloneObject(unwrappedKeyAlgorithm);
+        unwrappedalgo.params = cloneObject(unwrappedKeyAlgorithm);
+        return createKeyOp('unwrapKey', format, wrappedKey, unwrapalgo, extractable, usage, null, null, unwrappingKey, null, unwrappedalgo);
     };
 
     that.getRandomValues = function (abv) {
