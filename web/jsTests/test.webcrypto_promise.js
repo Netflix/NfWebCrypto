@@ -1673,7 +1673,7 @@
             // sign data with the private key
             runs(function () {
                 error = undefined;
-                cryptoSubtle.sign({ name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, privKey_RSASSA_PKCS1_v1_5, data)
+                cryptoSubtle.sign({ name: "RSASSA-PKCS1-v1_5", hash: {name: "SHA-256"} }, privKey_RSASSA_PKCS1_v1_5, data)
                 .then(function (result) {
                     signature = result && new Uint8Array(result);
                 })
@@ -1697,7 +1697,7 @@
             // verify data with the public key
             runs(function () {
                 error = undefined;
-                cryptoSubtle.verify({ name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, pubKey_RSASSA_PKCS1_v1_5, signature, data)
+                cryptoSubtle.verify({ name: "RSASSA-PKCS1-v1_5", hash: {name: "SHA-256"} }, pubKey_RSASSA_PKCS1_v1_5, signature, data)
                 .then(function (result) {
                     verified = result;
                 })
@@ -1720,7 +1720,7 @@
                 error = undefined;
                 verified = undefined;
                 signature[10] = signature[10] ^ 0xFF;
-                cryptoSubtle.verify({ name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, pubKey_RSASSA_PKCS1_v1_5, signature, data)
+                cryptoSubtle.verify({ name: "RSASSA-PKCS1-v1_5", hash: {name: "SHA-256"} }, pubKey_RSASSA_PKCS1_v1_5, signature, data)
                 .then(function (result) {
                     verified = result;
                 })
@@ -1750,7 +1750,7 @@
                 pubKey,
                 verified;
             
-            var algorithm = { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" };
+            var algorithm = { name: "RSASSA-PKCS1-v1_5", hash: {name: "SHA-256"} };
             
             runs(function () {
                 error = undefined;
