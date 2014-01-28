@@ -2380,7 +2380,7 @@
                 error = undefined;
                 cryptoSubtle.wrapKey('raw', wrapeeKey, wraporKey, { name: "AES-KW" })
                     .then(function (result) {
-                        wrappedKeyData = result;
+                        wrappedKeyData = result && new Uint8Array(result);
                     })
                     .catch(function (e) {
                         error = "ERROR";
@@ -2392,7 +2392,7 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(wrappedKeyData).toBeDefined();
-                expect(new Uint8Array(wrappedKeyData)).toEqual(wrappedKeyDataKnown);
+                expect(wrappedKeyData).toEqual(wrappedKeyDataKnown);
             });
             
             // Unwrap the wrapped key
@@ -2428,7 +2428,7 @@
                 error = undefined;
                 cryptoSubtle.exportKey("raw", wrapeeKey2)
                 .then(function (result) {
-                    wrapeeKeyData2 = result;
+                    wrapeeKeyData2 = result && new Uint8Array(result);
                 })
                 .catch(function (result) {
                     error = "ERROR";
@@ -2440,7 +2440,7 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(wrapeeKeyData2).toBeDefined();
-                expect(new Uint8Array(wrapeeKeyData2)).toEqual(wrapeeKeyData);
+                expect(wrapeeKeyData2).toEqual(wrapeeKeyData);
             });
 
         });
@@ -2510,7 +2510,7 @@
                 error = undefined;
                 cryptoSubtle.wrapKey('jwk', wrapeeKey, wraporKeyPublic, { name: "RSAES-PKCS1-v1_5" })
                     .then(function (result) {
-                        wrappedKeyData = result;
+                        wrappedKeyData = result && new Uint8Array(result);
                     })
                     .catch(function (e) {
                         error = "ERROR";
@@ -2639,7 +2639,7 @@
                 error = undefined;
                 cryptoSubtle.wrapKey('raw', wrapeeKey, wraporKeyPublic, wrapAlgorithm)
                     .then(function (result) {
-                        wrappedKeyData = result;
+                        wrappedKeyData = result && new Uint8Array(result);
                     })
                     .catch(function (e) {
                         error = "ERROR";
