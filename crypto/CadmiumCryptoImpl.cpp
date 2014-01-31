@@ -857,7 +857,26 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
     // Below I have implemented Wes's behavior since it was the most recently
     // provided and backed by his implementation.
     vector<KeyUsage> myKeyUsage;
-    if (jwkUse.size())
+    if (jwkUseDetails.size())
+    {
+        for (size_t i=0; i < jwkUseDetails.size(); ++i) {
+            if (jwkUseDetails[i].string() == "encrypt")
+                myKeyUsage.push_back(ENCRYPT);
+            if (jwkUseDetails[i].string() == "decrypt")
+                myKeyUsage.push_back(DECRYPT);
+            if (jwkUseDetails[i].string() == "sign")
+                myKeyUsage.push_back(SIGN);
+            if (jwkUseDetails[i].string() == "verify")
+                myKeyUsage.push_back(VERIFY);
+            if (jwkUseDetails[i].string() == "deriveKey")
+                myKeyUsage.push_back(DERIVE);
+            if (jwkUseDetails[i].string() == "wrapKey")
+                myKeyUsage.push_back(WRAP);
+            if (jwkUseDetails[i].string() == "unwrapKey")
+                myKeyUsage.push_back(UNWRAP);
+        }
+    }
+    else if (jwkUse.size())
     {
         // Parse the JWK 'use' comma-separated list.
         const vector<string> jwkUseStrVec = stringSplit(jwkUse, ',');
@@ -878,25 +897,6 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
             myKeyUsage.push_back(WRAP);
         if (jwkUseMask & JWK_UNWRAP)
             myKeyUsage.push_back(UNWRAP);
-    }
-    else if (jwkUseDetails.size())
-    {
-        for (size_t i=0; i < jwkUseDetails.size(); ++i) {
-            if (jwkUseDetails[i].string() == "encrypt")
-                myKeyUsage.push_back(ENCRYPT);
-            if (jwkUseDetails[i].string() == "decrypt")
-                myKeyUsage.push_back(DECRYPT);
-            if (jwkUseDetails[i].string() == "sign")
-                myKeyUsage.push_back(SIGN);
-            if (jwkUseDetails[i].string() == "verify")
-                myKeyUsage.push_back(VERIFY);
-            if (jwkUseDetails[i].string() == "deriveKey")
-                myKeyUsage.push_back(DERIVE);
-            if (jwkUseDetails[i].string() == "wrapKey")
-                myKeyUsage.push_back(WRAP);
-            if (jwkUseDetails[i].string() == "unwrapKey")
-                myKeyUsage.push_back(UNWRAP);
-        }
     }
     else
     {
@@ -1618,7 +1618,15 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::rsaCrypt(uint32_t keyHandle,
         return CAD_ERR_BADKEYINDEX;
 
     // verify the provided key is permitted this usage
-    const KeyUsage keyUsage = (cipherOp == DOENCRYPT) ? ENCRYPT : DECRYPT;
+    KeyUsage keyUsage;
+    switch (cipherOp)
+    {
+        case DOENCRYPT: keyUsage = ENCRYPT; break;
+        case DODECRYPT: keyUsage = DECRYPT; break;
+        case DOWRAP:    keyUsage = WRAP;    break;
+        case DOUNWRAP:  keyUsage = UNWRAP;  break;
+        default:        assert(false);      break;
+    }
     if (!isUsageAllowed(keyHandle, keyUsage))
     {
         DLOG() << "CadmiumCrypto::rsaCrypt: operation disallowed by keyUsage\n";
@@ -1642,13 +1650,13 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::rsaCrypt(uint32_t keyHandle,
 
     // do the operation
     Vuc resultVec;
-    if (cipherOp == DOENCRYPT)
+    if (cipherOp == DOENCRYPT || cipherOp == DOWRAP)
     {
         bool success = keyMap_[keyHandle].pRsaContext->publicEncrypt(dataVec, resultVec, padding);
         if (!success)
             return CAD_ERR_CIPHERERROR;
     }
-    else
+    else  // DODECRYPT || DOUNWRAP
     {
         bool success = keyMap_[keyHandle].pRsaContext->privateDecrypt(dataVec, resultVec, padding);
         if (!success)
@@ -2367,7 +2375,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::unwrapKey(KeyFormat format,
                 DLOG() << "CadmiumCrypto::unwrapKey: RSA wrapping key not initialized\n";
                 return CAD_ERR_UNKNOWN_ALGO;    // FIXME: better error
             }
-            CadErr err = rsaCrypt(wrappingKeyHandle, wrappedKeyDataStr64, DODECRYPT, keyDataStr64);
+            CadErr err = rsaCrypt(wrappingKeyHandle, wrappedKeyDataStr64, DOUNWRAP, keyDataStr64);
             if (err != CAD_ERR_OK)
             {
                 DLOG() << "CadmiumCrypto::unwrapKey: RSA decrypt failed\n";
@@ -2484,7 +2492,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::wrapKey(KeyFormat format,
                 DLOG() << "CadmiumCrypto::wrapKey: RSA wrapping key not initialized\n";
                 return CAD_ERR_UNKNOWN_ALGO;    // FIXME: better error
             }
-            CadErr err = rsaCrypt(wrappingKeyHandle, keyStr64, DOENCRYPT, wrappedKey64);
+            CadErr err = rsaCrypt(wrappingKeyHandle, keyStr64, DOWRAP, wrappedKey64);
             if (err != CAD_ERR_OK)
             {
                 DLOG() << "CadmiumCrypto::wrapKey: RSA encrypt failed\n";

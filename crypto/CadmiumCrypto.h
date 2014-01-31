@@ -162,7 +162,7 @@ public:
      * @param[out] dataOut Output data, base64-encoded
      * @return CadErr, CAD_ERR_OK if no error
      */
-    enum CipherOp {DOENCRYPT, DODECRYPT};
+    enum CipherOp {DOENCRYPT, DODECRYPT, DOWRAP, DOUNWRAP};
     CadErr aesCbc(uint32_t keyHandle, const std::string& ivIn,
             const std::string& dataIn, CipherOp cipherOp, std::string& dataOut);
 
