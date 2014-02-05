@@ -2731,20 +2731,25 @@
         it("indexedDB open", function () {
 
             runs(function () {
+                error = undefined;
                 var openOperation = indexedDB.open('keydb', 1);
+                openOperation.onerror = function (e) {
+                    error = "open ERROR";
+                };
                 openOperation.onsuccess = function (e) {
                     keydb = openOperation.result;
                 };
-                openOperation['onupgradeneeded'] = function (e) {
+                openOperation.onupgradeneeded = function (e) {
                     openOperation.result.createObjectStore('keystore', { 'keyPath': 'name' });
                 };
             });
 
             waitsFor(function () {
-                return keydb;
+                return keydb || error;
             });
 
             runs(function () {
+                expect(error).toBeUndefined();
                 expect(keydb).toBeDefined('indexedDB not loaded');
             });
 
@@ -2982,7 +2987,7 @@
                 var store = transaction.objectStore('keystore');
                 var op = store.put({ name: 'sessionData', data: { token: 'some_token', keys: { symmetricKey: symmetricKey2, hmacKey: hmacKey2 } } });
                 op.onerror = function (e) {
-                    error = "get ERROR";
+                    error = "put ERROR";
                 };
                 op.onsuccess = function (e) {
                     success = true;
