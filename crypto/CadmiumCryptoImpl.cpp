@@ -295,8 +295,8 @@ CadmiumCrypto::CadmiumCryptoImpl::CadmiumCryptoImpl(IDeviceInfo * pDeviceInfo)
     keyUsageToJwkStrMap[SIGN]    = "sign";
     keyUsageToJwkStrMap[VERIFY]  = "verify";
     keyUsageToJwkStrMap[DERIVE]  = "deriveKey";
-    keyUsageToJwkStrMap[WRAP]    = "wrapKey";
-    keyUsageToJwkStrMap[UNWRAP]  = "unwrapKey";
+    keyUsageToJwkStrMap[WRAP]    = "wrap";
+    keyUsageToJwkStrMap[UNWRAP]  = "unwrap";
 }
 
 CadmiumCrypto::CadmiumCryptoImpl::~CadmiumCryptoImpl()
@@ -671,17 +671,17 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
     }
     const string jwkAlg = jwk.mapValue<string>("alg");
     const string jwkUse = jwk.mapValue<string>("use");
-    const VariantArray jwkUseDetails = jwk.mapValue<VariantArray>("key_ops");
+    const VariantArray jwkKeyOps = jwk.mapValue<VariantArray>("key_ops");
     const string jwkExt = jwk.mapValue<string>("ext");
     DLOG() << "\tjwkKty = " << jwkKty << endl;
     if (jwkAlg.size()) DLOG() << "\tjwkAlg = " << jwkAlg << endl;
     if (jwkUse.size()) DLOG() << "\tjwkUse = " << jwkUse << endl;
     if (!jwkExt.empty()) DLOG() << "\tjwkExt = " << jwkExt << endl;
 
-    if (!jwkUseDetails.empty()) {
-        DLOG() << "\tjwkUseDetails = [ ";
-        for (size_t i=0; i < jwkUseDetails.size(); ++i) {
-            DLOG() << jwkUseDetails[i].string() << " ";
+    if (!jwkKeyOps.empty()) {
+        DLOG() << "\tjwkKeyOps = [ ";
+        for (size_t i=0; i < jwkKeyOps.size(); ++i) {
+            DLOG() << jwkKeyOps[i].string() << " ";
         }
         DLOG() << "]" << endl;
     }
@@ -851,22 +851,22 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
     // Below I have implemented Wes's behavior since it was the most recently
     // provided and backed by his implementation.
     vector<KeyUsage> myKeyUsage;
-    if (jwkUseDetails.size())
+    if (jwkKeyOps.size())
     {
-        for (size_t i=0; i < jwkUseDetails.size(); ++i) {
-            if (jwkUseDetails[i].string() == "encrypt")
+        for (size_t i=0; i < jwkKeyOps.size(); ++i) {
+            if (jwkKeyOps[i].string() == "encrypt")
                 myKeyUsage.push_back(ENCRYPT);
-            if (jwkUseDetails[i].string() == "decrypt")
+            if (jwkKeyOps[i].string() == "decrypt")
                 myKeyUsage.push_back(DECRYPT);
-            if (jwkUseDetails[i].string() == "sign")
+            if (jwkKeyOps[i].string() == "sign")
                 myKeyUsage.push_back(SIGN);
-            if (jwkUseDetails[i].string() == "verify")
+            if (jwkKeyOps[i].string() == "verify")
                 myKeyUsage.push_back(VERIFY);
-            if (jwkUseDetails[i].string() == "deriveKey")
+            if (jwkKeyOps[i].string() == "deriveKey")
                 myKeyUsage.push_back(DERIVE);
-            if (jwkUseDetails[i].string() == "wrapKey")
+            if (jwkKeyOps[i].string() == "wrap")
                 myKeyUsage.push_back(WRAP);
-            if (jwkUseDetails[i].string() == "unwrapKey")
+            if (jwkKeyOps[i].string() == "unwrap")
                 myKeyUsage.push_back(UNWRAP);
         }
     }
