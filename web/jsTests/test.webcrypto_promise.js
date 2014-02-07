@@ -43,6 +43,62 @@
         console.log('no crypto.subtle namespace');
         return;
     }
+    
+    var latin1 = {
+        stringify: function (a) {
+            return String.fromCharCode.apply(0, a);
+        },
+        parse: function (s) {
+            return new Uint8Array(Array.prototype.map.call(s, function (c) { return c.charCodeAt(0); }));
+        }
+    };
+    
+    // Wrapper for importKey. Safari does not support importing of ASN.1 types
+    // spki and pkcs8. Try the import first, but if it fails with one of these
+    // formats, try again using JWK format.
+    function importKey(format, data, algorithm, extractable, usage) {
+        return Promise.resolve()
+        .then(function(){
+           return cryptoSubtle.importKey(format, data, algorithm, extractable, usage);
+        })
+        .catch(function(e) {
+            if (format !== 'spki' && format !== 'pkcs8') {
+                throw e;
+            }
+            var alg = ASN1.webCryptoAlgorithmToJwkAlg(algorithm);
+            var keyOps = ASN1.webCryptoUsageToJwkKeyOps(usage);
+            var jwkObj = ASN1.rsaDerToJwk(data, alg, keyOps, extractable);
+            if (!jwkObj) {
+                throw new Error("Could not make valid JWK from DER input");
+            }
+            var jwk = JSON.stringify(jwkObj);
+            return cryptoSubtle.importKey('jwk', latin1.parse(jwk), algorithm, extractable, usage)
+        });
+    }
+    
+    // Wrapper for exportKey. Safari does not support exporting of ASN.1 types
+    // spki and pkcs8. Try the export first, but if it fails with one of these
+    // formats, try again using JWK format.
+    function exportKey(format, key) {
+        return Promise.resolve()
+        .then(function(){
+            return cryptoSubtle.exportKey(format, key);
+        })
+        .catch(function(e) {
+            if (format !== 'spki' && format !== 'pkcs8') {
+                throw e;
+            }
+            return cryptoSubtle.exportKey('jwk', key)
+            .then(function (result) {
+                var jwkObj = JSON.parse(latin1.stringify(new Uint8Array(result)));
+                var rsaKey = ASN1.jwkToRsaDer(jwkObj);
+                if (!rsaKey) {
+                    throw new Error("Could not make valid DER from JWK input");
+                }
+                return rsaKey.der.buffer;
+            });
+        });
+    }
 
     // --------------------------------------------------------------------------------
     describe("crypto interface", function () {
@@ -211,7 +267,7 @@
 
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey('raw', rawKeyData, algorithmNoIv, false, ["encrypt", "decrypt"])
+                importKey('raw', rawKeyData, algorithmNoIv, false, ["encrypt", "decrypt"])
                     .then(function (result) {
                         symmetricKey1 = result;
                     })
@@ -324,7 +380,7 @@
 
             runs(function () {
                 error = undefined;
-                cryptoSubtle.exportKey("raw", key)
+                exportKey("raw", key)
                 .then(function (result) {
                     keyData = result;
                 })
@@ -370,7 +426,7 @@
                 error = undefined;
                 keyData = undefined;
                 try {
-                    cryptoSubtle.exportKey("raw", key)
+                    exportKey("raw", key)
                     .then(function (result) {
                         keyData = result;
                     })
@@ -408,7 +464,7 @@
 
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey('raw', rawKeyData, algorithm, false, ["wrapKey", "unwrapKey"])
+                importKey('raw', rawKeyData, algorithm, false, ["wrapKey", "unwrapKey"])
                     .then(function (result) {
                         wrappingKey = result;
                     })
@@ -459,7 +515,7 @@
 
             runs(function () {
                 error = undefined;
-                cryptoSubtle.exportKey("raw", key)
+                exportKey("raw", key)
                 .then(function (result) {
                     keyData = result;
                 })
@@ -505,7 +561,7 @@
                 error = undefined;
                 keyData = undefined;
                 try {
-                    cryptoSubtle.exportKey("raw", key)
+                    exportKey("raw", key)
                     .then(function (result) {
                         keyData = result;
                     })
@@ -547,7 +603,7 @@
 
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey('raw', rawKeyData, algorithm, false, ["sign", "verify"])
+                importKey('raw', rawKeyData, algorithm, false, ["sign", "verify"])
                     .then(function (result) {
                         hmacKey = result;
                     })
@@ -697,7 +753,7 @@
 
             runs(function () {
                 error = undefined;
-                cryptoSubtle.exportKey("raw", key)
+                exportKey("raw", key)
                 .then(function (result) {
                     keyData = result;
                 })
@@ -751,7 +807,7 @@
                 error = undefined;
                 keyData = undefined;
                 try {
-                    cryptoSubtle.exportKey("raw", key)
+                    exportKey("raw", key)
                     .then(function (result) {
                         keyData = result;
                     })
@@ -921,7 +977,7 @@
 
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey("spki", spkiPubKeyData, { name: "RSAES-PKCS1-v1_5" }, true, [])
+                importKey("spki", spkiPubKeyData, { name: "RSAES-PKCS1-v1_5" }, true, [])
                 .then(function (result) {
                     key = result;
                 })
@@ -946,7 +1002,7 @@
             // verify exported key matches what was imported
             runs(function () {
                 error = undefined;
-                cryptoSubtle.exportKey("spki", key)
+                exportKey("spki", key)
                 .then(function (result) {
                     exportedSpkiKeyData = result && new Uint8Array(result);
                 })
@@ -1005,7 +1061,7 @@
 
             // import pkcs8-formatted private key
             runs(function () {
-                cryptoSubtle.importKey("pkcs8", pkcs8PrivKeyData, { name: "RSAES-PKCS1-v1_5" }, true, [])
+                importKey("pkcs8", pkcs8PrivKeyData, { name: "RSAES-PKCS1-v1_5" }, true, [])
                 .then(function (result) {
                     privKey = result;
                 })
@@ -1139,50 +1195,96 @@
             // encryption / decryption. Instead we will take a known-good encrypted
             // message, decrypt it, re-encrypt it, then decrypt again, verifying that the
             // original known cleartext is the result.
-
+            
+            // The keys for this test are produced by OpenSSL.
+            // % openssl genrsa -out pair.pem 2048
+            // % openssl rsa -in pair.pem -out spki.der -outform DER -pubout
+            // % openssl pkcs8 -topk8 -inform PEM -outform DER -in pair.pem -out
+            //     pkcs8.der -nocrypt
+            // % xxd -p spki.der
+            // % xxd -p pkcs8.der
             var spkiPubKeyData = base16.parse(
-                "30819f300d06092a864886f70d010101050003818d0030818902818100a8" +
-                "d30894b93f376f7822229bfd2483e50da944c4ab803ca31979e0f47e70bf" +
-                "683c687c6b3e80f280a237cea3643fd1f7f10f7cc664dbc2ecd45be53e1c" +
-                "9b15a53c37dbdad846c0f8340c472abc7821e4aa7df185867bf38228ac3e" +
-                "cc1d97d3c8b57e21ea6ba57b2bc3814a436e910ee8ab64a0b7743a927e94" +
-                "4d3420401f7dd50203010001"
+                "30820122300d06092a864886f70d01010105000382010f003082010a0282" +
+                "010100d1fb4ed7d34e3166242710ff242cd5b7d553e456de73eef54cae37" +
+                "dc019cbded5c8be9239f4068dcb67dc491e9222716658e68b2291e5a5b61" +
+                "57f08007e65d639b4e37deae660bd2ffea26bc7825c3e6a55175a261c4f6" +
+                "9c5aa727e680901f2fb21b543bdef14cd9e06d3a3ad621c2779db5c344e0" +
+                "41bc4ec9f6e34546bd3748fee351b1c432ffd45cd7a83eef4612021e12e0" +
+                "09391e4f05336639364008bd7c72994fe6c1d9479bb62cdfafe85a3b9c30" +
+                "bf33444f38122430d0b6278a2df972e5c11c14e20b042f8e920808f31eba" +
+                "12fff085302005b53a07457e9021c3f26d175aa7a14a3f8cf59ba6281939" +
+                "1fcc92838f88856d676689dba3b081274f68bb0203010001"
             );
             var pkcs8PrivKeyData = base16.parse(
-                "30820276020100300d06092a864886f70d0101010500048202603082025c" +
-                "02010002818100a8d30894b93f376f7822229bfd2483e50da944c4ab803c" +
-                "a31979e0f47e70bf683c687c6b3e80f280a237cea3643fd1f7f10f7cc664" +
-                "dbc2ecd45be53e1c9b15a53c37dbdad846c0f8340c472abc7821e4aa7df1" +
-                "85867bf38228ac3ecc1d97d3c8b57e21ea6ba57b2bc3814a436e910ee8ab" +
-                "64a0b7743a927e944d3420401f7dd5020301000102818100896cdffb50a0" +
-                "691bd00ad9696933243a7c5861a64684e8d74b91aed0d76c28234da9303e" +
-                "8c6ea2f89b141a9d5ea9a4ddd3d8eb9503dcf05ba0b1fd76060b281e3ae4" +
-                "b9d497fb5519bdf1127db8ad412d6a722686c78df3e3002acca960c6b2a2" +
-                "42a83ace5410693c03ce3d74cb9c9a7bacc8e271812920d1f53fee9312ef" +
-                "4eb1024100d09c14418ce92af7cc62f7cdc79836d8c6e3d0d33e7229cc11" +
-                "d732cbac75aa4c56c92e409a3ccbe75d4ce63ac5adca33080690782c6371" +
-                "e3628134c3534ca603024100cf2d3206f6deea2f39b70351c51f85436200" +
-                "5aa8f643e49e22486736d536e040dc30a2b4f9be3ab212a88d1891280874" +
-                "b9a170cdeb22eaf61c27c4b082c7d1470240638411a5b3b307ec6e744802" +
-                "c2d4ba556f8bfe72c7b76e790b89bd91ac13f5c9b51d04138d80b3450c1d" +
-                "4337865601bf96748b36c8f627be719f71ac3c70b441024065ce92cfe34e" +
-                "a58bf173a2b8f3024b4d5282540ac581957db3e11a7f528535ec098808dc" +
-                "a0013ffcb3b88a25716757c86c540e07d2ad8502cdd129118822c30f0240" +
-                "420a4983040e9db46eb29f1315a0d7b41cf60428f7460fce748e9a1a7d22" +
-                "d7390fa328948e7e9d1724401374e99d45eb41474781201378a4330e8e80" +
-                "8ce63551"
+                "308204bd020100300d06092a864886f70d0101010500048204a7308204a3" +
+                "0201000282010100d1fb4ed7d34e3166242710ff242cd5b7d553e456de73" +
+                "eef54cae37dc019cbded5c8be9239f4068dcb67dc491e9222716658e68b2" +
+                "291e5a5b6157f08007e65d639b4e37deae660bd2ffea26bc7825c3e6a551" +
+                "75a261c4f69c5aa727e680901f2fb21b543bdef14cd9e06d3a3ad621c277" +
+                "9db5c344e041bc4ec9f6e34546bd3748fee351b1c432ffd45cd7a83eef46" +
+                "12021e12e009391e4f05336639364008bd7c72994fe6c1d9479bb62cdfaf" +
+                "e85a3b9c30bf33444f38122430d0b6278a2df972e5c11c14e20b042f8e92" +
+                "0808f31eba12fff085302005b53a07457e9021c3f26d175aa7a14a3f8cf5" +
+                "9ba62819391fcc92838f88856d676689dba3b081274f68bb020301000102" +
+                "820100015609056489cdd4a98c3a1675837784a8edd4b91cc73e10ff80e8" +
+                "4815168b3ad468eb7dd78890623f2303ba2df292af18cc542c3608c4686a" +
+                "7125cd9abf437edbc11ea7e3123127118bcadd4e226761b351965f07223a" +
+                "b379fc304bce2b9c973019ee6a471bdff24ef442f796df361e8eb95659bc" +
+                "d78e3c2e1acd0d66cad36c378771baf7b8328677cdbc046cd71b9df8b284" +
+                "913e69637c4b3d70565ca311b284ac0209f542e75e78ba7e777ed8bd0d9a" +
+                "b6cc648913058cedd9ce6b075dd3b0d10e046502b8505e6b8451bd5db36b" +
+                "42041bd6aeaaa1f653d592f756b514787b0f767832aaae3c95bf3daf40ec" +
+                "13cae9f003d4d56aa43e49d9f5279a086183f902818100ed36980efeae82" +
+                "dd1cc54eab8ca23b39ee165571690bdf2097774d0472de8a7d4731206b31" +
+                "e8de8639ad0d982f1dbd6a429c21421fcd706078819fc274edf108ef15cb" +
+                "46280e388d32f1dd165836784ea13d28e45d0968675a5dcdd5b35f2c060d" +
+                "6c6090986d87f72f9923af9e0d4dda4ec14c228018812038baf1bd202b5a" +
+                "bf02818100e29c9ab00059fa689f1a70ce6873ac5fa1425d4f6268728b25" +
+                "9ceb16ce20c90b38970524d11927c775c475661c8bbfac3db2a8d33dceed" +
+                "eb60aeb1337d16dda8bd1055b3a4ea52db8588115b502471ffb1aae4e334" +
+                "2c359e8db7dbe6fd533dc9e9aea3ae8b3414f7297bd4c4e0014f9d3ceda3" +
+                "5ef3a7f4b3c4ab9ff489911d0502818100d1e67820f49d68f0cd0f8e7060" +
+                "2e01a85e13e721466999d3d6135bd42eecdab0c639234d97494ef688bca7" +
+                "85dd533c937543806e6983b907b43a472aa39b14a8ea1e67d3b987f3e485" +
+                "8add2e737a2774b45a50ffd98f8491c7b5af788493177a779049d648faca" +
+                "d0208f2ab3b070674e6057cccdce79607129a1ca5ca6c5963302818005ea" +
+                "8ec34f8f09d1976dca4a2941f3db1f4bab41fa50bdc4d23b918babe0013f" +
+                "b0bf889bd875aeab2f70ec9bb8dd1128ff075e0efdcb1c3d0bee23a4337c" +
+                "d856a270fdbbcdef6c305d011b6ae5e1bdb42e4046ef839a2fe02ed50101" +
+                "bbd5638494fc413bba58a6bf792ec9744660e2623987febee8df96ace6d2" +
+                "903f8323edbd028180729b5d5dc2ec18f1307cf55ab3c62f11ca17570680" +
+                "46752c84dea6b65aaba91d5f39cb2794929bea4a1461b3d5180b1a7da1ca" +
+                "4ce9395d942f4a85cffc81e4d5b36935aee84757ce32e877e1e6c3734838" +
+                "7b75ad70de97c1586e9560ecba00cbe0fb2333ba8faa80ff30e7e8dbced3" +
+                "739d0f08fbd92007001838d5d7f2cfe38f"
             );
+
+            // Similarly, the cleartext and public key encrypted ciphertext for this test
+            // are also produced by openssl. Note that since we are using a 2048-bit key,
+            // the cleartext size must be less than or equal to 245 bytes (modulusLength /
+            // 8 - 11).
+            // % openssl rand -out cleartext.bin 128
+            // % openssl rsautl -encrypt -inkey spki.der -keyform DER -pubin -in
+            //     cleartext.bin -out ciphertext.bin
+            // % xxd -p cleartext.bin
+            // % xxd -p ciphertext.bin
             var cleartext = base16.parse(
-                "ec358ed141c45d7e03d4c6338aebad718e8bcbbf8f8ee6f8d9f4b9ef06d8" +
-                "84739a398c6bcbc688418b2ff64761dc0ccd40e7d52bed03e06946d0957a" +
-                "eef9e822"
+                "84c01d3e3efb5626e0bdf7b4d473297f0f1251de79e1fc359854f4d3a345" +
+                "cb39dda72ef2bb365bc4092a3cece58963d030c4b3286d61490fb9632f12" +
+                "0ad15b43669c0068d020ff51371ef134cfa19f78845094fcf97b13adb374" +
+                "bfbc97d24421d94ae4f62ba5f685a879ef6aaa60ffb6793ee05588ca5c20" +
+                "6efe85c84f8f00da"
             );
             var ciphertext = base16.parse(
-                "6106441c2b7a4b1a16260ed1ae4fe6135247345dc8e674754bbda6588c6c" +
-                "0d95a3d4d26bb34cdbcbe327723e80343bd7a15cd4c91c3a44e6cb9c6cd6" +
-                "7ad2e8bf41523188d9b36dc364a838642dcbc2c25e85dfb2106ba47578ca" +
-                "3bbf8915055aea4fa7c3cbfdfbcc163f04c234fb6d847f39bab9612ecbee" +
-                "04626e945c3ccf42"
+                "64b9ca29a1c8de23558316a162bd1b695bb69499106743f46178e1fd6c4c" +
+                "5378253a42f1fc796f62a4f6798f9970790c5870db7ebd94fed46924c89e" +
+                "172c162cb75584118883e0c7dc8dd8322e18d6a179e9164f9a7f24bba8c4" +
+                "79beca36b6657b647b0d177f7ea530475ed35789becb9a33168acb598157" +
+                "26061fb8cb64293a7cd114fbf81f9937af822b77ee9d39f35bde149f14c9" +
+                "29a09176134981270af10e383e4a1fda837bf88bbb741761788215c3698e" +
+                "9a7f5992da2c0014dc88d2d4896ebcd061fa461b6b46e62ca9d52baa1c6d" +
+                "405f12a24457195ca98b320653591526013f231ec549ed4474ab5e819cee" +
+                "635be43a97b658b6edb522df31c903d4"
             );
             var algorithm = { name: "RSAES-PKCS1-v1_5" };
             var publicKey, privateKey;
@@ -1192,7 +1294,7 @@
             // import the keys
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey("spki", spkiPubKeyData, algorithm, true, ["encrypt"])
+                importKey("spki", spkiPubKeyData, algorithm, true, ["encrypt"])
                 .then(function (result) {
                     publicKey = result;
                 })
@@ -1210,7 +1312,7 @@
             });
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey("pkcs8", pkcs8PrivKeyData, algorithm, true, ["decrypt"])
+                importKey("pkcs8", pkcs8PrivKeyData, algorithm, true, ["decrypt"])
                 .then(function (result) {
                     privateKey = result;
                 })
@@ -1533,7 +1635,7 @@
             // import the public key
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey("jwk", pubKeyJwk, algorithm, true, ["encrypt", "decrypt"])
+                importKey("jwk", pubKeyJwk, algorithm, true, ["encrypt", "decrypt"])
                 .then(function (result) {
                     publicKey = result;
                 })
@@ -1554,7 +1656,7 @@
             // import the private key
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey("jwk", privKeyJwk, algorithm, true, ["encrypt", "decrypt"])
+                importKey("jwk", privKeyJwk, algorithm, true, ["encrypt", "decrypt"])
                 .then(function (result) {
                     privateKey = result;
                 })
@@ -1754,7 +1856,7 @@
             
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey("spki", pubKeyDataSpki, algorithm, false, ["verify"])
+                importKey("spki", pubKeyDataSpki, algorithm, false, ["verify"])
                     .then(function (result) {
                         pubKey = result;
                     })
@@ -1859,7 +1961,7 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk1, { name: "AES-CBC" }, true, ["encrypt"])
+                importKey("jwk", jwk1, { name: "AES-CBC" }, true, ["encrypt"])
                 .then(function (result) {
                     key = result;
                 })
@@ -1878,7 +1980,7 @@
             runs(function () {
                 error = undefined;
                 exportedData = undefined;
-                cryptoSubtle.exportKey("jwk", key)
+                exportKey("jwk", key)
                 .then(function (result) {
                     exportedData = result && new Uint8Array(result);
                 })
@@ -1911,7 +2013,7 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk3, {name: "HMAC", hash: {name: "SHA-256" }}, true, ["sign"])
+                importKey("jwk", jwk3, {name: "HMAC", hash: {name: "SHA-256" }}, true, ["sign"])
                 .then(function (result) {
                     key = result;
                 })
@@ -1930,7 +2032,7 @@
             runs(function () {
                 error = undefined;
                 exportedData = undefined;
-                cryptoSubtle.exportKey("jwk", key)
+                exportKey("jwk", key)
                 .then(function (result) {
                     exportedData = result && new Uint8Array(result);
                 })
@@ -1984,7 +2086,7 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk4, { name: "RSAES-PKCS1-v1_5" }, true, ["decrypt"])
+                importKey("jwk", jwk4, { name: "RSAES-PKCS1-v1_5" }, true, ["decrypt"])
                 .then(function (result) {
                     key = result;
                 })
@@ -2003,7 +2105,7 @@
             runs(function () {
                 error = undefined;
                 exportedData = undefined;
-                cryptoSubtle.exportKey("jwk", key)
+                exportKey("jwk", key)
                 .then(function (result) {
                     exportedData = result && new Uint8Array(result);
                 })
@@ -2055,7 +2157,7 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk, { name: "RSA-OAEP", hash: {name: "SHA-1"} }, true, ["encrypt"])
+                importKey("jwk", jwk, { name: "RSA-OAEP", hash: {name: "SHA-1"} }, true, ["encrypt"])
                 .then(function (result) {
                     key = result;
                 })
@@ -2075,7 +2177,7 @@
             runs(function () {
                 error = undefined;
                 exportedData = undefined;
-                cryptoSubtle.exportKey("jwk", key)
+                exportKey("jwk", key)
                 .then(function (result) {
                     exportedData = result && new Uint8Array(result);
                 })
@@ -2195,7 +2297,7 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk, { name: "RSA-OAEP", hash: {name: "SHA-1"} }, true, ["decrypt"])
+                importKey("jwk", jwk, { name: "RSA-OAEP", hash: {name: "SHA-1"} }, true, ["decrypt"])
                 .then(function (result) {
                     key = result;
                 })
@@ -2226,7 +2328,7 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk5, { name: "AES-KW" }, true, ["wrapKey"])
+                importKey("jwk", jwk5, { name: "AES-KW" }, true, ["wrapKey"])
                 .then(function (result) {
                     key = result;
                 })
@@ -2245,7 +2347,7 @@
             runs(function () {
                 error = undefined;
                 exportedData = undefined;
-                cryptoSubtle.exportKey("jwk", key)
+                exportKey("jwk", key)
                 .then(function (result) {
                     exportedData = result && new Uint8Array(result);
                 })
@@ -2277,7 +2379,7 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                cryptoSubtle.importKey("jwk", jwk6, { name: "AES-KW" }, true, ["unwrapKey"])
+                importKey("jwk", jwk6, { name: "AES-KW" }, true, ["unwrapKey"])
                 .then(function (result) {
                     key = result;
                 })
@@ -2296,7 +2398,7 @@
             runs(function () {
                 error = undefined;
                 exportedData = undefined;
-                cryptoSubtle.exportKey("jwk", key)
+                exportKey("jwk", key)
                 .then(function (result) {
                     exportedData = result && new Uint8Array(result);
                 })
@@ -2336,7 +2438,7 @@
             // Import the known wrap-ee key
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey('raw', wrapeeKeyData, { name: "AES-CBC" }, true, [])
+                importKey('raw', wrapeeKeyData, { name: "AES-CBC" }, true, [])
                     .then(function (result) {
                         wrapeeKey = result;
                     })
@@ -2357,7 +2459,7 @@
             // Import the known wrap-or key
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey('raw', wraporKeyData, { name: "AES-KW" }, false, ["wrapKey", "unwrapKey"])
+                importKey('raw', wraporKeyData, { name: "AES-KW" }, false, ["wrapKey", "unwrapKey"])
                     .then(function (result) {
                         wraporKey = result;
                     })
@@ -2426,7 +2528,7 @@
             // Export the unwrapped key data and compare to the original
             runs(function () {
                 error = undefined;
-                cryptoSubtle.exportKey("raw", wrapeeKey2)
+                exportKey("raw", wrapeeKey2)
                 .then(function (result) {
                     wrapeeKeyData2 = result && new Uint8Array(result);
                 })
@@ -2456,7 +2558,7 @@
             // Import the known wrap-ee key
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey('raw', wrapeeKeyData, { name: "AES-CBC" }, true, [])
+                importKey('raw', wrapeeKeyData, { name: "AES-CBC" }, true, [])
                     .then(function (result) {
                         wrapeeKey = result;
                     })
@@ -2554,7 +2656,7 @@
             // Export the unwrapped key data and compare to the original
             runs(function () {
                 error = undefined;
-                cryptoSubtle.exportKey("raw", wrapeeKey2)
+                exportKey("raw", wrapeeKey2)
                 .then(function (result) {
                     wrapeeKeyData2 = result && new Uint8Array(result);
                 })
@@ -2583,7 +2685,7 @@
             // Import the known wrap-ee key
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey('raw', wrapeeKeyData, { name: "AES-CBC" }, true, [])
+                importKey('raw', wrapeeKeyData, { name: "AES-CBC" }, true, [])
                     .then(function (result) {
                         wrapeeKey = result;
                     })
@@ -2684,7 +2786,7 @@
             // Export the unwrapped key data and compare to the original
             runs(function () {
                 error = undefined;
-                cryptoSubtle.exportKey("raw", wrapeeKey2)
+                exportKey("raw", wrapeeKey2)
                 .then(function (result) {
                     wrapeeKeyData2 = result && new Uint8Array(result);
                 })
