@@ -1430,7 +1430,7 @@
             // encrypt clearText with the public key
             runs(function () {
                 error = undefined;
-                cryptoSubtle.encrypt({ name: "RSA-OAEP", hash: {name: "SHA-256"} }, pubKey, clearText)
+                cryptoSubtle.encrypt({ name: "RSA-OAEP", hash: {name: "SHA-1"} }, pubKey, clearText)
                 .then(function (result) {
                     encrypted = result && new Uint8Array(result);
                 })
@@ -1454,7 +1454,7 @@
             // decrypt cipherText with the private key, should get the same clearText back
             runs(function () {
                 error = undefined;
-                cryptoSubtle.decrypt({ name: "RSA-OAEP", hash: {name: "SHA-256"} }, privKey, encrypted)
+                cryptoSubtle.decrypt({ name: "RSA-OAEP", hash: {name: "SHA-1"} }, privKey, encrypted)
                 .then(function (result) {
                     decrypted = result && new Uint8Array(result);
                 })
@@ -2364,7 +2364,7 @@
                 var json1 = JSON.parse(latin1.stringify(jwk5));
                 var json2 = JSON.parse(latin1.stringify(exportedData));
                 if (json2.hasOwnProperty('use')) delete json2['use'];
-                expect(json1).toEqual(json2);
+                expect(json2).toEqual(json1);
             });
         });
 
@@ -2415,7 +2415,7 @@
                 var json1 = JSON.parse(latin1.stringify(jwk6));
                 var json2 = JSON.parse(latin1.stringify(exportedData));
                 if (json2.hasOwnProperty('use')) delete json2['use'];
-                expect(json1).toEqual(json2);
+                expect(json2).toEqual(json1);
             });
 
         });
@@ -2734,7 +2734,7 @@
                 expect(wraporKeyPrivate.extractable).toBeFalsy() // private key takes input extractable
             });
             
-            var wrapAlgorithm = { name: "RSA-OAEP", hash: {name: "SHA-256"} };
+            var wrapAlgorithm = { name: "RSA-OAEP", hash: {name: "SHA-1"} };
             
             // Wrap the key using the public wrappor key
             runs(function () {
