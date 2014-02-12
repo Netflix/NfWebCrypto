@@ -864,9 +864,9 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
                 myKeyUsage.push_back(VERIFY);
             if (jwkKeyOps[i].string() == "deriveKey")
                 myKeyUsage.push_back(DERIVE);
-            if (jwkKeyOps[i].string() == "wrap")
+            if (jwkKeyOps[i].string() == "wrapKey")
                 myKeyUsage.push_back(WRAP);
-            if (jwkKeyOps[i].string() == "unwrap")
+            if (jwkKeyOps[i].string() == "unwrapKey")
                 myKeyUsage.push_back(UNWRAP);
         }
     }
