@@ -295,8 +295,8 @@ CadmiumCrypto::CadmiumCryptoImpl::CadmiumCryptoImpl(IDeviceInfo * pDeviceInfo)
     keyUsageToJwkStrMap[SIGN]    = "sign";
     keyUsageToJwkStrMap[VERIFY]  = "verify";
     keyUsageToJwkStrMap[DERIVE]  = "deriveKey";
-    keyUsageToJwkStrMap[WRAP]    = "wrap";
-    keyUsageToJwkStrMap[UNWRAP]  = "unwrap";
+    keyUsageToJwkStrMap[WRAP]    = "wrapKey";
+    keyUsageToJwkStrMap[UNWRAP]  = "unwrapKey";
 }
 
 CadmiumCrypto::CadmiumCryptoImpl::~CadmiumCryptoImpl()
@@ -895,13 +895,6 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
     else
     {
         myKeyUsage = keyUsage;
-    }
-
-    // verify key usage
-    if (!reconcileAlgVsUsage(toAlgorithm(myAlgVar["name"].string()), myKeyUsage))
-    {
-        DLOG() << "CadmiumCrypto::importJwk: ERROR: inconsistent algorithm vs usage\n";
-        return CAD_ERR_INTERNAL;    // FIXME better error
     }
 
     // extract / make the key material

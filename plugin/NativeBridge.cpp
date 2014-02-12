@@ -61,9 +61,9 @@ vector<CadmiumCrypto::KeyUsage> toKeyUsageVec(const VariantArray& keyUsageVarAry
             keyUsageVec.push_back(CadmiumCrypto::VERIFY);
         else if (keyUsageStr == "derive")
             keyUsageVec.push_back(CadmiumCrypto::DERIVE);
-        else if (keyUsageStr == "wrap")
+        else if (keyUsageStr == "wrapKey")
             keyUsageVec.push_back(CadmiumCrypto::WRAP);
-        else if (keyUsageStr == "unwrap")
+        else if (keyUsageStr == "unwrapKey")
             keyUsageVec.push_back(CadmiumCrypto::UNWRAP);
     }
     return keyUsageVec;

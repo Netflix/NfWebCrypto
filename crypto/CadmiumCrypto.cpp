@@ -274,8 +274,8 @@ string toString(CadmiumCrypto::KeyUsage keyUsage)
         case CadmiumCrypto::SIGN:      return "sign";       break;
         case CadmiumCrypto::VERIFY:    return "verify";     break;
         case CadmiumCrypto::DERIVE:    return "derive";     break;
-        case CadmiumCrypto::WRAP:      return "wrap";       break;
-        case CadmiumCrypto::UNWRAP:    return "unwrap";     break;
+        case CadmiumCrypto::WRAP:      return "wrapKey";    break;
+        case CadmiumCrypto::UNWRAP:    return "unwrapKey";  break;
     }
     return "invalid";
 }
