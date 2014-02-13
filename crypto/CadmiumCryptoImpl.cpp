@@ -545,12 +545,6 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importKeyInternal(KeyFormat keyFormat,
 
     const Algorithm algType = toAlgorithm(algVar["name"].string());
 
-    if (!reconcileAlgVsUsage(algType, keyUsage))
-    {
-        DLOG() << "CadmiumCrypto::importKey: ERROR: inconsistent algorithm vs usage\n";
-        return CAD_ERR_INTERNAL;    // FIXME better error
-    }
-
     shared_ptr<RsaContext> pRsaContext(new RsaContext());
     KeyType keyType;
     switch (algType)
