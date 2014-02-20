@@ -2490,7 +2490,34 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::wrapKey(KeyFormat format,
                 DLOG() << "CadmiumCrypto::wrapKey: AES wrapping key must be 128 or 256 bits\n";
                 return CAD_ERR_UNKNOWN_ALGO;    // FIXME: better error
             }
-            const Vuc keyToWrapVuc = str64toVuc(keyStr64);
+            Vuc keyToWrapVuc = str64toVuc(keyStr64);
+            // The key data to be wrapped must be at least 16 bytes.
+            if (keyToWrapVuc.size() < 16)
+            {
+                DLOG() << "CadmiumCrypto::wrapKey: AES-KW can only wrap data "
+                        "that is a greater than 16 bytes\n";
+                return CAD_ERR_CIPHERERROR;
+            }
+            // The key data to be wrapped must be a multiple of 8 bytes.
+            if (keyToWrapVuc.size() % 8 != 0)
+            {
+                // If the format is JWK, we can pad with spaces to meet this
+                // requirement.
+                if (format == JWK)
+                {
+                    size_t nPadChars = 8 - (keyToWrapVuc.size() % 8);
+                    assert(nPadChars);
+                    assert(nPadChars != 8);
+                    keyToWrapVuc.insert(keyToWrapVuc.begin()+1, nPadChars, ' ');
+                    assert(keyToWrapVuc.size() % 8 == 0);
+                }
+                else
+                {
+                    DLOG() << "CadmiumCrypto::wrapKey: AES-KW can only wrap data "
+                            "that is a multiple of 8 bytes, and could not pad\n";
+                    return CAD_ERR_CIPHERERROR;
+                }
+            }
             Vuc wrappedKeyVuc;
             AesKeyWrapper aesKeyWrapper(wrappingKey.key);
             if (!aesKeyWrapper.wrap(keyToWrapVuc, wrappedKeyVuc))
