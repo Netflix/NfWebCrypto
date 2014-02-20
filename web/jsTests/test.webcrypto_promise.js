@@ -21,7 +21,8 @@
     
     // get "crypto" from the right namespace
     var crypto,
-        cryptoSubtle;
+        cryptoSubtle,
+        cryptokeys;
     
     if (window.msCrypto) { // IE
         crypto = window.msCrypto;
@@ -43,6 +44,15 @@
         console.log('no crypto.subtle namespace');
         return;
     }
+    
+    // get cryptokeys (Key Discovery API)
+    if (window.cryptokeys) {  // Chromecast only for now
+        cryptokeys = window.cryptokeys;
+    }
+    else if (window.nfNewCryptokeys) {  // Chrome with NfWebCrypto
+        cryptokeys = window.nfNewCryptokeys;
+    }
+    // no error if not found here; will fail in its test below
     
     var latin1 = {
         stringify: function (a) {
@@ -2425,7 +2435,7 @@
 
     describe("Key Wrapping Operations", function () {
 
-        it("AES-KW wrap/unwrap known answer", function () {
+        it("AES-KW wrap/unwrap raw key known answer", function () {
             
             // The following test vector is from http://www.ietf.org/rfc/rfc3394.txt
             // 4.1 Wrap 128 bits of Key Data with a 128-bit KEK
@@ -2543,6 +2553,115 @@
                 expect(error).toBeUndefined();
                 expect(wrapeeKeyData2).toBeDefined();
                 expect(wrapeeKeyData2).toEqual(wrapeeKeyData);
+            });
+        });
+        
+        it("AES-KW wrap/unwrap JWK HS256 key", function () {
+            
+            var wrappeeKeyData = base16.parse("000102030405060708090A0B0C0D0E0F000102030405060708090A0B0C0D0E0F");
+            var wrapporKeyData = base16.parse("000102030405060708090A0B0C0D0E0F");
+            var error, wrappeeKey, wrapporKey, wrappedKeyData, wrappeeKey2, wrappeeKeyData2;
+
+            // Import the key to be wrapped
+            runs(function () {
+                error = undefined;
+                importKey('raw', wrappeeKeyData, { name: "HMAC", hash: {name: "SHA-256"} }, true, ["sign", "verify"])
+                    .then(function (result) {
+                        wrappeeKey = result;
+                    })
+                    .catch(function (e) {
+                        error = "ERROR";
+                    });
+            });
+            waitsFor(function () {
+                return wrappeeKey || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(wrappeeKey).toBeDefined();
+            });
+
+            // Import the wrapping key
+            runs(function () {
+                error = undefined;
+                importKey('raw', wrapporKeyData, { name: "AES-KW" }, false, ["wrapKey", "unwrapKey"])
+                    .then(function (result) {
+                        wrapporKey = result;
+                    })
+                    .catch(function (e) {
+                        error = "ERROR";
+                    });
+            });
+            waitsFor(function () {
+                return wrapporKey || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(wrapporKey).toBeDefined();
+            });
+            
+            // Wrap the wrappee with the wrappor, using jwk format
+            runs(function () {
+                error = undefined;
+                cryptoSubtle.wrapKey('jwk', wrappeeKey, wrapporKey, { name: "AES-KW" })
+                    .then(function (result) {
+                        wrappedKeyData = result && new Uint8Array(result);
+                    })
+                    .catch(function (e) {
+                        error = "ERROR";
+                    });
+            });
+            waitsFor(function () {
+                return wrappedKeyData || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(wrappedKeyData).toBeDefined();
+            });
+            
+            // Unwrap the wrapped key
+            runs(function () {
+                error = undefined;
+                cryptoSubtle.unwrapKey(
+                        'jwk',
+                        wrappedKeyData,
+                        wrapporKey,
+                        { name: "AES-KW" },
+                        { name: "HMAC", hash: {name: "SHA-256"} },
+                        true,
+                        [])
+                    .then(function (result) {
+                        wrappeeKey2 = result;
+                    })
+                    .catch(function (e) {
+                        error = "ERROR";
+                    });
+            });
+            waitsFor(function () {
+                return wrappeeKey2 || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(wrappeeKey2).toBeDefined();
+            });
+            
+            // Export the unwrapped key data and compare to the original
+            runs(function () {
+                error = undefined;
+                exportKey("raw", wrappeeKey2)
+                .then(function (result) {
+                    wrappeeKeyData2 = result && new Uint8Array(result);
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
+            });
+            waitsFor(function () {
+                return wrappeeKeyData2 || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(wrappeeKeyData2).toEqual(wrappeeKeyData);
             });
 
         });
@@ -2808,7 +2927,7 @@
 
     // --------------------------------------------------------------------------------
 
-    describe("IndexedDB Key Storage - NOTE: some of these will fail the first time", function () {
+    describe("IndexedDB Key Storage", function () {
         var rawSymmetricKeyData = base64.parse('_BkaT2XycllUKn6aiGrdVw'),
             cleartext = base64.parse('eyJtZXNzYWdlaWQiOjIwNzAzMTM3MzcsIm5vbnJlcGxheWFibGUiOmZhbHNlLCJyZW5ld2FibGUiOnRydWUsImNhcGFiaWxpdGllcyI6eyJjb21wcmVzc2lvbmFsZ29zIjpbIkxaVyJdfSwia2V5cmVxdWVzdGRhdGEiOlt7InNjaGVtZSI6IkFTWU1NRVRSSUNfV1JBUFBFRCIsImtleWRhdGEiOnsia2V5cGFpcmlkIjoicnNhS2V5cGFpcklkIiwibWVjaGFuaXNtIjoiSldFX1JTQSIsInB1YmxpY2tleSI6Ik1JSUJJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBM1RydHZQSUJKOGY5V2Jsa1FNeHgvczFnQmRjb0Z3bFNxQU5TTG5MSk9LdkJXNFRIdmNSeHR0VHc4dTRMWVFhM3h4Z1FNSUdBKzVMSXVxaGEyL1BXQ1dub2Vqdks1c05SM1I2cEJncjI0Ti9remZOeUpYYUt4WHJ1N1F1VW8vMG9VSGZJK3YxcE1qZ3VYN2ZqcWhtQ3RIdWNkQjFnTDNBenhNZ1J5MFdoU2NzdVFrN294bGtGQ3IxTnJiZEtvQ2xMVThCcnpvNmNsRVhmY2dIeUhiWU9kcEg4OVZPV2srMnJOM0VSL28yQ2RJeFpSL3A4SFBTS1NkMjc4ckRBejgydThUTWJ3b3RtREtLZzc0cWFoYkxrbjdpQnNOd2Y2M1hUM0JtY0JKTjA2SFplS0UyQTNOY0k1VHp4SFEwL3ZvNEpiQXFaWmFvTnRMYVAvTFpaWGNUbGRRSURBUUFCIn19XSwidXNlcmF1dGhkYXRhIjp7InNjaGVtZSI6Ik5FVEZMSVhJRCIsImF1dGhkYXRhIjp7Im5ldGZsaXhpZCI6InYlM0QyJTI2bWFjJTNEQVFFQUVBQUJBQlJ5Vng2aFdPc2Z1VXRVQTR6azdtT2dKeERVa3Y1LUo3VS4lMjZjaCUzREFRRUFFQUFCQUJURXdITFFIbmV1TV92Z0I3czREQ3RmMm16OUtGOUwxVlUuJTI2Y3QlM0RCUUFPQUFFQkVPc3gyU2VmRWZvbHd0M2VQUkF0ZXAyQndJVmszbldoYkxCTllNQ3czYjc1eXQ1ZmFoTkRRTmR0NXNOSEpFYjVUVFZrYnNTYlVhNHlpRjE2aHV2NEFDcUxVV1VMYWE1aVV5Sk1ZRF92OXpZSmhacC03bExhdlFyck03S2ZCb3R3N0hzLVJWZWwwYi16cXNIMzV0SHd6OXJ3V3dFRU05b3ZDV1paODJaQUE1YkZ4dE1LTGgxX01idmNTUzdXaGRvYWg5T18tWm90WUxkX2Z5aUJTT0VDX25feUpZa3pVR0IySmZ4X2xMdDdTdklOVmxuR0I4enlPVjdIM2tsV0xULV9QMmlFdTNpRFh3eVVhelJqNUlidm1jdktwenBRcmVidm05RXpSRjNQWXV3ekxra2RCOHl4QmkwcE9ZREM5OXE4MldQbTRQSXQ2c2xhOTZrQ255b2IwUHhlRUhFYWxfcDZPaXhKSWM5c2RFSW90bDJ6aEVvdUFkcDVvZXFoNE8zUngtQXV5ZUxqSWw5bWFFY0c1MXRmMy1HWUxHUXFVeVRiMlh0U1hkWkUzcHhmYmZLX1hyWTF6cUFJZ3N1QXV3MUFTX1lKcE94ZGppSHBuM0I0OGpPaXFRc2ZqUWNxTW5HbW5jb29lSEw2aENtUzNJSWFXUjRTQmpfRThwZWwyd3ZYb01HNkZfYkd3TFNkTTlzTDA3aTd4MWt4UnBNU0E0YWxiMWV6RmxiMEdaRGx2Q3FOYm1vbWZGeExfZEFXZGlRcEw3THZaamxNZ0lYcXpDRGRaTDNBcXZKZGtsV2tJem9mY1pVM0ZCZWpoZ3VOUEc0LiUyNmJ0JTNEdXNyIiwic2VjdXJlbmV0ZmxpeGlkIjoidiUzRDIlMjZtYWMlM0RBUUVBRVFBQkFCUTR3ZU56bGpkam5QZzVHSHdFUnVHZzZwRk84RG14LTZ3LiUyNmR0JTNEMTM2NzQ0OTI2OTAxMSJ9fX0='),
             cipherText = base64.parse('R9PHIE/XtAlTNIP3jiQAB2Pnw553AcYwHVFGEFW+pRq9Ur/ab7+4ckUjlYroQmd1LdnbA78YO+FVf7HfyDgZ5+FN541fBmlLmA/OYsyCO3e9CgAEdTJQGRd2XRR4gmGDFBjhpYunEGpPLXAgbf2aOCeGcq7Qyz9LlCq6cCMfSQ9wOKbhyL+BDzZEobZFwVkuKsjACdpnyh5ok53O4HMCnvtTvnS7EOr4fr0/+of234f1Um5zg8ny6n83dtGK9No15bdm38+lAGNG/C16znyFNWT++ue9Jlp5nbG7qrb/TswagvKOGJqKGkyV3oWViUj5Ar3j4vg9omUV6XuREmVLet/nFo4RJS/fKYEef7xbgRqTSkw4xg3sPTXTrP0GTmgWlgXk9rW93ua+ntmgpXIito5uCV7dmgBfWEy2YXjM7bjL7+e+Ihwlm0cDacyRZQKIq24OsYaLVw5deWxNWMDdJVJ8iWZkvvadCSDU9ehApKH40PeP/sln0nrv4vv2ugygLnOTXkLlkSYMMSEkFbujZl3q5HddF6VN57lQXg+KKwppGzsKGaNy5mq6E/E4KBeC9hlv+xWYPbvY4Xwe9bOSR/fpY93YmaPJpc5x/4Qb7wKJRbvik4AlbKBR4L7CUT5XpxBO42ZtHP+jBcWI0S444WG7nnn45pfeZuLtfP5MDDqcW7/thtyQ7BKWchW4gmoz+Cq3MgysGE1/ytFWZobQ4hmnEhdVGpzVouKvlZJW3v0CM9eIChof8HKiZ5xiBm271tZvR34X3evOUA7VWc+uyCijFt55wnA9780PD4NPoCX2sqi1Y0ovHxTjZG1FZvaDAZ8Hy+xTJ1SW3q9lqPUGx9haDqS8NUScNXBPZZtB02QVocLN74UOuolbcxuKBC39u66/HFuf0OO6ES/98V6nnAz+M2nWaR0U7Ogdw0Oa03z1MKH/9Vi01Fee2T9oxmyzo2EvH1a8BryvRaIdvqnRm4iLAqciNf51XQBDyulCgUhHGOiBwpDwuUJ6gsA7wO5GwjuTzttMhWmzugC58FkL3aX7ieoCXW+u/J8ppURPXlI9uxarQ5Tp81qMwqWWWiutKl4IT4FdPmYLGhIcXOC6wGfTe2iBh8PggTklqF0Sev0L28bF1BmrfkJOw1vtf0BZTXfe3pRTTojZXtorOByRR5OB3kyScyliT2ipDtwxfRe4m6UqvGonk64PAO7HcoCbJH9oIAlc3Lk6v/ue373RGusJfs8NV3v2BTD9aBLykbNDsWsXg6S0cPhlRtJ+2R7Py3aGe+lWFhU9zxhBl+WqBGjFV1vfbT9a2obZjNW/gCJ4rUh2K8U+6EMK+fRyp68i6tfVjRt+FilX0RZ7J95O78GIa+xWzBLaihgax0aCi4usx2kTqwyjfEGb3VwW48PkUkinTmN2h5QE7VB1j0a3invB/SA48bBj68dFr12jtgdoI6W5bbMer3QFqaDPQA6JcuY73KsDSGOo4DtPGVtKRhLMksFUDVC0hPqq9kjbSSfKm+MX5f+Vml5TnSRr10kP08aLBZ1XYC9vlFa/PtLcCopFex0E9c3+OZmcn4AsuqLMXesAF8pZGhVExZLeQ3MWrgsgML+TvGLSJCuVCj9aD1wmHlAQF6d+7C2Uh4IVAnG+ctENDr/wRgX3f3pXWnsP0qzby1hwutImi9VtfwIJ84evCuccHst0pF7fQH07Udx7kFb2ZF9YKCGx/uDgbD8WXalimgrghdN1BwCqOfDmVDz4pbq2AlEOWlU+kbtrlKWmsgDj83BVo4CKU4mdn/hgzVzQX/ZAfbxDYjak+cRBwnHyS/kP/vcraWNW/LXOOjMo59VQr2QtzlxmjazmT7T94uyvrnbjlFYGK+GoCKuEsKsTMUaaU1eYM/tsAWt9IfyDEuzDRNdWwT9Ky1SNVSBUgCGfBF6r59sDgo8Uv+i4R4I4Tu7bRd2IACWZj9JEG8hfBIk2n5O1AY1CFoGoC9agaf1bG1jxW+kLXeO8YeK+xCHEHbPWmg3KX7xoLyMnF1l5ICTv86FZOSa4CUQ4oGcQ3BowOdTSy+hAnVIqXZOCmYuKXJ60UgpBIaaYjI2yMzY='),
@@ -3108,5 +3227,233 @@
         });
 
     });
+    
+    describe("Key Discovery API for Netflix keys", function () {
+        
+        var key, error;
+        
+        it("cryptokeys exists", function () {
+            runs(function() {
+                expect(cryptokeys).toBeDefined();
+            });
+        });
+
+        it("DKE exists", function () {
+            error = undefined;
+            key = undefined;
+            cryptokeys.getKeyByName("DKE")
+            .then(function (result) {
+                key = result;
+            })
+            .catch(function (e) {
+                error = "getKeyByName ERROR";
+            });
+
+            waitsFor(function () {
+                return key || error;
+            });
+
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(key).toBeDefined();
+                expect(key.extractable).toBe(false);
+                expect(key.type).toBe("secret");
+
+                expect(key.algorithm).toEqual({name: "AES-CBC"});
+                expect(key.name).toEqual("DKE");
+                expect(base64.parse(key.id)).toBeDefined();
+                console.log(String.fromCharCode.apply(null, base64.parse(key.id)));
+            });
+        });
+        
+        it("DKH exists", function () {
+            error = undefined;
+            key = undefined;
+            cryptokeys.getKeyByName("DKH")
+            .then(function (result) {
+                key = result;
+            })
+            .catch(function (e) {
+                error = "getKeyByName ERROR";
+            });
+
+            waitsFor(function () {
+                return key || error;
+            });
+
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(key).toBeDefined();
+                expect(key.extractable).toBe(false);
+                expect(key.type).toBe("secret");
+
+                expect(key.algorithm.name).toEqual("HMAC");
+                expect(key.name).toEqual("DKH");
+                expect(base64.parse(key.id)).toBeDefined();
+                console.log(String.fromCharCode.apply(null, base64.parse(key.id)));
+            });
+        });
+        
+        it("DKW exists", function () {
+            error = undefined;
+            key = undefined;
+            cryptokeys.getKeyByName("DKW")
+            .then(function (result) {
+                key = result;
+            })
+            .catch(function (e) {
+                error = "getKeyByName ERROR";
+            });
+
+            waitsFor(function () {
+                return key || error;
+            });
+
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(key).toBeDefined();
+                expect(key.extractable).toBe(false);
+                expect(key.type).toBe("secret");
+
+                expect(key.algorithm).toEqual({name: "AES-KW"});
+                expect(key.name).toEqual("DKW");
+                expect(base64.parse(key.id)).toBeDefined();
+                console.log(String.fromCharCode.apply(null, base64.parse(key.id)));
+            });
+        });
+        
+        it("DKS exists", function () {
+            error = undefined;
+            key = undefined;
+            cryptokeys.getKeyByName("DKS")
+            .then(function (result) {
+                key = result;
+            })
+            .catch(function (e) {
+                error = "getKeyByName ERROR";
+            });
+
+            waitsFor(function () {
+                return key || error;
+            });
+
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(key).toBeDefined();
+                expect(key.extractable).toBe(false);
+                expect(key.type).toBe("secret");
+
+                expect(key.algorithm).toEqual({name: "AES-KW"});
+                expect(key.name).toEqual("DKS");
+                expect(base64.parse(key.id)).toBeDefined();
+                console.log(String.fromCharCode.apply(null, base64.parse(key.id)));
+            });
+        });
+        
+        it("Wrap HMAC SHA256 key with DKW, JWK format", function () {
+            var wrappeeKeyData = base16.parse("000102030405060708090A0B0C0D0E0F000102030405060708090A0B0C0D0E0F");
+            var wrapporKey, wrappeeKey, error, wrappedKeyData, wrappeeKey2, wrappeeKeyData2;
+
+            // Import the key to be wrapped
+            runs(function () {
+                error = undefined;
+                importKey('raw', wrappeeKeyData, { name: "HMAC", hash: {name: "SHA-256"} }, true, ["sign"])
+                    .then(function (result) {
+                        wrappeeKey = result;
+                    })
+                    .catch(function (e) {
+                        error = "ERROR";
+                    });
+            });
+            waitsFor(function () {
+                return wrappeeKey || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(wrappeeKey).toBeDefined();
+            });
+
+            // Get the wrapping key
+            cryptokeys.getKeyByName("DKW")
+            .then(function (result) {
+                wrapporKey = result;
+            })
+            .catch(function (e) {
+                error = "getKeyByName ERROR";
+            });
+            waitsFor(function () {
+                return wrapporKey || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(wrapporKey).toBeDefined();
+            });
+            
+            // Wrap the wrappee with the wrappor, using jwk format
+            runs(function () {
+                error = undefined;
+                cryptoSubtle.wrapKey('jwk', wrappeeKey, wrapporKey, wrapporKey.algorithm)
+                    .then(function (result) {
+                        wrappedKeyData = result && new Uint8Array(result);
+                    })
+                    .catch(function (e) {
+                        error = "ERROR";
+                    });
+            });
+            waitsFor(function () {
+                return wrappedKeyData || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(wrappedKeyData).toBeDefined();
+            });
+            
+            // Unwrap the wrapped key
+            runs(function () {
+                error = undefined;
+                cryptoSubtle.unwrapKey(
+                        'jwk',
+                        wrappedKeyData,
+                        wrapporKey,
+                        wrapporKey.algorithm,
+                        { name: "HMAC", hash: {name: "SHA-256"} },
+                        true,
+                        [])
+                    .then(function (result) {
+                        wrappeeKey2 = result;
+                    })
+                    .catch(function (e) {
+                        error = "ERROR";
+                    });
+            });
+            waitsFor(function () {
+                return wrappeeKey2 || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(wrappeeKey2).toBeDefined();
+            });
+            
+            // Export the unwrapped key data and compare to the original
+            runs(function () {
+                error = undefined;
+                exportKey("raw", wrappeeKey2)
+                .then(function (result) {
+                    wrappeeKeyData2 = result && new Uint8Array(result);
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
+            });
+            waitsFor(function () {
+                return wrappeeKeyData2 || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(wrappeeKeyData2).toEqual(wrappeeKeyData);
+            });
+
+        });
+   });
 
 })();
