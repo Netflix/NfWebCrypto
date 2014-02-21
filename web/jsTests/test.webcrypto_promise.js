@@ -3247,7 +3247,6 @@
                 expect(key.algorithm).toEqual({name: "AES-CBC"});
                 expect(key.name).toEqual("DKE");
                 expect(base64.parse(key.id)).toBeDefined();
-                console.log(String.fromCharCode.apply(null, base64.parse(key.id)));
             });
         });
         
@@ -3275,7 +3274,6 @@
                 expect(key.algorithm.name).toEqual("HMAC");
                 expect(key.name).toEqual("DKH");
                 expect(base64.parse(key.id)).toBeDefined();
-                console.log(String.fromCharCode.apply(null, base64.parse(key.id)));
             });
         });
         
@@ -3303,7 +3301,6 @@
                 expect(key.algorithm).toEqual({name: "AES-KW"});
                 expect(key.name).toEqual("DKW");
                 expect(base64.parse(key.id)).toBeDefined();
-                console.log(String.fromCharCode.apply(null, base64.parse(key.id)));
             });
         });
         
@@ -3331,7 +3328,6 @@
                 expect(key.algorithm).toEqual({name: "AES-KW"});
                 expect(key.name).toEqual("DKS");
                 expect(base64.parse(key.id)).toBeDefined();
-                console.log(String.fromCharCode.apply(null, base64.parse(key.id)));
             });
         });
         
