@@ -1073,7 +1073,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::exportJwk(const Key& key, string& jwkSt
     // JWK has the following JSON structure
     // {
     //      'kty':          key type, e.g. 'RSA', 'EC', 'oct' (REQUIRED)
-    //      'use':          key usage, e.g. 'sig', 'enc', 'wrap' (OPTIONAL)
+    //      'key_ops':      key usage (OPTIONAL)
     //      'alg:           key algorithm, e.g. 'RSA1_5, 'A128CBC', 'A128GCM', 'HS256', 'A128KW' (OPTIONAL)
     //      'kid':          key ID, e.g. ignore this (OPTIONAL)
     //      'extractable':  true or false (OPTIONAL)
@@ -1143,35 +1143,6 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::exportJwk(const Key& key, string& jwkSt
             jwkUseDetailsAry.push_back(jwkUseStrVec[i]);
         }
         jwkMap["key_ops"] = jwkUseDetailsAry;
-    }
-
-    // ---- 'use'
-    if (key.keyUsage.size())
-    {
-        bool setEnc = false;
-        bool setSig = false;
-        for (size_t i = 0; i < key.keyUsage.size(); ++i)
-        {
-            switch (key.keyUsage[i])
-            {
-                case ENCRYPT:
-                case DECRYPT:
-                case DERIVE:
-                case UNWRAP:
-                case WRAP:
-                    setEnc = true;
-                    break;
-                case SIGN:
-                case VERIFY:
-                    setSig = true;
-                    break;
-                default:
-                    assert(false);
-                    break;
-            }
-        }
-        assert(setEnc != setSig);
-        jwkMap["use"] = setEnc ? "enc" : "sig";
     }
 
     // ---- 'alg'
