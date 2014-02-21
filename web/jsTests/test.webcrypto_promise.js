@@ -3335,14 +3335,17 @@
             });
         });
         
-        it("Wrap/unwrap HMAC SHA256 key with DKW, raw format", function () {
+        it("Verify a signing key works after wrap/unwrap with DKW", function () {
             var wrappeeKeyData = base16.parse("000102030405060708090A0B0C0D0E0F000102030405060708090A0B0C0D0E0F");
             var wrapporKey, wrappeeKey, error, wrappedKeyData, wrappeeKey2, wrappeeKeyData2;
+            var dataToSign = base16.parse("6c90a8f1d948d66a7557b96ab18deb3450cf553ca0358ae6fadfd0b47ddb5013");
+            var signature = base64.parse("We98v/BV/6V4okrMmYLkl2pdXi9OObl/ZF58rzLQyrA=");
+            var verified;
 
-            // Import the key to be wrapped
+            // Import the signing key to be wrapped
             runs(function () {
                 error = undefined;
-                importKey('raw', wrappeeKeyData, { name: "HMAC", hash: {name: "SHA-256"} }, true, ["sign"])
+                importKey('raw', wrappeeKeyData, {name: "HMAC", hash: {name: "SHA-256"}}, true, ["sign"])
                     .then(function (result) {
                         wrappeeKey = result;
                     })
@@ -3374,7 +3377,8 @@
                 expect(wrapporKey).toBeDefined();
             });
             
-            // Wrap the wrappee with the wrappor, using raw format
+            // Wrap the signing key with the wrapping key, using raw format
+            // NOTE: Using raw format here strips off usage and extractability
             runs(function () {
                 error = undefined;
                 cryptoSubtle.wrapKey('raw', wrappeeKey, wrapporKey, wrapporKey.algorithm)
@@ -3393,7 +3397,7 @@
                 expect(wrappedKeyData).toBeDefined();
             });
             
-            // Unwrap the wrapped key
+            // Unwrap the wrapped key, giving it 'verify' usage
             runs(function () {
                 error = undefined;
                 cryptoSubtle.unwrapKey(
@@ -3401,9 +3405,9 @@
                         wrappedKeyData,
                         wrapporKey,
                         wrapporKey.algorithm,
-                        { name: "HMAC", hash: {name: "SHA-256"} },
-                        true,
-                        [])
+                        {name: "HMAC", hash: {name: "SHA-256"}},
+                        false,
+                        ['verify'])
                     .then(function (result) {
                         wrappeeKey2 = result;
                     })
@@ -3419,25 +3423,28 @@
                 expect(wrappeeKey2).toBeDefined();
             });
             
-            // Export the unwrapped key data and compare to the original
+            // Use the unwrapped key to verify the signature of known data
             runs(function () {
                 error = undefined;
-                exportKey("raw", wrappeeKey2)
-                .then(function (result) {
-                    wrappeeKeyData2 = result && new Uint8Array(result);
-                })
-                .catch(function (result) {
-                    error = "ERROR";
-                })
+                cryptoSubtle.verify(
+                        {name: "HMAC", hash: {name: "SHA-256"}},
+                        wrappeeKey2,
+                        signature,
+                        dataToSign)
+                    .then(function (result) {
+                        verified = result;
+                    })
+                    .catch(function (e) {
+                        error = "ERROR";
+                    });
             });
             waitsFor(function () {
-                return wrappeeKeyData2 || error;
+                return verified || error;
             });
             runs(function () {
                 expect(error).toBeUndefined();
-                expect(wrappeeKeyData2).toEqual(wrappeeKeyData);
+                expect(verified).toBe(true);
             });
-
         });
    });
 
