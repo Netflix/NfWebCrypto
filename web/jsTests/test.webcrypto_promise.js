@@ -3335,7 +3335,7 @@
             });
         });
         
-        it("Wrap HMAC SHA256 key with DKW, JWK format", function () {
+        it("Wrap/unwrap HMAC SHA256 key with DKW, raw format", function () {
             var wrappeeKeyData = base16.parse("000102030405060708090A0B0C0D0E0F000102030405060708090A0B0C0D0E0F");
             var wrapporKey, wrappeeKey, error, wrappedKeyData, wrappeeKey2, wrappeeKeyData2;
 
@@ -3374,10 +3374,10 @@
                 expect(wrapporKey).toBeDefined();
             });
             
-            // Wrap the wrappee with the wrappor, using jwk format
+            // Wrap the wrappee with the wrappor, using raw format
             runs(function () {
                 error = undefined;
-                cryptoSubtle.wrapKey('jwk', wrappeeKey, wrapporKey, wrapporKey.algorithm)
+                cryptoSubtle.wrapKey('raw', wrappeeKey, wrapporKey, wrapporKey.algorithm)
                     .then(function (result) {
                         wrappedKeyData = result && new Uint8Array(result);
                     })
@@ -3397,7 +3397,7 @@
             runs(function () {
                 error = undefined;
                 cryptoSubtle.unwrapKey(
-                        'jwk',
+                        'raw',
                         wrappedKeyData,
                         wrapporKey,
                         wrapporKey.algorithm,
