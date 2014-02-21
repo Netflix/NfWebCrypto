@@ -2556,16 +2556,20 @@
             });
         });
         
-        it("AES-KW wrap/unwrap JWK HS256 key", function () {
+        it("AES-KW unwrap known JWK HS256 key", function () {
             
             var wrappeeKeyData = base16.parse("000102030405060708090A0B0C0D0E0F000102030405060708090A0B0C0D0E0F");
             var wrapporKeyData = base16.parse("000102030405060708090A0B0C0D0E0F");
-            var error, wrappeeKey, wrapporKey, wrappedKeyData, wrappeeKey2, wrappeeKeyData2;
+            var wrappedKeyData = base64.parse(
+                "FOY4CzX9xbcuGZR2S2y3v91k54MolDVqrubDdo/D0PEV5rBnKXViJfmZqpn9+" +
+                "B/Wo1nxV209I95stpw5NwVOtJesHow41V4BuXg6IMjZMAIJMs8lkmEDACIT0P" +
+                "w3J5iIFU/rzt8xgyFYl5OMXP5bELQlTQw5nznQ");
+            var error, wrappeeKey, wrapporKey, wrappeeKey2, wrappeeKeyData2;
 
             // Import the key to be wrapped
             runs(function () {
                 error = undefined;
-                importKey('raw', wrappeeKeyData, { name: "HMAC", hash: {name: "SHA-256"} }, true, ["sign", "verify"])
+                importKey('raw', wrappeeKeyData, { name: "HMAC", hash: {name: "SHA-256"} }, true, ["verify"])
                     .then(function (result) {
                         wrappeeKey = result;
                     })
@@ -2600,26 +2604,7 @@
                 expect(wrapporKey).toBeDefined();
             });
             
-            // Wrap the wrappee with the wrappor, using jwk format
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.wrapKey('jwk', wrappeeKey, wrapporKey, { name: "AES-KW" })
-                    .then(function (result) {
-                        wrappedKeyData = result && new Uint8Array(result);
-                    })
-                    .catch(function (e) {
-                        error = "ERROR";
-                    });
-            });
-            waitsFor(function () {
-                return wrappedKeyData || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(wrappedKeyData).toBeDefined();
-            });
-            
-            // Unwrap the wrapped key
+            // Unwrap the known wrapped key
             runs(function () {
                 error = undefined;
                 cryptoSubtle.unwrapKey(
@@ -2666,7 +2651,7 @@
 
         });
         
-        it("RSAES-PKCS1-v1_5 wrap/unwrap round trip", function () {
+        it("RSAES-PKCS1-v1_5 wrap/unwrap JWK round trip", function () {
             // Note: we can't do a known-answer test for RSAES-PKCS1-v1_5 because
             // of the random padding.
             
@@ -2793,7 +2778,7 @@
             });
         });
         
-        it("RSA-OAEP wrap/unwrap round trip", function () {
+        it("RSA-OAEP wrap/unwrap raw key round trip", function () {
             // Note: we can't do a known-answer test for RSA-OAEP because
             // of the random padding.
             
