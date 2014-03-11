@@ -729,7 +729,7 @@
         it("generateKey HMAC SHA-256, export", function () {
             var error;
 
-            var keyLengthBytes = 32,
+            var keyLength = 256,
                 key,
                 keyData;
 
@@ -739,7 +739,7 @@
                     {
                         name: "HMAC",
                         hash: {name: "SHA-256"},
-                        length: keyLengthBytes
+                        length: keyLength
                     },
                     true,
                     []
@@ -779,7 +779,7 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(keyData).toBeDefined();
-                expect(keyData.byteLength).toEqual(keyLengthBytes);
+                expect(keyData.byteLength).toEqual(keyLength/8);
                 expect(base16.stringify(keyData)).not.toEqual(base16.stringify([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]));
             });
 
@@ -790,7 +790,7 @@
                     {
                         name: "HMAC",
                         hash: {name: "SHA-256"},
-                        length: keyLengthBytes
+                        length: keyLength
                     },
                     false,
                     []
@@ -940,7 +940,8 @@
                     {
                         name: "RSASSA-PKCS1-v1_5",
                         modulusLength: 1024,
-                        publicExponent: new Uint8Array([0x01, 0x00, 0x01])
+                        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+                        hash: { name: "SHA-256" }
                     },
                     false,
                     ["sign", "verify"]
@@ -1758,7 +1759,8 @@
                     {
                         name: "RSASSA-PKCS1-v1_5",
                         modulusLength: 1024,
-                        publicExponent: new Uint8Array([0x01, 0x00, 0x01])
+                        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+                        hash: { name: "SHA-256" }
                     },
                     false,
                     ["sign", "verify"]
