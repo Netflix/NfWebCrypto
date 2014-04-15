@@ -3359,13 +3359,16 @@
                 expect(wrappeeKey).toBeDefined();
             });
 
-            // Get the wrapping key
-            cryptokeys.getKeyByName("DKW")
-            .then(function (result) {
-                wrapporKey = result;
-            })
-            .catch(function (e) {
-                error = "getKeyByName ERROR";
+            // Get the pre-shared wrapping key
+            runs(function () {
+                error = undefined;
+                cryptokeys.getKeyByName("DKW")
+                    .then(function (result) {
+                        wrapporKey = result;
+                    })
+                    .catch(function (e) {
+                        error = "getKeyByName ERROR";
+                    });
             });
             waitsFor(function () {
                 return wrapporKey || error;
@@ -3377,6 +3380,121 @@
             
             // Wrap the signing key with the wrapping key, using raw format
             // NOTE: Using raw format here strips off usage and extractability
+            runs(function () {
+                error = undefined;
+                cryptoSubtle.wrapKey('raw', wrappeeKey, wrapporKey, wrapporKey.algorithm)
+                    .then(function (result) {
+                        wrappedKeyData = result && new Uint8Array(result);
+                    })
+                    .catch(function (e) {
+                        error = "ERROR";
+                    });
+            });
+            waitsFor(function () {
+                return wrappedKeyData || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(wrappedKeyData).toBeDefined();
+            });
+            
+            // Unwrap the wrapped key, giving it 'verify' usage
+            runs(function () {
+                error = undefined;
+                cryptoSubtle.unwrapKey(
+                        'raw',
+                        wrappedKeyData,
+                        wrapporKey,
+                        wrapporKey.algorithm,
+                        {name: "HMAC", hash: {name: "SHA-256"}},
+                        false,
+                        ['verify'])
+                    .then(function (result) {
+                        wrappeeKey2 = result;
+                    })
+                    .catch(function (e) {
+                        error = "ERROR";
+                    });
+            });
+            waitsFor(function () {
+                return wrappeeKey2 || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(wrappeeKey2).toBeDefined();
+            });
+            
+            // Use the unwrapped key to verify the signature of known data
+            runs(function () {
+                error = undefined;
+                cryptoSubtle.verify(
+                        {name: "HMAC", hash: {name: "SHA-256"}},
+                        wrappeeKey2,
+                        signature,
+                        dataToSign)
+                    .then(function (result) {
+                        verified = result;
+                    })
+                    .catch(function (e) {
+                        error = "ERROR";
+                    });
+            });
+            waitsFor(function () {
+                return verified || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(verified).toBe(true);
+            });
+        });
+        
+        it("Verify a non-extractable signing key works after wrap/unwrap with DKS", function () {
+            var wrappeeKeyData = base16.parse("000102030405060708090A0B0C0D0E0F000102030405060708090A0B0C0D0E0F");
+            var wrapporKey, wrappeeKey, error, wrappedKeyData, wrappedKeyData2, wrappeeKey2, wrappeeKeyData2;
+            var dataToSign = base16.parse("6c90a8f1d948d66a7557b96ab18deb3450cf553ca0358ae6fadfd0b47ddb5013");
+            var signature = base64.parse("We98v/BV/6V4okrMmYLkl2pdXi9OObl/ZF58rzLQyrA=");
+            var verified;
+
+            // Import the signing key to be wrapped
+            // NOTE: extractable = false should make wrapKey fail for any wrapping key except DKS
+            runs(function () {
+                error = undefined;
+                importKey('raw', wrappeeKeyData, {name: "HMAC", hash: {name: "SHA-256"}}, false, ["sign"])
+                    .then(function (result) {
+                        wrappeeKey = result;
+                    })
+                    .catch(function (e) {
+                        error = "ERROR";
+                    });
+            });
+            waitsFor(function () {
+                return wrappeeKey || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(wrappeeKey).toBeDefined();
+            });
+
+            // Get the pre-shared system key
+            runs(function () {
+                error = undefined;
+                cryptokeys.getKeyByName("DKS")
+                .then(function (result) {
+                    wrapporKey = result;
+                })
+                .catch(function (e) {
+                    error = "getKeyByName ERROR";
+                });
+            });
+            waitsFor(function () {
+                return wrapporKey || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(wrapporKey).toBeDefined();
+            });
+            
+            // Wrap the signing key with the wrapping key
             runs(function () {
                 error = undefined;
                 cryptoSubtle.wrapKey('raw', wrappeeKey, wrapporKey, wrapporKey.algorithm)
