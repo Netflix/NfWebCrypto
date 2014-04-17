@@ -42,7 +42,8 @@ public:
     CadErr importKey(KeyFormat format, const std::string& keyData,
         const base::Variant& algVar, bool extractable,
         const std::vector<KeyUsage>& keyUsage, uint32_t& keyHandle);
-    CadErr exportKey(uint32_t keyHandle, KeyFormat format, std::string& keyData);
+    CadErr exportKey(uint32_t keyHandle, KeyFormat format, std::string& keyData,
+            bool forceExport = false);
     CadErr getKeyInfo(uint32_t keyHandle, KeyType& type, bool& extractable,
             base::Variant& algVar, std::vector<KeyUsage>& usage) const;
     CadErr aesCbc(uint32_t keyHandle, const std::string& ivIn,
@@ -112,10 +113,10 @@ private:
 private:
     IDeviceInfo * const pDeviceInfo_;
     bool isInited_;
-    std::map<uint32_t, std::vector<unsigned char> > keyCache_;
     uint32_t nextKeyHandle_;
     std::map<uint32_t, Key> keyMap_;
     uint32_t systemKeyHandle_;
+    uint32_t dksKeyHandle_;
     struct NamedKeySpec
     {
         const uint32_t keyHandle;

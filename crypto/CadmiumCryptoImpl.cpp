@@ -278,6 +278,7 @@ CadmiumCrypto::CadmiumCryptoImpl::CadmiumCryptoImpl(IDeviceInfo * pDeviceInfo)
 ,   isInited_(false)
 ,   nextKeyHandle_(kStartKeyHandle)
 ,   systemKeyHandle_(kInvalidKeyHandle)
+,   dksKeyHandle_(kInvalidKeyHandle)
 {
     jwkUseStrToMaskMap["enconly"] = JWK_ENCONLY;
     jwkUseStrToMaskMap["deconly"] = JWK_DECONLY;
@@ -372,6 +373,11 @@ uint32_t CadmiumCrypto::CadmiumCryptoImpl::importNamedKey(const NamedKey& nk)
                 nk.name << " failed\n";
         return kInvalidKeyHandle;
     }
+
+    // record the handle of the key named "DKS" for special handling in unwrapKey()
+    if (nk.name == "DKS")
+        dksKeyHandle_ = keyHandle;
+
     namedKeyMap_.insert(make_pair(nk.name, NamedKeySpec(keyHandle, nk.id)));
     return keyHandle;
 }
@@ -1000,7 +1006,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
 }
 
 CadErr CadmiumCrypto::CadmiumCryptoImpl::exportKey(uint32_t keyHandle,
-        KeyFormat format, string& keyStr64)
+        KeyFormat format, string& keyStr64, bool forceExport)
 {
     if (!isInited_)
         return CAD_ERR_NOT_INITIALIZED;
@@ -1008,9 +1014,9 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::exportKey(uint32_t keyHandle,
     if (!hasKey(keyHandle))
         return CAD_ERR_BADKEYINDEX;
 
-    // the key must be extractable
     Key key = keyMap_[keyHandle];
-    if (!key.extractable)
+    // if not a forced export, the key must be extractable
+    if (!forceExport && !key.extractable)
     {
         DLOG() << "CadmiumCrypto::exportKey: key not extractable\n";
         return CAD_ERR_BADKEYNAME;  // FIXME, need better error
@@ -2424,8 +2430,11 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::wrapKey(KeyFormat format,
     }
 
     // export the key to be wrapped in the required format
+    // If the wrapping key is the DKS, then even a non-extractable key
+    // can be exported.
     string keyStr64;
-    CadErr err = exportKey(toBeWrappedKeyHandle, format, keyStr64);
+    bool forceExport = (wrappingKeyHandle == dksKeyHandle_);
+    CadErr err = exportKey(toBeWrappedKeyHandle, format, keyStr64, forceExport);
     if (err != CAD_ERR_OK)
     {
         DLOG() << "CadmiumCrypto::wrapKey: Key export failed\n";
