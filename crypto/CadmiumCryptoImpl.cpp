@@ -52,8 +52,6 @@ extern unsigned char gRandTable[];
 namespace   // anonymous
 {
 
-#define SECRET_SYSTEM_KEY "iIniW9SVpZKlXGmbrgrJG9uxy7HtCNJsDM5IXS24eCI="
-
 #define xstr(s) str(s)
 #define str(s) #s
 
@@ -280,6 +278,7 @@ CadmiumCrypto::CadmiumCryptoImpl::CadmiumCryptoImpl(IDeviceInfo * pDeviceInfo)
 ,   isInited_(false)
 ,   nextKeyHandle_(kStartKeyHandle)
 ,   systemKeyHandle_(kInvalidKeyHandle)
+,   dksKeyHandle_(kInvalidKeyHandle)
 {
     jwkUseStrToMaskMap["enconly"] = JWK_ENCONLY;
     jwkUseStrToMaskMap["deconly"] = JWK_DECONLY;
@@ -375,6 +374,11 @@ uint32_t CadmiumCrypto::CadmiumCryptoImpl::importNamedKey(const NamedKey& nk)
                 nk.name << " failed\n";
         return kInvalidKeyHandle;
     }
+
+    // record the handle of the key named "DKS" for special handling in unwrapKey()
+    if (nk.name == "DKS")
+        dksKeyHandle_ = keyHandle;
+
     namedKeyMap_.insert(make_pair(nk.name, NamedKeySpec(keyHandle, nk.id)));
     return keyHandle;
 }
@@ -551,12 +555,6 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importKeyInternal(KeyFormat keyFormat,
 
     const Algorithm algType = toAlgorithm(algVar["name"].string());
 
-    if (!reconcileAlgVsUsage(algType, keyUsage))
-    {
-        DLOG() << "CadmiumCrypto::importKey: ERROR: inconsistent algorithm vs usage\n";
-        return CAD_ERR_INTERNAL;    // FIXME better error
-    }
-
     shared_ptr<RsaContext> pRsaContext(new RsaContext());
     KeyType keyType;
     switch (algType)
@@ -677,17 +675,17 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
     }
     const string jwkAlg = jwk.mapValue<string>("alg");
     const string jwkUse = jwk.mapValue<string>("use");
-    const VariantArray jwkUseDetails = jwk.mapValue<VariantArray>("key_ops");
+    const VariantArray jwkKeyOps = jwk.mapValue<VariantArray>("key_ops");
     const string jwkExt = jwk.mapValue<string>("ext");
     DLOG() << "\tjwkKty = " << jwkKty << endl;
     if (jwkAlg.size()) DLOG() << "\tjwkAlg = " << jwkAlg << endl;
     if (jwkUse.size()) DLOG() << "\tjwkUse = " << jwkUse << endl;
     if (!jwkExt.empty()) DLOG() << "\tjwkExt = " << jwkExt << endl;
 
-    if (!jwkUseDetails.empty()) {
-        DLOG() << "\tjwkUseDetails = [ ";
-        for (size_t i=0; i < jwkUseDetails.size(); ++i) {
-            DLOG() << jwkUseDetails[i].string() << " ";
+    if (!jwkKeyOps.empty()) {
+        DLOG() << "\tjwkKeyOps = [ ";
+        for (size_t i=0; i < jwkKeyOps.size(); ++i) {
+            DLOG() << jwkKeyOps[i].string() << " ";
         }
         DLOG() << "]" << endl;
     }
@@ -857,22 +855,22 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
     // Below I have implemented Wes's behavior since it was the most recently
     // provided and backed by his implementation.
     vector<KeyUsage> myKeyUsage;
-    if (jwkUseDetails.size())
+    if (jwkKeyOps.size())
     {
-        for (size_t i=0; i < jwkUseDetails.size(); ++i) {
-            if (jwkUseDetails[i].string() == "encrypt")
+        for (size_t i=0; i < jwkKeyOps.size(); ++i) {
+            if (jwkKeyOps[i].string() == "encrypt")
                 myKeyUsage.push_back(ENCRYPT);
-            if (jwkUseDetails[i].string() == "decrypt")
+            if (jwkKeyOps[i].string() == "decrypt")
                 myKeyUsage.push_back(DECRYPT);
-            if (jwkUseDetails[i].string() == "sign")
+            if (jwkKeyOps[i].string() == "sign")
                 myKeyUsage.push_back(SIGN);
-            if (jwkUseDetails[i].string() == "verify")
+            if (jwkKeyOps[i].string() == "verify")
                 myKeyUsage.push_back(VERIFY);
-            if (jwkUseDetails[i].string() == "deriveKey")
+            if (jwkKeyOps[i].string() == "deriveKey")
                 myKeyUsage.push_back(DERIVE);
-            if (jwkUseDetails[i].string() == "wrapKey")
+            if (jwkKeyOps[i].string() == "wrapKey")
                 myKeyUsage.push_back(WRAP);
-            if (jwkUseDetails[i].string() == "unwrapKey")
+            if (jwkKeyOps[i].string() == "unwrapKey")
                 myKeyUsage.push_back(UNWRAP);
         }
     }
@@ -901,13 +899,6 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
     else
     {
         myKeyUsage = keyUsage;
-    }
-
-    // verify key usage
-    if (!reconcileAlgVsUsage(toAlgorithm(myAlgVar["name"].string()), myKeyUsage))
-    {
-        DLOG() << "CadmiumCrypto::importJwk: ERROR: inconsistent algorithm vs usage\n";
-        return CAD_ERR_INTERNAL;    // FIXME better error
     }
 
     // extract / make the key material
@@ -1019,7 +1010,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::importJwk(const Vuc& keyVuc,
 }
 
 CadErr CadmiumCrypto::CadmiumCryptoImpl::exportKey(uint32_t keyHandle,
-        KeyFormat format, string& keyStr64)
+        KeyFormat format, string& keyStr64, bool forceExport)
 {
     if (!isInited_)
         return CAD_ERR_NOT_INITIALIZED;
@@ -1027,9 +1018,9 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::exportKey(uint32_t keyHandle,
     if (!hasKey(keyHandle))
         return CAD_ERR_BADKEYINDEX;
 
-    // the key must be extractable
     Key key = keyMap_[keyHandle];
-    if (!key.extractable)
+    // if not a forced export, the key must be extractable
+    if (!forceExport && !key.extractable)
     {
         DLOG() << "CadmiumCrypto::exportKey: key not extractable\n";
         return CAD_ERR_BADKEYNAME;  // FIXME, need better error
@@ -1092,7 +1083,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::exportJwk(const Key& key, string& jwkSt
     // JWK has the following JSON structure
     // {
     //      'kty':          key type, e.g. 'RSA', 'EC', 'oct' (REQUIRED)
-    //      'use':          key usage, e.g. 'sig', 'enc', 'wrap' (OPTIONAL)
+    //      'key_ops':      key usage (OPTIONAL)
     //      'alg:           key algorithm, e.g. 'RSA1_5, 'A128CBC', 'A128GCM', 'HS256', 'A128KW' (OPTIONAL)
     //      'kid':          key ID, e.g. ignore this (OPTIONAL)
     //      'extractable':  true or false (OPTIONAL)
@@ -1162,35 +1153,6 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::exportJwk(const Key& key, string& jwkSt
             jwkUseDetailsAry.push_back(jwkUseStrVec[i]);
         }
         jwkMap["key_ops"] = jwkUseDetailsAry;
-    }
-
-    // ---- 'use'
-    if (key.keyUsage.size())
-    {
-        bool setEnc = false;
-        bool setSig = false;
-        for (size_t i = 0; i < key.keyUsage.size(); ++i)
-        {
-            switch (key.keyUsage[i])
-            {
-                case ENCRYPT:
-                case DECRYPT:
-                case DERIVE:
-                case UNWRAP:
-                case WRAP:
-                    setEnc = true;
-                    break;
-                case SIGN:
-                case VERIFY:
-                    setSig = true;
-                    break;
-                default:
-                    assert(false);
-                    break;
-            }
-        }
-        assert(setEnc != setSig);
-        jwkMap["use"] = setEnc ? "enc" : "sig";
     }
 
     // ---- 'alg'
@@ -1487,7 +1449,7 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::hmac(uint32_t keyHandle, Algorithm shaA
 
     if (!isUsageAllowed(keyHandle, opUsage))
     {
-        DLOG() << "CadmiumCrypto::hmac: operation disallowed by keyUsage\n";
+        DLOG() << "CadmiumCrypto::rsaCrypt: operation disallowed by keyUsage\n";
         return CAD_ERR_KEY_USAGE;
     }
 
@@ -2472,8 +2434,11 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::wrapKey(KeyFormat format,
     }
 
     // export the key to be wrapped in the required format
+    // If the wrapping key is the DKS, then even a non-extractable key
+    // can be exported.
     string keyStr64;
-    CadErr err = exportKey(toBeWrappedKeyHandle, format, keyStr64);
+    bool forceExport = (wrappingKeyHandle == dksKeyHandle_);
+    CadErr err = exportKey(toBeWrappedKeyHandle, format, keyStr64, forceExport);
     if (err != CAD_ERR_OK)
     {
         DLOG() << "CadmiumCrypto::wrapKey: Key export failed\n";
@@ -2509,7 +2474,34 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::wrapKey(KeyFormat format,
                 DLOG() << "CadmiumCrypto::wrapKey: AES wrapping key must be 128 or 256 bits\n";
                 return CAD_ERR_UNKNOWN_ALGO;    // FIXME: better error
             }
-            const Vuc keyToWrapVuc = str64toVuc(keyStr64);
+            Vuc keyToWrapVuc = str64toVuc(keyStr64);
+            // The key data to be wrapped must be at least 16 bytes.
+            if (keyToWrapVuc.size() < 16)
+            {
+                DLOG() << "CadmiumCrypto::wrapKey: AES-KW can only wrap data "
+                        "that is a greater than 16 bytes\n";
+                return CAD_ERR_CIPHERERROR;
+            }
+            // The key data to be wrapped must be a multiple of 8 bytes.
+            if (keyToWrapVuc.size() % 8 != 0)
+            {
+                // If the format is JWK, we can pad with spaces to meet this
+                // requirement.
+                if (format == JWK)
+                {
+                    size_t nPadChars = 8 - (keyToWrapVuc.size() % 8);
+                    assert(nPadChars);
+                    assert(nPadChars != 8);
+                    keyToWrapVuc.insert(keyToWrapVuc.begin()+1, nPadChars, ' ');
+                    assert(keyToWrapVuc.size() % 8 == 0);
+                }
+                else
+                {
+                    DLOG() << "CadmiumCrypto::wrapKey: AES-KW can only wrap data "
+                            "that is a multiple of 8 bytes, and could not pad\n";
+                    return CAD_ERR_CIPHERERROR;
+                }
+            }
             Vuc wrappedKeyVuc;
             AesKeyWrapper aesKeyWrapper(wrappingKey.key);
             if (!aesKeyWrapper.wrap(keyToWrapVuc, wrappedKeyVuc))
