@@ -52,6 +52,8 @@ extern unsigned char gRandTable[];
 namespace   // anonymous
 {
 
+#define SECRET_SYSTEM_KEY "iIniW9SVpZKlXGmbrgrJG9uxy7HtCNJsDM5IXS24eCI="
+
 #define xstr(s) str(s)
 #define str(s) #s
 
@@ -327,38 +329,37 @@ CadErr CadmiumCrypto::CadmiumCryptoImpl::init(const Vuc& prngSeed)
 
 void CadmiumCrypto::CadmiumCryptoImpl::importPreSharedKeys()
 {
-    //const string currentOrigin(pDeviceInfo_->getOrigin());
-    const string currentOrigin;
-    if (!currentOrigin.size())
-    {
-        DLOG() << "CadmiumCrypto::importPreSharedKeys: invalid page origin, skipping key import\n";
-        return;
-    }
+//    const string currentOrigin(pDeviceInfo_->getOrigin());
+//    if (!currentOrigin.size())
+//    {
+//        DLOG() << "CadmiumCrypto::importPreSharedKeys: invalid page origin, skipping key import\n";
+//        return;
+//    }
     SampleKeyProvision skp;
     const SampleKeyProvision::NamedKeyVec& keyVec(skp.getNamedKeyVec());
     DLOG() << "Importing pre-shared keys:\n";
     for (SampleKeyProvision::NamedKeyVec::const_iterator nk = keyVec.begin(); nk != keyVec.end(); ++nk)
     {
-        DLOG() << nk->name << ", " << Base64::decode(nk->id) << ", searching origins for " << currentOrigin << ": ";
-        bool originOk = false;
-        for (vector<string>::const_iterator org = nk->origins.begin(); org != nk->origins.end(); ++org)
-        {
-            if (!org->size())   // skip blank origin
-                continue;
-            DLOG() << *org << " ";
-            if (doesRightSideOfStringMatch(currentOrigin, *org))
-            {
-                originOk = true;
-                DLOG() << "(found) ";
-            }
-        }
-        DLOG() << endl;
-        if (!originOk)
-        {
-            DLOG() << "CadmiumCrypto::importPreSharedKeys: preshared key has no "
-                    "origin compatible with " << currentOrigin << ", skipping\n";
-            continue;
-        }
+//        DLOG() << nk->name << ", " << Base64::decode(nk->id) << ", searching origins for " << currentOrigin << ": ";
+//        bool originOk = false;
+//        for (vector<string>::const_iterator org = nk->origins.begin(); org != nk->origins.end(); ++org)
+//        {
+//            if (!org->size())   // skip blank origin
+//                continue;
+//            DLOG() << *org << " ";
+//            if (doesRightSideOfStringMatch(currentOrigin, *org))
+//            {
+//                originOk = true;
+//                DLOG() << "(found) ";
+//            }
+//        }
+//        DLOG() << endl;
+//        if (!originOk)
+//        {
+//            DLOG() << "CadmiumCrypto::importPreSharedKeys: preshared key has no "
+//                    "origin compatible with " << currentOrigin << ", skipping\n";
+//            continue;
+//        }
         importNamedKey(*nk);
     }
 }
