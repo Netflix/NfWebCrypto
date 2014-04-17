@@ -59,8 +59,9 @@ var scriptRoot = ([].pop.call(document['getElementsByTagName']('script')))['src'
 (function (window) {
     'use strict';
 
-    var operationId = 0,
-        that = {};
+    var operationId = 0;
+    var nfCrypto = {subtle: {}};
+    var nfCryptokeys = {};
 
     //--------------------------------------------------------------------------
     // bridge for talking to the native code via post/handle message
@@ -129,10 +130,8 @@ var scriptRoot = ([].pop.call(document['getElementsByTagName']('script')))['src'
     }
 
     // public api root
-    // TODO: remove the methods from nfCrypto, they should only be on nfCrypto.subtle
-    window.nfCrypto = that;
-    window.nfCrypto.subtle = that;
-    window.nfCryptoKeys = that;
+    window.nfCrypto = nfCrypto;
+    window.nfCryptokeys = nfCryptokeys;
 
     //--------------------------------------------------------------------------
 
@@ -478,23 +477,23 @@ var scriptRoot = ([].pop.call(document['getElementsByTagName']('script')))['src'
       
     // add wc methods here
 
-    that.digest = function (algorithm, buffer) {
+    nfCrypto.subtle.digest = function (algorithm, buffer) {
         var algo = cloneObject(algorithm);
         algo.params = cloneObject(algorithm);
         return createCryptoOp('digest', algo, null, null, buffer);
     };
 
-    that.importKey = function (format, keyData, algorithm, extractable, keyUsage) {
+    nfCrypto.subtle.importKey = function (format, keyData, algorithm, extractable, keyUsage) {
         var algo = cloneObject(algorithm);
         algo.params = cloneObject(algorithm);
         return createKeyOp('import', format, keyData, algo, extractable, keyUsage);
     };
 
-    that.exportKey = function (format, key) {
+    nfCrypto.subtle.exportKey = function (format, key) {
         return createKeyOp('export', format, null, null, null, null, null, null, key);
     };
 
-    that.encrypt = function (algorithm, key, buffer) {
+    nfCrypto.subtle.encrypt = function (algorithm, key, buffer) {
         var algo = cloneObject(algorithm);
         algo.params = cloneObject(algorithm);
         if (algo.hasOwnProperty('params') && algo.params.hasOwnProperty("iv")) {
@@ -506,7 +505,7 @@ var scriptRoot = ([].pop.call(document['getElementsByTagName']('script')))['src'
         return createCryptoOp('encrypt', algo, key, null, buffer);
     };
 
-    that.decrypt = function (algorithm, key, buffer) {
+    nfCrypto.subtle.decrypt = function (algorithm, key, buffer) {
         var algo = cloneObject(algorithm);
         algo.params = cloneObject(algorithm);
         if (algo.hasOwnProperty('params') && algo.params.hasOwnProperty("iv")) {
@@ -518,19 +517,19 @@ var scriptRoot = ([].pop.call(document['getElementsByTagName']('script')))['src'
         return createCryptoOp('decrypt', algo, key, null, buffer);
     };
 
-    that.sign = function (algorithm, key, buffer) {
+    nfCrypto.subtle.sign = function (algorithm, key, buffer) {
         var algo = cloneObject(algorithm);
         algo.params = cloneObject(algorithm);
         return createCryptoOp('sign', algo, key, null, buffer);
     };
 
-    that.verify = function (algorithm, key, signature, buffer) {
+    nfCrypto.subtle.verify = function (algorithm, key, signature, buffer) {
         var algo = cloneObject(algorithm);
         algo.params = cloneObject(algorithm);
         return createCryptoOp('verify', algo, key, signature, buffer);
     };
 
-    that.generateKey = function (algorithm, extractable, keyUsage) {
+    nfCrypto.subtle.generateKey = function (algorithm, extractable, keyUsage) {
         var algo = cloneObject(algorithm);
         algo.params = cloneObject(algorithm);
         var tob64 = ["publicExponent", "prime", "generator"];
@@ -546,7 +545,7 @@ var scriptRoot = ([].pop.call(document['getElementsByTagName']('script')))['src'
         return createKeyOp('generate', null, null, algo, extractable, keyUsage);
     };
 
-    that.deriveKey = function (algorithm, baseKey, derivedKeyAlgorithm, extractable, keyUsage) {
+    nfCrypto.subtle.deriveKey = function (algorithm, baseKey, derivedKeyAlgorithm, extractable, keyUsage) {
         var algo = cloneObject(algorithm);
         algo.params = cloneObject(algorithm);
         if (algo.hasOwnProperty('params') && algo.params.hasOwnProperty("public")) {
@@ -555,13 +554,13 @@ var scriptRoot = ([].pop.call(document['getElementsByTagName']('script')))['src'
         return createKeyOp("derive", null, null, algo, extractable, keyUsage, baseKey, derivedKeyAlgorithm, null)
     };
 
-    that.wrapKey = function (format, keyToWrap, wrappingKey, wrappingAlgorithm) {
+    nfCrypto.subtle.wrapKey = function (format, keyToWrap, wrappingKey, wrappingAlgorithm) {
         var algo = cloneObject(wrappingAlgorithm);
         algo.params = cloneObject(wrappingAlgorithm);
         return createKeyOp('wrapKey', format, null, algo, null, null, keyToWrap, null, wrappingKey);
     };
     
-    that.unwrapKey = function (format, wrappedKey, unwrappingKey, unwrapAlgorithm, unwrappedKeyAlgorithm, extractable, usage) {
+    nfCrypto.subtle.unwrapKey = function (format, wrappedKey, unwrappingKey, unwrapAlgorithm, unwrappedKeyAlgorithm, extractable, usage) {
         var unwrapalgo = cloneObject(unwrapAlgorithm);
         unwrapalgo.params = cloneObject(unwrapAlgorithm);
         var unwrappedalgo = cloneObject(unwrappedKeyAlgorithm);
@@ -569,7 +568,7 @@ var scriptRoot = ([].pop.call(document['getElementsByTagName']('script')))['src'
         return createKeyOp('unwrapKey', format, wrappedKey, unwrapalgo, extractable, usage, null, null, unwrappingKey, null, unwrappedalgo);
     };
 
-    that.getRandomValues = function (abv) {
+    nfCrypto.getRandomValues = function (abv) {
         var l = abv.length;
         while (l--) {
             abv[l] = Math.floor(Math.random() * 256);
@@ -577,11 +576,7 @@ var scriptRoot = ([].pop.call(document['getElementsByTagName']('script')))['src'
         return abv;
     };
     
-    that.getDeviceId = function () {
-        return createKeyOp('getDeviceId', null, null, null, null, null, null, null, null);
-    }
-    
-    that.getKeyByName = function (keyName) {
+    nfCryptokeys.getKeyByName = function (keyName) {
         return createKeyOp('getKeyByName', null, null, null, null, null, null, null, null, keyName);
     }
 
