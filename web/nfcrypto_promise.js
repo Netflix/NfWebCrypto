@@ -63,6 +63,7 @@ End of (PolyCrypt) License Terms and Conditions.
     // public api root
     window.nfNewCrypto = window.nfCrypto;
     window.nfNewCrypto.subtle = that;
+    window.nfNewCryptokeys = that;
 
     that.digest = function (algorithm, buffer) {
         return new Promise(function(resolve, reject) {
@@ -197,5 +198,17 @@ End of (PolyCrypt) License Terms and Conditions.
             };
         })
     };
+    
+    that.getKeyByName = function (keyName) {
+        return new Promise(function(resolve, reject) {
+            var op = nfCrypto.getKeyByName(keyName);
+            op.oncomplete = function (e) {
+                resolve(e.target.result);
+            };
+            op.onerror = function (e) {
+                reject(new TypeError);
+            };
+        })
+    }
 
 })(window);

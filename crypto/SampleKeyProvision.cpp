@@ -37,9 +37,10 @@ const string kdeStr64 = "qNDCIUiIUjX1KzVFgzjObA==";
 const string kdhStr64 = "wSROXN7yRYFzZO91rK7T4zeufNARl4jc3Lobeh58bYA=";
 const string kdwStr64 = "svP4YtY3tVbqTScZdj0HXA==";
 
-const string kdeName  = "Kde";
-const string kdhName  = "Kdh";
-const string kdwName  = "Kdw";
+const string kdeName  = "DKE";
+const string kdhName  = "DKH";
+const string kdwName  = "DKW";
+const string kdsName  = "DKS";
 
 }   // anonymous namespace
 
@@ -95,6 +96,10 @@ SampleKeyProvision::SampleKeyProvision()
     keyUsage.push_back(CadmiumCrypto::UNWRAP);
     // -- provision this key
     addKey(kdwName, esn64, origins, kdwRaw, type, extractable, algVar, keyUsage);
+
+    // ---- Kds
+    // For convenience, just copy Kdw
+    addKey(kdsName, esn64, origins, kdwRaw, type, extractable, algVar, keyUsage);
 }
 
 }} // namespace cadmium::crypto
