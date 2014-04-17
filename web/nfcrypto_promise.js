@@ -16,58 +16,25 @@
  *
  */
 
-/*
-Some of the code in this one source file borrows from PolyCrypt (polycrypt.net).
-A big thank you to the folks at Raytheon BBN Technologies for providing source
-inspiration for this javascript-challenged programmer.
-
-The PolyCrypt license follows:
-
-Copyright (C) Raytheon BBN Technologies Corp. 2013 All Rights Reserved.
-
-Development of this software program, WHAC, is sponsored by the Cyber Security
-Division of the United States Department of Homeland Security's Science and
-Technology Directorate. 
-
-This software is licensed pursuant to the following license terms and
-conditions: Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-(1) Redistributions of source code must retain the above copyright notice, this
-list of conditions and the following disclaimer. (2) Redistributions in binary
-form must reproduce the above copyright notice, this list of conditions and the
-following disclaimer in the documentation and/or other materials provided with
-the distribution. (3) Neither the name of Raytheon BBN Technologies Corp. nor
-the names of its contributors may be used to endorse or promote products derived
-from this software without specific prior written permission. 
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS  "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT  LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
-
-End of (PolyCrypt) License Terms and Conditions.
-*/
-
 (function (window) {
     'use strict';
 
-    var that = {};
-    var nfCrypto = window.nfCrypto.subtle;
+    var nfCrypto = {subtle: {}};
+    var nfCryptokeys = {};
+    
+    var nfOldCrypto = window.nfCrypto;
+    var nfOldCryptokeys = window.nfCryptokeys;
+    
+    if (nfOldCrypto && nfOldCrypto.subtle) {
+        window.nfCrypto = nfCrypto;
+    }
+    if (nfOldCryptokeys) {
+        window.nfCryptokeys = nfCryptokeys;
+    }
 
-    // public api root
-    window.nfNewCrypto = window.nfCrypto;
-    window.nfNewCrypto.subtle = that;
-    window.nfNewCryptokeys = that;
-
-    that.digest = function (algorithm, buffer) {
+    nfCrypto.subtle.digest = function (algorithm, buffer) {
         return new Promise(function(resolve, reject) {
-            var op = nfCrypto.digest(algorithm, buffer);
+            var op = nfOldCrypto.subtle.digest(algorithm, buffer);
             op.oncomplete = function (e) {
                 resolve(e.target.result);
             };
@@ -76,11 +43,10 @@ End of (PolyCrypt) License Terms and Conditions.
             };
         })
     }
-    
 
-    that.importKey = function (format, keyData, algorithm, extractable, keyUsage) {
+    nfCrypto.subtle.importKey = function (format, keyData, algorithm, extractable, keyUsage) {
         return new Promise(function(resolve, reject) {
-            var op = nfCrypto.importKey(format, keyData, algorithm, extractable, keyUsage);
+            var op = nfOldCrypto.subtle.importKey(format, keyData, algorithm, extractable, keyUsage);
             op.oncomplete = function (e) {
                 resolve(e.target.result);
             };
@@ -90,9 +56,9 @@ End of (PolyCrypt) License Terms and Conditions.
         })
     };
 
-    that.exportKey = function (format, key) {
+    nfCrypto.subtle.exportKey = function (format, key) {
         return new Promise(function(resolve, reject) {
-            var op = nfCrypto.exportKey(format, key);
+            var op = nfOldCrypto.subtle.exportKey(format, key);
             op.oncomplete = function (e) {
                 var res = e.target.result;
                 resolve(res);
@@ -103,9 +69,9 @@ End of (PolyCrypt) License Terms and Conditions.
         })
     };
 
-    that.encrypt = function (algorithm, key, buffer) {
+    nfCrypto.subtle.encrypt = function (algorithm, key, buffer) {
         return new Promise(function(resolve, reject) {
-            var op = nfCrypto.encrypt(algorithm, key, buffer);
+            var op = nfOldCrypto.subtle.encrypt(algorithm, key, buffer);
             op.oncomplete = function (e) {
                 resolve(e.target.result);
             };
@@ -115,9 +81,9 @@ End of (PolyCrypt) License Terms and Conditions.
         })
     };
 
-    that.decrypt = function (algorithm, key, buffer) {
+    nfCrypto.subtle.decrypt = function (algorithm, key, buffer) {
         return new Promise(function(resolve, reject) {
-            var op = nfCrypto.decrypt(algorithm, key, buffer);
+            var op = nfOldCrypto.subtle.decrypt(algorithm, key, buffer);
             op.oncomplete = function (e) {
                 resolve(e.target.result);
             };
@@ -127,9 +93,9 @@ End of (PolyCrypt) License Terms and Conditions.
         })
     };
 
-    that.sign = function (algorithm, key, buffer) {
+    nfCrypto.subtle.sign = function (algorithm, key, buffer) {
         return new Promise(function(resolve, reject) {
-            var op = nfCrypto.sign(algorithm, key, buffer);
+            var op = nfOldCrypto.subtle.sign(algorithm, key, buffer);
             op.oncomplete = function (e) {
                 resolve(e.target.result);
             };
@@ -139,9 +105,9 @@ End of (PolyCrypt) License Terms and Conditions.
         })
     };
 
-    that.verify = function (algorithm, key, signature, buffer) {
+    nfCrypto.subtle.verify = function (algorithm, key, signature, buffer) {
         return new Promise(function(resolve, reject) {
-            var op = nfCrypto.verify(algorithm, key, signature, buffer);
+            var op = nfOldCrypto.subtle.verify(algorithm, key, signature, buffer);
             op.oncomplete = function (e) {
                 resolve(e.target.result);
             };
@@ -151,9 +117,9 @@ End of (PolyCrypt) License Terms and Conditions.
         })
     };
 
-    that.generateKey = function (algorithm, extractable, keyUsage) {
+    nfCrypto.subtle.generateKey = function (algorithm, extractable, keyUsage) {
         return new Promise(function(resolve, reject) {
-            var op = nfCrypto.generateKey(algorithm, extractable, keyUsage);
+            var op = nfOldCrypto.subtle.generateKey(algorithm, extractable, keyUsage);
             op.oncomplete = function (e) {
                 resolve(e.target.result);
             };
@@ -163,9 +129,9 @@ End of (PolyCrypt) License Terms and Conditions.
         })
     };
 
-    that.deriveKey = function (algorithm, baseKey, derivedKeyAlgorithm, extractable, keyUsage) {
+    nfCrypto.subtle.deriveKey = function (algorithm, baseKey, derivedKeyAlgorithm, extractable, keyUsage) {
         return new Promise(function(resolve, reject) {
-            var op = nfCrypto.deriveKey(algorithm, baseKey, derivedKeyAlgorithm, extractable, keyUsage);
+            var op = nfOldCrypto.subtle.deriveKey(algorithm, baseKey, derivedKeyAlgorithm, extractable, keyUsage);
             op.oncomplete = function (e) {
                 resolve(e.target.result);
             };
@@ -175,9 +141,9 @@ End of (PolyCrypt) License Terms and Conditions.
         })
     };
 
-    that.wrapKey = function (format, keyToWrap, wrappingKey, wrappingAlgorithm) {
+    nfCrypto.subtle.wrapKey = function (format, keyToWrap, wrappingKey, wrappingAlgorithm) {
         return new Promise(function(resolve, reject) {
-            var op = nfCrypto.wrapKey(format, keyToWrap, wrappingKey, wrappingAlgorithm);
+            var op = nfOldCrypto.subtle.wrapKey(format, keyToWrap, wrappingKey, wrappingAlgorithm);
             op.oncomplete = function (e) {
                 resolve(e.target.result);
             };
@@ -187,9 +153,9 @@ End of (PolyCrypt) License Terms and Conditions.
         })
     };
     
-    that.unwrapKey = function (format, wrappedKey, unwrappingKey, unwrapAlgorithm, unwrappedKeyAlgorithm, extractable, usage) {
+    nfCrypto.subtle.unwrapKey = function (format, wrappedKey, unwrappingKey, unwrapAlgorithm, unwrappedKeyAlgorithm, extractable, usage) {
         return new Promise(function(resolve, reject) {
-            var op = nfCrypto.unwrapKey(format, wrappedKey, unwrappingKey, unwrapAlgorithm, unwrappedKeyAlgorithm, extractable, usage);
+            var op = nfOldCrypto.subtle.unwrapKey(format, wrappedKey, unwrappingKey, unwrapAlgorithm, unwrappedKeyAlgorithm, extractable, usage);
             op.oncomplete = function (e) {
                 resolve(e.target.result);
             };
@@ -199,9 +165,9 @@ End of (PolyCrypt) License Terms and Conditions.
         })
     };
     
-    that.getKeyByName = function (keyName) {
+    nfCryptokeys.getKeyByName = function (keyName) {
         return new Promise(function(resolve, reject) {
-            var op = nfCrypto.getKeyByName(keyName);
+            var op = nfOldCryptokeys.getKeyByName(keyName);
             op.oncomplete = function (e) {
                 resolve(e.target.result);
             };
@@ -209,6 +175,8 @@ End of (PolyCrypt) License Terms and Conditions.
                 reject(new TypeError);
             };
         })
-    }
+    };
+    
+    nfCrypto.getRandomValues = nfOldCrypto.getRandomValues;
 
 })(window);
