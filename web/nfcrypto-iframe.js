@@ -3,9 +3,8 @@ var nfCrypto = {};
 (function () {
   'use strict';
 
-  // FIXME: use real domain/URL
-  var TARGET_DOMAIN = 'http://cadmium.netflix.com';
-  var IFRAME_URL = TARGET_DOMAIN + '/webcrypto/webcryptoframe/nfcrypto-iframe-inner.html'; 
+  var TARGET_DOMAIN = 'https://secure.netflix.com';
+  var IFRAME_URL = TARGET_DOMAIN + '/us/ffe/player/webCryptoIframe/nfcrypto-iframe-inner-2162229.html'; 
   var LOAD_TIMEOUT = 8000;  // 8 seconds to load IFrame or else it's an error.
   var lastId = 0;
   var messageHandlers = [];
