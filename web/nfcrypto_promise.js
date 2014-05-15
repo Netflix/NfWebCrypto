@@ -23,7 +23,7 @@
     var nfCryptokeys = {};
     
     var nfOldCrypto = window.nfCrypto;
-    var nfOldCryptokeys = window.nfCryptokeys;
+    var nfOldCryptokeys = window.nfCryptoKeys;
     
     if (nfOldCrypto && nfOldCrypto.subtle) {
         window.nfCrypto = nfCrypto;
