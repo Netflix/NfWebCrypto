@@ -1901,8 +1901,8 @@
 
         });
         
-        it("RSAES-PKCS1-v1_5 wrap/unwrap JWK round trip", function () {
-            // Note: we can't do a known-answer test for RSAES-PKCS1-v1_5 because
+        it("RSA-OAEP wrap/unwrap JWK round trip", function () {
+            // Note: we can't do a known-answer test for RSA-OAEP because
             // of the random padding.
             
             var wrapeeKeyData = base16.parse("8f56a26e7e8b77dca15ed54339724bf5");
@@ -1935,9 +1935,10 @@
                 error = undefined;
                 cryptoSubtle.generateKey(
                     {
-                        name: "RSAES-PKCS1-v1_5",
+                        name: "RSA-OAEP",
                         modulusLength: 1024,
-                        publicExponent: new Uint8Array([0x01, 0x00, 0x01])
+                        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+                        hash: {name: "SHA-1"}
                     },
                     false,
                     ["wrapKey", "unwrapKey"]
@@ -1964,7 +1965,7 @@
             // Wrap the key using the public wrappor key
             runs(function () {
                 error = undefined;
-                cryptoSubtle.wrapKey('jwk', wrapeeKey, wraporKeyPublic, { name: "RSAES-PKCS1-v1_5" })
+                cryptoSubtle.wrapKey('jwk', wrapeeKey, wraporKeyPublic, {name: "RSA-OAEP", hash: {name: "SHA-1"}})
                     .then(function (result) {
                         wrappedKeyData = result && new Uint8Array(result);
                     })
@@ -1987,7 +1988,8 @@
                         'jwk',
                         wrappedKeyData,
                         wraporKeyPrivate,
-                        { name: "RSAES-PKCS1-v1_5" }, { name: "AES-CBC" },
+                        {name: "RSAES-PKCS1-v1_5", hash: {name: "SHA-1"}},
+                        {name: "AES-CBC"},
                         true,
                         [])
                     .then(function (result) {
