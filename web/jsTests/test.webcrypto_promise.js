@@ -905,7 +905,8 @@
                     {
                         name: "RSA-OAEP",
                         modulusLength: 1024,
-                        publicExponent: new Uint8Array([0x01, 0x00, 0x01])
+                        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+                        hash: {name: "SHA-1"}
                     },
                     false,
                     ["encrypt", "decrypt"]
