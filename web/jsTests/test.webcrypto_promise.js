@@ -862,41 +862,6 @@
             });
         });
         
-        it("generateKey RSAES-PKCS1-v1_5", function () {
-            var error, pubKey, privKey;
-            runs(function () {
-                error = undefined;
-                cryptoSubtle.generateKey(
-                    {
-                        name: "RSAES-PKCS1-v1_5",
-                        modulusLength: 1024,
-                        publicExponent: new Uint8Array([0x01, 0x00, 0x01])
-                    },
-                    false,
-                    ["encrypt", "decrypt"]
-                )
-                .then(function (result) {
-                    pubKey = result.publicKey;
-                    privKey = result.privateKey;
-                })
-                .catch(function (result) {
-                    error = "ERROR";
-                })
-            });
-            waitsFor(function () {
-                return pubKey || privKey || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(pubKey).toBeDefined();
-                expect(pubKey.algorithm.name).toBeAnyOf(["RSAES-PKCS1-v1_5", "rsa-pkcs1-v1_5"]);
-                expect(pubKey.extractable).toBeTruthy() // public key forced extractable
-                expect(privKey).toBeDefined();
-                expect(privKey.algorithm.name).toBeAnyOf(["RSAES-PKCS1-v1_5", "rsa-pkcs1-v1_5"]);
-                expect(privKey.extractable).toBeFalsy(); // private key takes the extractable input arg val
-            });
-        });
-
         it("generateKey RSA-OAEP", function () {
             var error, pubKey, privKey;
             runs(function () {
@@ -969,7 +934,7 @@
             });
         });
 
-        it("importKey/exportKey spki RSAES-PKCS1-v1_5 public key", function () {
+        it("importKey/exportKey spki RSA-OAEP public key", function () {
             var error,
                 key,
                 exportedSpkiKeyData;
@@ -989,7 +954,7 @@
 
             runs(function () {
                 error = undefined;
-                importKey("spki", spkiPubKeyData, { name: "RSAES-PKCS1-v1_5" }, true, [])
+                importKey("spki", spkiPubKeyData, {name: "RSA-OAEP", hash: {name: "SHA-1"}}, true, [])
                 .then(function (result) {
                     key = result;
                 })
@@ -1034,7 +999,7 @@
             });
         });
 
-        it("importKey pkcs8 RSAES-PKCS1-v1_5 private key", function () {
+        it("importKey pkcs8 RSA-OAEP private key", function () {
             var error,
                 privKey,
                 pkcs8PrivKeyData2;
@@ -1073,7 +1038,7 @@
 
             // import pkcs8-formatted private key
             runs(function () {
-                importKey("pkcs8", pkcs8PrivKeyData, { name: "RSAES-PKCS1-v1_5" }, true, [])
+                importKey("pkcs8", pkcs8PrivKeyData, {name: "RSA-OAEP", hash: {name: "SHA-1"}}, true, [])
                 .then(function (result) {
                     privKey = result;
                 })
