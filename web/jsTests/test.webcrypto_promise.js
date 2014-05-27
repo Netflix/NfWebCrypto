@@ -1056,7 +1056,7 @@
                 expect(privKey).toBeDefined();
                 expect(privKey.type).toBe("private");
                 expect(privKey.extractable).toBe(true);
-                expect(privKey.algorithm.name).toBe("RSAES-PKCS1-v1_5");
+                expect(privKey.algorithm.name).toBe("RSA-OAEP");
             });
 
         });
