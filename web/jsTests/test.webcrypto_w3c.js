@@ -20,15 +20,103 @@
     "use strict";
 
     // get "crypto" from the right namespace
-    var crypto = nfCrypto;
+    var crypto = window.crypto;
     var cryptoSubtle = crypto.subtle;
     
-    function objCompare(a, b) {
-        return Object.keys(a).every(function(k) {
-            return a[k] === b[k];
-        });
-    }
+    function objCompare () {
+      var leftChain, rightChain;
+      function compare2Objects (x, y) {
+        var p;
+        // remember that NaN === NaN returns false
+        // and isNaN(undefined) returns true
+        if (isNaN(x) && isNaN(y) && typeof x === 'number' && typeof y === 'number') {
+             return true;
+        }
+        // Compare primitives and functions.     
+        // Check if both arguments link to the same object.
+        // Especially useful on step when comparing prototypes
+        if (x === y) {
+            return true;
+        }
+        // Works in case when functions are created in constructor.
+        // Comparing dates is a common scenario. Another built-ins?
+        // We can even handle functions passed across iframes
+        if ((typeof x === 'function' && typeof y === 'function') ||
+           (x instanceof Date && y instanceof Date) ||
+           (x instanceof RegExp && y instanceof RegExp) ||
+           (x instanceof String && y instanceof String) ||
+           (x instanceof Number && y instanceof Number)) {
+            return x.toString() === y.toString();
+        }
+        // At last checking prototypes as good a we can
+        if (!(x instanceof Object && y instanceof Object)) {
+            return false;
+        }
+        if (x.isPrototypeOf(y) || y.isPrototypeOf(x)) {
+            return false;
+        }
+        if (x.constructor !== y.constructor) {
+            return false;
+        }
+        if (x.prototype !== y.prototype) {
+            return false;
+        }
+        // check for infinitive linking loops
+        if (leftChain.indexOf(x) > -1 || rightChain.indexOf(y) > -1) {
+             return false;
+        }
+        // Quick checking of one object beeing a subset of another.
+        // todo: cache the structure of arguments[0] for performance
+        for (p in y) {
+            if (y.hasOwnProperty(p) !== x.hasOwnProperty(p)) {
+                return false;
+            }
+            else if (typeof y[p] !== typeof x[p]) {
+                return false;
+            }
+        }
+        for (p in x) {
+            if (y.hasOwnProperty(p) !== x.hasOwnProperty(p)) {
+                return false;
+            }
+            else if (typeof y[p] !== typeof x[p]) {
+                return false;
+            }
+            switch (typeof (x[p])) {
+                case 'object':
+                case 'function':
+                    leftChain.push(x);
+                    rightChain.push(y);
 
+                    if (!compare2Objects (x[p], y[p])) {
+                        return false;
+                    }
+                    leftChain.pop();
+                    rightChain.pop();
+                    break;
+                default:
+                    if (x[p] !== y[p]) {
+                        return false;
+                    }
+                    break;
+            }
+        }
+        return true;
+      }
+      if (arguments.length < 1) {
+        return true; //Die silently? Don't know how to handle such case, please help...
+        // throw "Need two or more arguments to compare";
+      }
+      for (var i = 1, l = arguments.length; i < l; i++) {
+          leftChain = []; //todo: this can be cached
+          rightChain = [];
+          if (!compare2Objects(arguments[0], arguments[i])) {
+              return false;
+          }
+      }
+      return true;
+    }
+    
     test(function() {
         assert_not_equals(crypto, undefined, "crypto exists");
         assert_equals(typeof crypto.getRandomValues, "function", "crypto.getRandomValues exists");
@@ -39,7 +127,6 @@
         assert_equals(typeof cryptoSubtle.verify,      "function", "crypto.subtle.verify exists");
         assert_equals(typeof cryptoSubtle.digest,      "function", "crypto.subtle.digest exists");
         assert_equals(typeof cryptoSubtle.generateKey, "function", "crypto.subtle.generateKey exists");
-        assert_equals(typeof cryptoSubtle.deriveKey,   "function", "crypto.subtle.deriveKey exists");
         assert_equals(typeof cryptoSubtle.exportKey,   "function", "crypto.subtle.exportKey exists");
         assert_equals(typeof cryptoSubtle.wrapKey,     "function", "crypto.subtle.wrapKey exists");
         assert_equals(typeof cryptoSubtle.unwrapKey,   "function", "crypto.subtle.unwrapKey exists");
@@ -66,28 +153,28 @@
             // convenient calculator here: http://www.fileformat.info/tool/hash.htm
             var data = base16.parse("6162636462636465636465666465666765666768666768696768696a68696a6b696a6b6c6a6b6c6d6b6c6d6e6c6d6e6f6d6e6f706e6f7071"),
                 result_sha256_hex = "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1";
-            var op = cryptoSubtle.digest({ name: "SHA-256" }, data);
-            op.onerror = test1.step_func(function() {
-                assert_true(false);
+            cryptoSubtle.digest({ name: "SHA-256" }, data)
+            .then(function(r) {
+                assert_equals(base16.stringify(new Uint8Array(r)), result_sha256_hex);
                 test1.done();
-            });
-            op.oncomplete = test1.step_func(function(e) {
-                assert_equals(base16.stringify(e.target.result), result_sha256_hex);
-                test1.done();
+            })
+            .catch(function(e) {
+              assert_true(false);
+              test1.done();
             });
         });
         
         test2.step(function() {
             var data = base16.parse("6162636462636465636465666465666765666768666768696768696a68696a6b696a6b6c6a6b6c6d6b6c6d6e6c6d6e6f6d6e6f706e6f7071"),
                 result_sha384_hex = "3391fdddfc8dc7393707a65b1b4709397cf8b1d162af05abfe8f450de5f36bc6b0455a8520bc4e6f5fe95b1fe3c8452b";
-            var op = cryptoSubtle.digest({ name: "SHA-384" }, data);
-            op.onerror = test2.step_func(function() {
-                assert_true(false);
-                test2.done();
-            });
-            op.oncomplete = test2.step_func(function(e) {
-                assert_equals(base16.stringify(e.target.result), result_sha384_hex);
-                test2.done();
+            cryptoSubtle.digest({ name: "SHA-384" }, data)
+            .then(function(r) {
+              assert_equals(base16.stringify(new Uint8Array(r)), result_sha384_hex);
+              test2.done();
+            })
+            .catch(function(e) {
+              assert_true(false);
+              test2.done();
             });
         })
         
@@ -101,31 +188,29 @@
                                           0x0E, 0x0F]);
             var test = async_test("importKey/export raw AES-CBC");
             test.step(function() {
-                // TODO: Once https://www.w3.org/Bugs/Public/show_bug.cgi?id=21435 is resolved,
-                // might need to pass in length as part of AlgorithmIdentifier
-                var op = cryptoSubtle.importKey("raw", keyData, { name: "AES-CBC" }, true);
-                op.onerror = test.step_func(function (e) {
-                    assert_true(false);
-                    test.done();
-                });
-                op.oncomplete = test.step_func(function (e) {
-                    var key = e.target.result;
-                    assert_not_equals(key, undefined, "crypto exists");
-                    assert_true(key.extractable);
-                    exportAndCheck(key);
+                cryptoSubtle.importKey("raw", keyData, {name: "AES-CBC"}, true, ["encrypt"])
+                .then(function(r) {
+                  var key = r;
+                  assert_not_equals(key, undefined);
+                  assert_true(key.extractable);
+                  exportAndCheck(key);
+                })
+                .catch(function(e) {
+                  assert_true(false);
+                  test.done();
                 });
             });
             function exportAndCheck(key) {
-                var op = cryptoSubtle.exportKey("raw", key);
-                op.onerror = test.step_func(function (e) {
-                    assert_true(false);
-                    test.done();
-                });
-                op.oncomplete = test.step_func(function (e) {
-                    var keyData2 = e.target.result;
-                    assert_not_equals(keyData2, undefined);
-                    assert_equals(base16.stringify(keyData2), base16.stringify(keyData));
-                    test.done();
+                cryptoSubtle.exportKey("raw", key)
+                .then(function(r) {
+                  var keyData2 = new Uint8Array(r);
+                  assert_not_equals(keyData2, undefined);
+                  assert_equals(base16.stringify(keyData2), base16.stringify(keyData));
+                  test.done();
+                })
+                .catch(function(e) {
+                  assert_true(false);
+                  test.done();
                 });
             }
         }());
@@ -133,52 +218,52 @@
         (function AesImportExportJwk() {
             var rawData = base16.parse("17AE37CAD5EC70D2653FBE7E5E42414C"),
                 jwkData = latin1.parse(JSON.stringify({
-                    alg:    "A128CBC",
-                    kty:    "oct",
-                    use:    "enc",
-                    extractable:    true,
-                    k:      base64.stringifyUrlSafe(rawData),
+                    alg:     "A128CBC",
+                    kty:     "oct",
+                    key_ops: ["encrypt", "decrypt"],
+                    ext:     true,
+                    k:       base64.stringifyUrlSafe(rawData),
                 }));
             var test = async_test("importKey/exportKey jwk A128CBC oct");
             test.step(function() {
-                var op = cryptoSubtle.importKey("jwk", jwkData, { name: "AES-CBC" }, true);
-                op.onerror = test.step_func(function(e) {
-                    assert_true(false);
-                    test.done();
-                });
-                op.oncomplete = test.step_func(function(e) {
-                    var key = e.target.result;
-                    assert_not_equals(key, undefined);
-                    assert_true(key.extractable);
-                    assert_array_equals(key.keyUsage, ["encrypt", "decrypt"]);
-                    assert_equals(key.type, "secret");
-                    exportAndCheck1(key);
-                });
+                cryptoSubtle.importKey("jwk", jwkData, {name: "AES-CBC"}, true, ["encrypt", "decrypt"])
+                .then(function(r) {
+                  var key = r;
+                  assert_not_equals(key, undefined);
+                  assert_true(key.extractable);
+                  assert_array_equals(key.usages, ["encrypt", "decrypt"]);
+                  assert_equals(key.type, "secret");
+                  exportAndCheck1(key);
+                })
+                .catch(function(e) {
+                  assert_true(false);
+                  test.done();
+                })
             });
             function exportAndCheck1(key) {
-                var op = cryptoSubtle.exportKey("raw", key);
-                op.onerror = test.step_func(function(e) {
-                    assert_true(false);
-                    test.done();
-                });
-                op.oncomplete = test.step_func(function(e) {
-                    var rawData2 = e.target.result;
-                    assert_not_equals(rawData2, undefined);
-                    assert_equals(base16.stringify(rawData2), base16.stringify(rawData));
-                    exportAndCheck2(key);
+                cryptoSubtle.exportKey("raw", key)
+                .then(function(r) {
+                  var rawData2 = new Uint8Array(r);
+                  assert_not_equals(rawData2, undefined);
+                  assert_equals(base16.stringify(rawData2), base16.stringify(rawData));
+                  exportAndCheck2(key);
+                })
+                .catch(function(e) {
+                  assert_true(false);
+                  test.done();
                 });
             }
             function exportAndCheck2(key) {
-                var op = cryptoSubtle.exportKey("jwk", key);
-                op.onerror = test.step_func(function(e) {
-                    assert_true(false);
-                    test.done();
-                });
-                op.oncomplete = test.step_func(function(e) {
-                    var rawData2 = e.target.result;
-                    assert_not_equals(rawData2, undefined);
-                    assert_true(objCompare(JSON.parse(latin1.stringify(rawData2)), JSON.parse(latin1.stringify(jwkData))));
-                    test.done();
+                cryptoSubtle.exportKey("jwk", key)
+                .then(function(r) {
+                  var rawData2 = new Uint8Array(r);
+                  assert_not_equals(rawData2, undefined);
+                  assert_true(objCompare(JSON.parse(latin1.stringify(rawData2)), JSON.parse(latin1.stringify(jwkData))));
+                  test.done();
+                })
+                .catch(function(e) {
+                  assert_true(false);
+                  test.done();
                 });
             }
         }());
@@ -599,7 +684,7 @@
                 // TODO: confirm that these checks are valid and add them
                 // expect(key.algorithm.name).toBe("RSAES-PKCS1-v1_5");
                 // expect(key.extractable).toBe(false);
-                // expect(key.keyUsage).toEqual([]);
+                // expect(key.usages).toEqual([]);
             });
             
             runs(function () {
@@ -700,7 +785,7 @@
                 expect(key.extractable).toBe(true);
                 // TODO: confirm that these checks are valid and add them
                 // expect(key.algorithm.name).toBe("RSAES-PKCS1-v1_5");
-                // expect(key.keyUsage).toEqual([]);
+                // expect(key.usages).toEqual([]);
             });
 
             // verify exported key matches what was imported
@@ -1852,7 +1937,7 @@
                 expect(unwrappedKey).toBeDefined();
                 expect(unwrappedKey.algorithm).toEqual({"name":"AES-CBC"});
                 expect(unwrappedKey.extractable).toBe(false);
-                expect(base16.stringify(unwrappedKey.keyUsage)).toBe(base16.stringify(["encrypt","decrypt"]));
+                expect(base16.stringify(unwrappedKey.usages)).toBe(base16.stringify(["encrypt","decrypt"]));
                 expect(unwrappedKey.type).toBe("secret");
             });
 
@@ -2138,7 +2223,7 @@
                 expect(error).toBeUndefined();
                 expect(sharedKey).toBeDefined();
                 expect(sharedKey.extractable).toBe(true);
-                expect(sharedKey.keyUsage).toEqual(["encrypt", "decrypt"]);
+                expect(sharedKey.usages).toEqual(["encrypt", "decrypt"]);
                 expect(sharedKey.type).toBe("secret");
                 expect(sharedKey.algorithm.name).toBe("AES-CBC");
             });
