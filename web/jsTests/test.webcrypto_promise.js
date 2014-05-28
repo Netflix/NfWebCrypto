@@ -2334,12 +2334,12 @@
           var algorithm = { name: "RSA-OAEP", hash: {name: "SHA-1"} };
           var unwrappedKeyData;
           
-          // import the public and private keys
+          // import the public, private, and key to be wrapped
           runs(function () {
               error = undefined;
               Promise.all([
-                importKey("jwk", pubKeyJwk, algorithm, true, ["wrapKey", "unwrapKey"]),
-                importKey("jwk", privKeyJwk, algorithm, true, ["wrapKey", "unwrapKey"])
+                importKey("jwk", pubKeyJwk, algorithm, true, ["wrapKey"]),
+                importKey("jwk", privKeyJwk, algorithm, true, ["unwrapKey"])
               ])
               .then(function (result) {
                   publicKey = result[0];
