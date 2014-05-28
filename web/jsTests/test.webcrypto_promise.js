@@ -973,7 +973,7 @@
                 expect(key.type).toBe("public");
                 expect(key.extractable).toBe(true);
                 // TODO: confirm that these checks are valid and add them
-                // expect(key.algorithm.name).toBe("RSAES-PKCS1-v1_5");
+                // expect(key.algorithm.name).toBe("RSA-OAEP");
             });
 
             // verify exported key matches what was imported
@@ -1930,7 +1930,7 @@
                 expect(wrapeeKey.type).toBe("secret");
             });
 
-            // Generate an RSAES-PKCS1-v1_5 key pair
+            // Generate an RSA-OAEP key pair
             runs(function () {
                 error = undefined;
                 cryptoSubtle.generateKey(
@@ -1988,7 +1988,7 @@
                         'jwk',
                         wrappedKeyData,
                         wraporKeyPrivate,
-                        {name: "RSAES-PKCS1-v1_5", hash: {name: "SHA-1"}},
+                        {name: "RSA-OAEP", hash: {name: "SHA-1"}},
                         {name: "AES-CBC"},
                         true,
                         [])
