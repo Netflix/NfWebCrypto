@@ -1684,6 +1684,21 @@
     // --------------------------------------------------------------------------------
 
     describe("Key Wrapping Operations", function () {
+      
+        beforeEach(function () {
+          this.addMatchers({
+              toBeAnyOf: function(expecteds) {
+                  var result = false;
+                  for (var i = 0, l = expecteds.length; i < l; i++) {
+                      if (this.actual === expecteds[i]) {
+                          result = true;
+                          break;
+                      }
+                  }
+                  return result;
+              }
+          });
+        });
 
         it("AES-KW wrap/unwrap raw key known answer", function () {
             
@@ -2317,107 +2332,64 @@
           
           var publicKey, privateKey, error;
           var algorithm = { name: "RSA-OAEP", hash: {name: "SHA-1"} };
-          var decrypted1, encrypted, decrypted2;
+          var unwrappedKeyData;
           
-          // import the public key
+          // import the public and private keys
           runs(function () {
               error = undefined;
-              importKey("jwk", pubKeyJwk, algorithm, true, ["wrapKey", "unwrapKey"])
+              Promise.all([
+                importKey("jwk", pubKeyJwk, algorithm, true, ["wrapKey", "unwrapKey"]),
+                importKey("jwk", privKeyJwk, algorithm, true, ["wrapKey", "unwrapKey"])
+              ])
               .then(function (result) {
-                  publicKey = result;
+                  publicKey = result[0];
+                  privateKey = result[1];
               })
               .catch(function (result) {
                   error = "ERROR";
               })
           })
           waitsFor(function () {
-              return publicKey || error;
+              return (publicKey && privateKey) || error;
           });
           runs(function () {
               expect(error).toBeUndefined();
               expect(publicKey).toBeDefined();
               expect(publicKey.algorithm.name).toBeAnyOf(["RSA-OAEP", "rsa-oaep"]);
               expect(publicKey.type).toBe("public");;
-          });
-          
-          // import the private key
-          runs(function () {
-              error = undefined;
-              importKey("jwk", privKeyJwk, algorithm, true, ["wrapKey", "unwrapKey"])
-              .then(function (result) {
-                  privateKey = result;
-              })
-              .catch(function (result) {
-                  error = "ERROR";
-              })
-          })
-          waitsFor(function () {
-              return privateKey || error;
-          });
-          runs(function () {
-              expect(error).toBeUndefined();
               expect(privateKey).toBeDefined();
               expect(privateKey.algorithm.name).toBeAnyOf(["RSA-OAEP", "rsa-oaep"]);
               expect(privateKey.type).toBe("private");;
           });
-
-          // decrypt the known-good ciphertext
+          
+          // unwrap, wrap, uwrap, then export the wrappee
           runs(function () {
-              error = undefined;
-              cryptoSubtle.decrypt(algorithm, privateKey, ciphertext)
-              .then(function (result) {
-                  decrypted1 = result;
-              })
-              .catch(function (result) {
-                  error = "ERROR";
-              })
-          });
-          waitsFor(function () {
-              return decrypted1 || error;
-          });
-          runs(function () {
-              expect(error).toBeUndefined();
-              expect(decrypted1).toBeDefined();
-              expect(base16.stringify(new Uint8Array(decrypted1))).toBe(base16.stringify(cleartext));
+            error = undefined;
+            cryptoSubtle.unwrapKey("raw", ciphertext, privateKey, algorithm, {name: "AES-CBC"}, true, [])
+            .then(function(key) {
+                return cryptoSubtle.wrapKey("raw", key, publicKey, algorithm);
+            })
+            .then(function(data) {
+                return cryptoSubtle.unwrapKey("raw", data, privateKey, algorithm, {name: "AES-CBC"}, true, []);
+            })
+            .then(function(key) {
+                return cryptoSubtle.exportKey("raw", key);
+            })
+            .then(function(result) {
+                unwrappedKeyData = result;
+            })
+            .catch(function(err) {
+              error = "ERROR";
+            })
           });
           
-          // encrypt
-          runs(function () {
-              error = undefined;
-              cryptoSubtle.encrypt(algorithm, publicKey, decrypted1)
-              .then(function (result) {
-                  encrypted = result && new Uint8Array(result);
-              })
-              .catch(function (result) {
-                  error = "ERROR";
-              })
-          });
           waitsFor(function () {
-              return encrypted || error;
+              return unwrappedKeyData || error;
           });
           runs(function () {
               expect(error).toBeUndefined();
-              expect(encrypted).toBeDefined();
-          });
-
-          // decrypt again
-          runs(function () {
-              error = undefined;
-              cryptoSubtle.decrypt(algorithm, privateKey, encrypted)
-              .then(function (result) {
-                  decrypted2 = result && new Uint8Array(result);
-              })
-              .catch(function (result) {
-                  error = "ERROR";
-              })
-          });
-          waitsFor(function () {
-              return decrypted2 || error;
-          });
-          runs(function () {
-              expect(error).toBeUndefined();
-              expect(decrypted2).toBeDefined();
-              expect(base16.stringify(decrypted2)).toBe(base16.stringify(cleartext));
+              expect(unwrappedKeyData).toBeDefined();
+              expect(base16.stringify(unwrappedKeyData)).toBe(base16.stringify(cleartext));
           });
 
       });
