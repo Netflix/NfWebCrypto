@@ -1684,6 +1684,21 @@
     // --------------------------------------------------------------------------------
 
     describe("Key Wrapping Operations", function () {
+      
+        beforeEach(function () {
+          this.addMatchers({
+              toBeAnyOf: function(expecteds) {
+                  var result = false;
+                  for (var i = 0, l = expecteds.length; i < l; i++) {
+                      if (this.actual === expecteds[i]) {
+                          result = true;
+                          break;
+                      }
+                  }
+                  return result;
+              }
+          });
+        });
 
         it("AES-KW wrap/unwrap raw key known answer", function () {
             
@@ -2161,14 +2176,14 @@
             });
         });
         
-        it("RSA-OAEP wrap/unwrap known answer", function () {
+        it("RSA-OAEP wrap/unwrap known raw AES-CBC key", function () {
           // Because the random data in OAEP padding makes the encryption output non-
           // deterministic, we cannot easily do a typical known-answer test for RSA
           // encryption / decryption. Instead we will take a known-good encrypted
           // message, decrypt it, re-encrypt it, then decrypt again, verifying that the
           // original known cleartext is the result.
           
-          // keys and ciphertext from example 10 of oaep-vect.txt from
+          // keys and ciphertext from example 10.2 of oaep-vect.txt from
           // https://das-labor.org/svn/microcontroller-2/crypto-lib/testvectors/rsa-pkcs-1v2-1-vec/oaep-vect.txt
           
           var pubKeyJwk = latin1.parse(JSON.stringify({
@@ -2292,132 +2307,88 @@
           }));
           
           var cleartext = base16.parse(
-                  "8bba6bf82a6c0f86d5f1756e97956870" +
-                  "b08953b06b4eb205bc1694ee"
+             "e6ad181f053b58a904f2457510373e57"
           );
 
           var ciphertext =  base16.parse(
-                  "53ea5dc08cd260fb3b858567287fa915" +
-                  "52c30b2febfba213f0ae87702d068d19" +
-                  "bab07fe574523dfb42139d68c3c5afee" +
-                  "e0bfe4cb7969cbf382b804d6e6139614" +
-                  "4e2d0e60741f8993c3014b58b9b1957a" +
-                  "8babcd23af854f4c356fb1662aa72bfc" +
-                  "c7e586559dc4280d160c126785a723eb" +
-                  "eebeff71f11594440aaef87d10793a87" +
-                  "74a239d4a04c87fe1467b9daf85208ec" +
-                  "6c7255794a96cc29142f9a8bd418e3c1" +
-                  "fd67344b0cd0829df3b2bec602531962" +
-                  "93c6b34d3f75d32f213dd45c6273d505" +
-                  "adf4cced1057cb758fc26aeefa441255" +
-                  "ed4e64c199ee075e7f16646182fdb464" +
-                  "739b68ab5daff0e63e9552016824f054" +
-                  "bf4d3c8c90a97bb6b6553284eb429fcc"
+              "a2b1a430a9d657e2fa1c2bb5ed43ffb2" + 
+              "5c05a308fe9093c01031795f58744001" + 
+              "10828ae58fb9b581ce9dddd3e549ae04" + 
+              "a0985459bde6c626594e7b05dc4278b2" + 
+              "a1465c1368408823c85e96dc66c3a309" + 
+              "83c639664fc4569a37fe21e5a195b577" + 
+              "6eed2df8d8d361af686e750229bbd663" + 
+              "f161868a50615e0c337bec0ca35fec0b" + 
+              "b19c36eb2e0bbcc0582fa1d93aacdb06" + 
+              "1063f59f2ce1ee43605e5d89eca183d2" + 
+              "acdfe9f81011022ad3b43a3dd417dac9" + 
+              "4b4e11ea81b192966e966b182082e719" + 
+              "64607b4f8002f36299844a11f2ae0fae" + 
+              "ac2eae70f8f4f98088acdcd0ac556e9f" + 
+              "ccc511521908fad26f04c64201450305" + 
+              "778758b0538bf8b5bb144a828e629795" 
           );
           
           var publicKey, privateKey, error;
           var algorithm = { name: "RSA-OAEP", hash: {name: "SHA-1"} };
-          var decrypted1, encrypted, decrypted2;
+          var unwrappedKeyData;
           
-          // import the public key
+          // import the public, private, and key to be wrapped
           runs(function () {
               error = undefined;
-              importKey("jwk", pubKeyJwk, algorithm, true, ["wrapKey", "unwrapKey"])
+              Promise.all([
+                importKey("jwk", pubKeyJwk, algorithm, true, ["wrapKey"]),
+                importKey("jwk", privKeyJwk, algorithm, true, ["unwrapKey"])
+              ])
               .then(function (result) {
-                  publicKey = result;
+                  publicKey = result[0];
+                  privateKey = result[1];
               })
               .catch(function (result) {
                   error = "ERROR";
               })
           })
           waitsFor(function () {
-              return publicKey || error;
+              return (publicKey && privateKey) || error;
           });
           runs(function () {
               expect(error).toBeUndefined();
               expect(publicKey).toBeDefined();
               expect(publicKey.algorithm.name).toBeAnyOf(["RSA-OAEP", "rsa-oaep"]);
               expect(publicKey.type).toBe("public");;
-          });
-          
-          // import the private key
-          runs(function () {
-              error = undefined;
-              importKey("jwk", privKeyJwk, algorithm, true, ["wrapKey", "unwrapKey"])
-              .then(function (result) {
-                  privateKey = result;
-              })
-              .catch(function (result) {
-                  error = "ERROR";
-              })
-          })
-          waitsFor(function () {
-              return privateKey || error;
-          });
-          runs(function () {
-              expect(error).toBeUndefined();
               expect(privateKey).toBeDefined();
               expect(privateKey.algorithm.name).toBeAnyOf(["RSA-OAEP", "rsa-oaep"]);
               expect(privateKey.type).toBe("private");;
           });
-
-          // decrypt the known-good ciphertext
+          
+          // unwrap, wrap, uwrap, then export the wrappee
           runs(function () {
-              error = undefined;
-              cryptoSubtle.decrypt(algorithm, privateKey, ciphertext)
-              .then(function (result) {
-                  decrypted1 = result;
-              })
-              .catch(function (result) {
-                  error = "ERROR";
-              })
-          });
-          waitsFor(function () {
-              return decrypted1 || error;
-          });
-          runs(function () {
-              expect(error).toBeUndefined();
-              expect(decrypted1).toBeDefined();
-              expect(base16.stringify(new Uint8Array(decrypted1))).toBe(base16.stringify(cleartext));
+            error = undefined;
+            cryptoSubtle.unwrapKey("raw", ciphertext, privateKey, algorithm, {name: "AES-CBC"}, true, [])
+            .then(function(key) {
+                return cryptoSubtle.wrapKey("raw", key, publicKey, algorithm);
+            })
+            .then(function(data) {
+                return cryptoSubtle.unwrapKey("raw", data, privateKey, algorithm, {name: "AES-CBC"}, true, []);
+            })
+            .then(function(key) {
+                return cryptoSubtle.exportKey("raw", key);
+            })
+            .then(function(result) {
+                unwrappedKeyData = new Uint8Array(result);
+            })
+            .catch(function(err) {
+              error = "ERROR";
+            })
           });
           
-          // encrypt
-          runs(function () {
-              error = undefined;
-              cryptoSubtle.encrypt(algorithm, publicKey, decrypted1)
-              .then(function (result) {
-                  encrypted = result && new Uint8Array(result);
-              })
-              .catch(function (result) {
-                  error = "ERROR";
-              })
-          });
           waitsFor(function () {
-              return encrypted || error;
+              return unwrappedKeyData || error;
           });
           runs(function () {
               expect(error).toBeUndefined();
-              expect(encrypted).toBeDefined();
-          });
-
-          // decrypt again
-          runs(function () {
-              error = undefined;
-              cryptoSubtle.decrypt(algorithm, privateKey, encrypted)
-              .then(function (result) {
-                  decrypted2 = result && new Uint8Array(result);
-              })
-              .catch(function (result) {
-                  error = "ERROR";
-              })
-          });
-          waitsFor(function () {
-              return decrypted2 || error;
-          });
-          runs(function () {
-              expect(error).toBeUndefined();
-              expect(decrypted2).toBeDefined();
-              expect(base16.stringify(decrypted2)).toBe(base16.stringify(cleartext));
+              expect(unwrappedKeyData).toBeDefined();
+              expect(base16.stringify(unwrappedKeyData)).toBe(base16.stringify(cleartext));
           });
 
       });
