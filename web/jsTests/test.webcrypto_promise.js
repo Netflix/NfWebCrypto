@@ -2375,7 +2375,7 @@
                 return cryptoSubtle.exportKey("raw", key);
             })
             .then(function(result) {
-                unwrappedKeyData = result;
+                unwrappedKeyData = new Uint8Array(result);
             })
             .catch(function(err) {
               error = "ERROR";
