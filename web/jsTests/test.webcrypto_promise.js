@@ -2183,7 +2183,7 @@
           // message, decrypt it, re-encrypt it, then decrypt again, verifying that the
           // original known cleartext is the result.
           
-          // keys and ciphertext from example 10 of oaep-vect.txt from
+          // keys and ciphertext from example 10.2 of oaep-vect.txt from
           // https://das-labor.org/svn/microcontroller-2/crypto-lib/testvectors/rsa-pkcs-1v2-1-vec/oaep-vect.txt
           
           var pubKeyJwk = latin1.parse(JSON.stringify({
@@ -2307,27 +2307,26 @@
           }));
           
           var cleartext = base16.parse(
-                  "8bba6bf82a6c0f86d5f1756e97956870" +
-                  "b08953b06b4eb205bc1694ee"
+             "e6ad181f053b58a904f2457510373e57"
           );
 
           var ciphertext =  base16.parse(
-                  "53ea5dc08cd260fb3b858567287fa915" +
-                  "52c30b2febfba213f0ae87702d068d19" +
-                  "bab07fe574523dfb42139d68c3c5afee" +
-                  "e0bfe4cb7969cbf382b804d6e6139614" +
-                  "4e2d0e60741f8993c3014b58b9b1957a" +
-                  "8babcd23af854f4c356fb1662aa72bfc" +
-                  "c7e586559dc4280d160c126785a723eb" +
-                  "eebeff71f11594440aaef87d10793a87" +
-                  "74a239d4a04c87fe1467b9daf85208ec" +
-                  "6c7255794a96cc29142f9a8bd418e3c1" +
-                  "fd67344b0cd0829df3b2bec602531962" +
-                  "93c6b34d3f75d32f213dd45c6273d505" +
-                  "adf4cced1057cb758fc26aeefa441255" +
-                  "ed4e64c199ee075e7f16646182fdb464" +
-                  "739b68ab5daff0e63e9552016824f054" +
-                  "bf4d3c8c90a97bb6b6553284eb429fcc"
+              "a2b1a430a9d657e2fa1c2bb5ed43ffb2" + 
+              "5c05a308fe9093c01031795f58744001" + 
+              "10828ae58fb9b581ce9dddd3e549ae04" + 
+              "a0985459bde6c626594e7b05dc4278b2" + 
+              "a1465c1368408823c85e96dc66c3a309" + 
+              "83c639664fc4569a37fe21e5a195b577" + 
+              "6eed2df8d8d361af686e750229bbd663" + 
+              "f161868a50615e0c337bec0ca35fec0b" + 
+              "b19c36eb2e0bbcc0582fa1d93aacdb06" + 
+              "1063f59f2ce1ee43605e5d89eca183d2" + 
+              "acdfe9f81011022ad3b43a3dd417dac9" + 
+              "4b4e11ea81b192966e966b182082e719" + 
+              "64607b4f8002f36299844a11f2ae0fae" + 
+              "ac2eae70f8f4f98088acdcd0ac556e9f" + 
+              "ccc511521908fad26f04c64201450305" + 
+              "778758b0538bf8b5bb144a828e629795" 
           );
           
           var publicKey, privateKey, error;
