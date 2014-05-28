@@ -2194,7 +2194,7 @@
               )),
               e:      base64.stringifyUrlSafe(base16.parse("010001")),
               ext:    true,
-              key_ops:    ["encrypt"]
+              key_ops:    ["wrapKey"]
           }));
 
           var privKeyJwk = latin1.parse(JSON.stringify({
@@ -2288,7 +2288,7 @@
                       "e61d44e163251e20c7f66eb305117cb8"
               )),
               ext:    true,
-              key_ops:    ["decrypt"]
+              key_ops:    ["unwrapKey"]
           }));
           
           var cleartext = base16.parse(
