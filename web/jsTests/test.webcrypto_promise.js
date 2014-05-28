@@ -2176,7 +2176,7 @@
             });
         });
         
-        it("RSA-OAEP wrap/unwrap known raw AES-CBC key", function () {
+        it("RSA-OAEP unwrap known raw AES-CBC key", function () {
           // Because the random data in OAEP padding makes the encryption output non-
           // deterministic, we cannot easily do a typical known-answer test for RSA
           // encryption / decryption. Instead we will take a known-good encrypted
