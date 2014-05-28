@@ -2322,7 +2322,7 @@
           // import the public key
           runs(function () {
               error = undefined;
-              importKey("jwk", pubKeyJwk, algorithm, true, ["wrap", "unwrap"])
+              importKey("jwk", pubKeyJwk, algorithm, true, ["wrapKey", "unwrapKey"])
               .then(function (result) {
                   publicKey = result;
               })
@@ -2343,7 +2343,7 @@
           // import the private key
           runs(function () {
               error = undefined;
-              importKey("jwk", privKeyJwk, algorithm, true, ["wrap", "unwrap"])
+              importKey("jwk", privKeyJwk, algorithm, true, ["wrapKey", "unwrapKey"])
               .then(function (result) {
                   privateKey = result;
               })
