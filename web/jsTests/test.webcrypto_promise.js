@@ -105,7 +105,7 @@
                 if (!rsaKey) {
                     throw new Error("Could not make valid DER from JWK input");
                 }
-                return rsaKey.der.buffer;
+                return rsaKey.getDer().buffer;
             });
         });
     }
