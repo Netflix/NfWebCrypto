@@ -26,8 +26,8 @@
     
     if (window.msCrypto) { // IE
         crypto = window.msCrypto;
-    } else if (window.nfNewCrypto) { // Chrome OS, Chrome with NfWebCrypto
-        crypto = window.nfNewCrypto;
+    } else if (window.nfCrypto) { // Chrome OS, Chrome with NfWebCrypto
+        crypto = window.nfCrypto;
     } else if (window.crypto) {  // all others
         crypto = window.crypto;
     } else {
@@ -49,8 +49,8 @@
     if (window.cryptokeys) {  // Chromecast only for now
         cryptokeys = window.cryptokeys;
     }
-    else if (window.nfNewCryptokeys) {  // Chrome with NfWebCrypto
-        cryptokeys = window.nfNewCryptokeys;
+    else if (window.nfCryptokeys) {  // Chrome with NfWebCrypto
+        cryptokeys = window.nfCryptokeys;
     }
     // no error if not found here; will fail in its test below
     
@@ -105,7 +105,7 @@
                 if (!rsaKey) {
                     throw new Error("Could not make valid DER from JWK input");
                 }
-                return rsaKey.der.buffer;
+                return rsaKey.getDer().buffer;
             });
         });
     }
