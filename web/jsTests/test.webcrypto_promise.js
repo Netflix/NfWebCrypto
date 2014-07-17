@@ -1283,14 +1283,14 @@
         });
 
         it("A128CBC import/export", function () {
-            
-            var jwk1 = latin1.parse(JSON.stringify({
+
+            var jwk1 = {
                 alg:    "A128CBC",
                 kty:    "oct",
                 key_ops:    ["encrypt"],
                 ext:    true,
                 k:      base64.stringifyUrlSafe(key128),
-            }));
+            };
             runs(function () {
                 key = undefined;
                 error = undefined;
@@ -1315,7 +1315,7 @@
                 exportedData = undefined;
                 exportKey("jwk", key)
                 .then(function (result) {
-                    exportedData = result && new Uint8Array(result);
+                    exportedData = result;
                 })
                 .catch(function (result) {
                     error = "ERROR";
@@ -1327,22 +1327,20 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(key).toBeDefined();
-                var json1 = JSON.parse(latin1.stringify(jwk1));
-                var json2 = JSON.parse(latin1.stringify(exportedData));
-                if (json2.hasOwnProperty('use')) delete json2['use'];
-                expect(json1).toEqual(json2);
+                if (exportedData.hasOwnProperty('use')) delete exportedData['use'];
+                expect(jwk1).toEqual(exportedData);
             });
-            
+
         });
 
         it("HS256 import/export", function () {
-            var jwk3 = latin1.parse(JSON.stringify({
+            var jwk3 = {
                 alg:    "HS256",
                 kty:    "oct",
                 key_ops:    ["sign"],
                 ext:    true,
                 k:      base64.stringifyUrlSafe(key256),
-            }));
+            };
             runs(function () {
                 key = undefined;
                 error = undefined;
@@ -1367,7 +1365,7 @@
                 exportedData = undefined;
                 exportKey("jwk", key)
                 .then(function (result) {
-                    exportedData = result && new Uint8Array(result);
+                    exportedData = result;
                 })
                 .catch(function (result) {
                     error = "ERROR";
@@ -1379,17 +1377,15 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(key).toBeDefined();
-                var json1 = JSON.parse(latin1.stringify(jwk3));
-                var json2 = JSON.parse(latin1.stringify(exportedData));
-                if (json2.hasOwnProperty('use')) delete json2['use'];
-                expect(json1).toEqual(json2);
+                if (exportedData.hasOwnProperty('use')) delete exportedData['use'];
+                expect(jwk3).toEqual(exportedData);
             });
         });
 
         it("RSA-OAEP public key import/export", function () {
             // key from example 10 of oaep-vect.txt from
             // https://das-labor.org/svn/microcontroller-2/crypto-lib/testvectors/rsa-pkcs-1v2-1-vec/oaep-vect.txt
-            var jwk = latin1.parse(JSON.stringify({
+            var jwk = {
                 alg:    "RSA-OAEP",
                 kty:    "RSA",
                 n:      base64.stringifyUrlSafe(base16.parse(
@@ -1413,7 +1409,7 @@
                 e:      base64.stringifyUrlSafe(base16.parse("010001")),
                 ext:    true,
                 key_ops:    ["encrypt"]
-            }));
+            };
             runs(function () {
                 key = undefined;
                 error = undefined;
@@ -1439,7 +1435,7 @@
                 exportedData = undefined;
                 exportKey("jwk", key)
                 .then(function (result) {
-                    exportedData = result && new Uint8Array(result);
+                    exportedData = result;
                 })
                 .catch(function (result) {
                     error = "ERROR";
@@ -1451,17 +1447,15 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(key).toBeDefined();
-                var json1 = JSON.parse(latin1.stringify(jwk));
-                var json2 = JSON.parse(latin1.stringify(exportedData));
-                if (json2.hasOwnProperty('use')) delete json2['use'];
-                expect(json1).toEqual(json2);
+                if (exportedData.hasOwnProperty('use')) delete exportedData['use'];
+                expect(jwk).toEqual(exportedData);
             });
         });
 
         it("RSA-OAEP private key import", function () {
             // key from example 10 of oaep-vect.txt from
             // https://das-labor.org/svn/microcontroller-2/crypto-lib/testvectors/rsa-pkcs-1v2-1-vec/oaep-vect.txt
-            var jwk = latin1.parse(JSON.stringify({
+            var jwk = {
                 alg:    "RSA-OAEP",
                 kty:    "RSA",
                 n:      base64.stringifyUrlSafe(base16.parse(
@@ -1553,7 +1547,7 @@
                 )),
                 ext:    true,
                 key_ops:    ["decrypt"]
-            }));
+            };
             runs(function () {
                 key = undefined;
                 error = undefined;
@@ -1573,18 +1567,19 @@
                 expect(key).toBeDefined();
                 expect(key.algorithm.name).toBeAnyOf(["RSA-OAEP", "rsa-oaep"]);
                 expect(key.type).toBe("private");
-                expect(key.usages).toEqual(["decrypt"]);
+                expect(key.usages.length).toEqual(1);
+                expect(key.usages[0]).toEqual("decrypt");
             });
         });
 
         it("A128KW import/export", function () {
-            var jwk5 = latin1.parse(JSON.stringify({
+            var jwk5 = {
                 alg:    "A128KW",
                 kty:    "oct",
                 key_ops:    ["wrapKey"],
                 ext:    true,
                 k:      base64.stringifyUrlSafe(key128),
-            }));
+            };
             runs(function () {
                 key = undefined;
                 error = undefined;
@@ -1609,7 +1604,7 @@
                 exportedData = undefined;
                 exportKey("jwk", key)
                 .then(function (result) {
-                    exportedData = result && new Uint8Array(result);
+                    exportedData = result;
                 })
                 .catch(function (result) {
                     error = "ERROR";
@@ -1621,21 +1616,19 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(key).toBeDefined();
-                var json1 = JSON.parse(latin1.stringify(jwk5));
-                var json2 = JSON.parse(latin1.stringify(exportedData));
-                if (json2.hasOwnProperty('use')) delete json2['use'];
-                expect(json2).toEqual(json1);
+                if (exportedData.hasOwnProperty('use')) delete exportedData['use'];
+                expect(jwk5).toEqual(exportedData);
             });
         });
 
         it("A256KW import/export", function () {
-            var jwk6 = latin1.parse(JSON.stringify({
+            var jwk6 = {
                 alg:    "A256KW",
                 kty:    "oct",
                 key_ops:    ["unwrapKey"],
                 ext:    true,
                 k:      base64.stringifyUrlSafe(key256),
-            }));
+            };
             runs(function () {
                 key = undefined;
                 error = undefined;
@@ -1660,7 +1653,7 @@
                 exportedData = undefined;
                 exportKey("jwk", key)
                 .then(function (result) {
-                    exportedData = result && new Uint8Array(result);
+                    exportedData = result;
                 })
                 .catch(function (result) {
                     error = "ERROR";
@@ -1672,19 +1665,17 @@
             runs(function () {
                 expect(error).toBeUndefined();
                 expect(key).toBeDefined();
-                var json1 = JSON.parse(latin1.stringify(jwk6));
-                var json2 = JSON.parse(latin1.stringify(exportedData));
-                if (json2.hasOwnProperty('use')) delete json2['use'];
-                expect(json2).toEqual(json1);
+                if (exportedData.hasOwnProperty('use')) delete exportedData['use'];
+                expect(jwk6).toEqual(exportedData);
             });
 
         });
     });
-    
+
     // --------------------------------------------------------------------------------
 
     describe("Key Wrapping Operations", function () {
-      
+
         beforeEach(function () {
           this.addMatchers({
               toBeAnyOf: function(expecteds) {
