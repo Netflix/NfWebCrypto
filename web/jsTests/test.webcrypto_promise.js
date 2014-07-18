@@ -2201,7 +2201,7 @@
               e:      base64.stringifyUrlSafe(base16.parse("010001")),
               ext:    true,
               key_ops: ["wrapKey", "unwrapKey"]
-          }));
+          };
 
           var privKeyJwk = {
               alg:    "RSA-OAEP",
@@ -2295,7 +2295,7 @@
               )),
               ext:    true,
               key_ops: ["wrapKey", "unwrapKey"]
-          }));
+          };
           
           var cleartext = base16.parse(
              "e6ad181f053b58a904f2457510373e57"
