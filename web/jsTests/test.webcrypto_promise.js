@@ -2177,7 +2177,7 @@
           // keys and ciphertext from example 10.2 of oaep-vect.txt from
           // https://das-labor.org/svn/microcontroller-2/crypto-lib/testvectors/rsa-pkcs-1v2-1-vec/oaep-vect.txt
           
-          var pubKeyJwk = latin1.parse(JSON.stringify({
+          var pubKeyJwk = {
               alg:    "RSA-OAEP",
               kty:    "RSA",
               n:      base64.stringifyUrlSafe(base16.parse(
@@ -2203,7 +2203,7 @@
               key_ops: ["wrapKey", "unwrapKey"]
           }));
 
-          var privKeyJwk = latin1.parse(JSON.stringify({
+          var privKeyJwk = {
               alg:    "RSA-OAEP",
               kty:    "RSA",
               n:      base64.stringifyUrlSafe(base16.parse(
