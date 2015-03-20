@@ -413,7 +413,7 @@
             runs(function () {
                 error = undefined;
                 key = undefined;
-                cryptoSubtle.generateKey({ name: "AES-CBC", length: keyLength }, false, [])
+                cryptoSubtle.generateKey({ name: "AES-CBC", length: keyLength }, false, ["encrypt", "decrypt"])
                 .then(function (result) {
                     key = result;
                 })
@@ -548,7 +548,7 @@
             runs(function () {
                 error = undefined;
                 key = undefined;
-                cryptoSubtle.generateKey({ name: "AES-KW", length: keyLength }, false, [])
+                cryptoSubtle.generateKey({ name: "AES-KW", length: keyLength }, false, ["wrapKey"])
                 .then(function (result) {
                     key = result;
                 })
@@ -793,7 +793,7 @@
                         length: keyLength
                     },
                     false,
-                    []
+                    ["sign", "verify"]
                 )
                 .then(function (result) {
                     key = result;
@@ -1038,7 +1038,7 @@
 
             // import pkcs8-formatted private key
             runs(function () {
-                importKey("pkcs8", pkcs8PrivKeyData, {name: "RSA-OAEP", hash: {name: "SHA-1"}}, true, ["encrypt"])
+                importKey("pkcs8", pkcs8PrivKeyData, {name: "RSA-OAEP", hash: {name: "SHA-1"}}, true, ["decrypt"])
                 .then(function (result) {
                     privKey = result;
                 })
