@@ -62,6 +62,14 @@
             return new Uint8Array(Array.prototype.map.call(s, function (c) { return c.charCodeAt(0); }));
         }
     };
+
+    function describeWrapper(name, func) {
+        if (true) {
+            describe(name, func);
+        } else {
+            xdescribe(name, func);
+        }
+    }
     
     // --------------------------------------------------------------------------------
     describe("crypto interface", function () {
@@ -2642,7 +2650,7 @@
 
     });
     
-    describe("Key Discovery API for Netflix keys", function () {
+    describeWrapper("Key Discovery API for Netflix keys", function () {
         
         var key, error;
         
