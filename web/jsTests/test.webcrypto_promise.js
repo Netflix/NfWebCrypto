@@ -54,6 +54,14 @@
     }
     // no error if not found here; will fail in its test below
     
+    function describe_IfKeyDiscovery(name, func) {
+        if (cryptokeys) {
+            describe(name, func);
+        } else {
+            xdescribe(name, func);
+        }
+    }
+    
     var latin1 = {
         stringify: function (a) {
             return String.fromCharCode.apply(0, a);
@@ -63,14 +71,6 @@
         }
     };
 
-    function describeWrapper(name, func) {
-        if (false) {
-            describe(name, func);
-        } else {
-            xdescribe(name, func);
-        }
-    }
-    
     // --------------------------------------------------------------------------------
     describe("crypto interface", function () {
 
@@ -915,7 +915,7 @@
 
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey("spki", spkiPubKeyData, {name: "RSA-OAEP", hash: {name: "SHA-1"}}, true, [])
+                cryptoSubtle.importKey("spki", spkiPubKeyData, {name: "RSA-OAEP", hash: {name: "SHA-1"}}, true, ["encrypt"])
                 .then(function (result) {
                     key = result;
                 })
@@ -1665,7 +1665,7 @@
             // Import the known wrap-ee key
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey('raw', wrapeeKeyData, { name: "AES-CBC" }, true, [])
+                cryptoSubtle.importKey('raw', wrapeeKeyData, { name: "AES-CBC" }, true, ["encrypt"])
                     .then(function (result) {
                         wrapeeKey = result;
                     })
@@ -1734,7 +1734,7 @@
                         { name: "AES-KW" },
                         { name: "AES-CBC" },
                         true,
-                        [])
+                        ["encrypt"])
                     .then(function (result) {
                         wrapeeKey2 = result;
                     })
@@ -1831,7 +1831,7 @@
                         { name: "AES-KW" },
                         { name: "HMAC", hash: {name: "SHA-256"} },
                         true,
-                        [])
+                        ["verify"])
                     .then(function (result) {
                         wrappeeKey2 = result;
                     })
@@ -1879,7 +1879,7 @@
             // Import the known wrap-ee key
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey('raw', wrapeeKeyData, { name: "AES-CBC" }, true, [])
+                cryptoSubtle.importKey('raw', wrapeeKeyData, { name: "AES-CBC" }, true, ["encrypt"])
                     .then(function (result) {
                         wrapeeKey = result;
                     })
@@ -1958,7 +1958,7 @@
                         {name: "RSA-OAEP", hash: {name: "SHA-1"}},
                         {name: "AES-CBC"},
                         true,
-                        [])
+                        ["encrypt"])
                     .then(function (result) {
                         wrapeeKey2 = result;
                     })
@@ -2008,7 +2008,7 @@
             // Import the known wrap-ee key
             runs(function () {
                 error = undefined;
-                cryptoSubtle.importKey('raw', wrapeeKeyData, { name: "AES-CBC" }, true, [])
+                cryptoSubtle.importKey('raw', wrapeeKeyData, { name: "AES-CBC" }, true, ["encrypt"])
                     .then(function (result) {
                         wrapeeKey = result;
                     })
@@ -2089,7 +2089,7 @@
                         wrapAlgorithm,
                         { name: "AES-CBC" },
                         true,
-                        [])
+                        ["encrypt"])
                     .then(function (result) {
                         wrapeeKey2 = result;
                     })
@@ -2316,12 +2316,12 @@
           // unwrap, wrap, uwrap, then export the wrappee
           runs(function () {
             error = undefined;
-            cryptoSubtle.unwrapKey("raw", ciphertext, privateKey, algorithm, {name: "AES-CBC"}, true, [])
+            cryptoSubtle.unwrapKey("raw", ciphertext, privateKey, algorithm, {name: "AES-CBC"}, true, ["encrypt"])
             .then(function(key) {
                 return cryptoSubtle.wrapKey("raw", key, publicKey, algorithm);
             })
             .then(function(data) {
-                return cryptoSubtle.unwrapKey("raw", data, privateKey, algorithm, {name: "AES-CBC"}, true, []);
+                return cryptoSubtle.unwrapKey("raw", data, privateKey, algorithm, {name: "AES-CBC"}, true, ["encryptedData"]);
             })
             .then(function(key) {
                 return cryptoSubtle.exportKey("raw", key);
@@ -2650,7 +2650,7 @@
 
     });
     
-    describeWrapper("Key Discovery API for Netflix keys", function () {
+    describe_IfKeyDiscovery("Key Discovery API for Netflix keys", function () {
         
         var key, error;
         
