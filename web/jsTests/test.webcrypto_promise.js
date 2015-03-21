@@ -64,7 +64,7 @@
     };
 
     function describeWrapper(name, func) {
-        if (true) {
+        if (false) {
             describe(name, func);
         } else {
             xdescribe(name, func);
@@ -2594,7 +2594,7 @@
 
             runs(function () {
                 error = undefined;
-                cryptoSubtle.cryptoSubtle.importKey('raw', rawHmacKeyData, hmacAlgorithm, false, ["sign", "verify"])
+                cryptoSubtle.importKey('raw', rawHmacKeyData, hmacAlgorithm, false, ["sign", "verify"])
                     .then(function (result) {
                         hmacKey2 = result;
                     })
