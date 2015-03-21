@@ -2321,7 +2321,7 @@
                 return cryptoSubtle.wrapKey("raw", key, publicKey, algorithm);
             })
             .then(function(data) {
-                return cryptoSubtle.unwrapKey("raw", data, privateKey, algorithm, {name: "AES-CBC"}, true, ["encryptedData"]);
+                return cryptoSubtle.unwrapKey("raw", data, privateKey, algorithm, {name: "AES-CBC"}, true, ["encrypt"]);
             })
             .then(function(key) {
                 return cryptoSubtle.exportKey("raw", key);
