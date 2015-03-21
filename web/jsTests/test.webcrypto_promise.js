@@ -54,6 +54,14 @@
     }
     // no error if not found here; will fail in its test below
     
+    function describe_IfKeyDiscovery(name, func) {
+        if (cryptokeys) {
+            describe(name, func);
+        } else {
+            xdescribe(name, func);
+        }
+    }
+    
     var latin1 = {
         stringify: function (a) {
             return String.fromCharCode.apply(0, a);
@@ -62,53 +70,6 @@
             return new Uint8Array(Array.prototype.map.call(s, function (c) { return c.charCodeAt(0); }));
         }
     };
-    
-    // Wrapper for importKey. Safari does not support importing of ASN.1 types
-    // spki and pkcs8. Try the import first, but if it fails with one of these
-    // formats, try again using JWK format.
-    function importKey(format, data, algorithm, extractable, usage) {
-        return Promise.resolve()
-        .then(function(){
-           return cryptoSubtle.importKey(format, data, algorithm, extractable, usage);
-        })
-        .catch(function(e) {
-            if (format !== 'spki' && format !== 'pkcs8') {
-                throw e;
-            }
-            var alg = ASN1.webCryptoAlgorithmToJwkAlg(algorithm);
-            var keyOps = ASN1.webCryptoUsageToJwkKeyOps(usage);
-            var jwkObj = ASN1.rsaDerToJwk(data, alg, keyOps, extractable);
-            if (!jwkObj) {
-                throw new Error("Could not make valid JWK from DER input");
-            }
-            var jwk = JSON.stringify(jwkObj);
-            return cryptoSubtle.importKey('jwk', latin1.parse(jwk), algorithm, extractable, usage)
-        });
-    }
-    
-    // Wrapper for exportKey. Safari does not support exporting of ASN.1 types
-    // spki and pkcs8. Try the export first, but if it fails with one of these
-    // formats, try again using JWK format.
-    function exportKey(format, key) {
-        return Promise.resolve()
-        .then(function(){
-            return cryptoSubtle.exportKey(format, key);
-        })
-        .catch(function(e) {
-            if (format !== 'spki' && format !== 'pkcs8') {
-                throw e;
-            }
-            return cryptoSubtle.exportKey('jwk', key)
-            .then(function (result) {
-                var jwkObj = JSON.parse(latin1.stringify(new Uint8Array(result)));
-                var rsaKey = ASN1.jwkToRsaDer(jwkObj);
-                if (!rsaKey) {
-                    throw new Error("Could not make valid DER from JWK input");
-                }
-                return rsaKey.getDer().buffer;
-            });
-        });
-    }
 
     // --------------------------------------------------------------------------------
     describe("crypto interface", function () {
@@ -277,7 +238,7 @@
 
             runs(function () {
                 error = undefined;
-                importKey('raw', rawKeyData, algorithmNoIv, false, ["encrypt", "decrypt"])
+                cryptoSubtle.importKey('raw', rawKeyData, algorithmNoIv, false, ["encrypt", "decrypt"])
                     .then(function (result) {
                         symmetricKey1 = result;
                     })
@@ -370,7 +331,7 @@
 
             runs(function () {
                 error = undefined;
-                cryptoSubtle.generateKey({ name: "AES-CBC", length: keyLength }, true, [])
+                cryptoSubtle.generateKey({ name: "AES-CBC", length: keyLength }, true, ["encrypt", "decrypt"])
                 .then(function (result) {
                     key = result;
                 })
@@ -390,7 +351,7 @@
 
             runs(function () {
                 error = undefined;
-                exportKey("raw", key)
+                cryptoSubtle.exportKey("raw", key)
                 .then(function (result) {
                     keyData = result;
                 })
@@ -413,7 +374,7 @@
             runs(function () {
                 error = undefined;
                 key = undefined;
-                cryptoSubtle.generateKey({ name: "AES-CBC", length: keyLength }, false, [])
+                cryptoSubtle.generateKey({ name: "AES-CBC", length: keyLength }, false, ["encrypt", "decrypt"])
                 .then(function (result) {
                     key = result;
                 })
@@ -436,7 +397,7 @@
                 error = undefined;
                 keyData = undefined;
                 try {
-                    exportKey("raw", key)
+                    cryptoSubtle.exportKey("raw", key)
                     .then(function (result) {
                         keyData = result;
                     })
@@ -474,7 +435,7 @@
 
             runs(function () {
                 error = undefined;
-                importKey('raw', rawKeyData, algorithm, false, ["wrapKey", "unwrapKey"])
+                cryptoSubtle.importKey('raw', rawKeyData, algorithm, false, ["wrapKey", "unwrapKey"])
                     .then(function (result) {
                         wrappingKey = result;
                     })
@@ -505,7 +466,7 @@
 
             runs(function () {
                 error = undefined;
-                cryptoSubtle.generateKey({ name: "AES-KW", length: keyLength }, true, [])
+                cryptoSubtle.generateKey({ name: "AES-KW", length: keyLength }, true, ["wrapKey"])
                 .then(function (result) {
                     key = result;
                 })
@@ -525,7 +486,7 @@
 
             runs(function () {
                 error = undefined;
-                exportKey("raw", key)
+                cryptoSubtle.exportKey("raw", key)
                 .then(function (result) {
                     keyData = result;
                 })
@@ -548,7 +509,7 @@
             runs(function () {
                 error = undefined;
                 key = undefined;
-                cryptoSubtle.generateKey({ name: "AES-KW", length: keyLength }, false, [])
+                cryptoSubtle.generateKey({ name: "AES-KW", length: keyLength }, false, ["wrapKey"])
                 .then(function (result) {
                     key = result;
                 })
@@ -571,7 +532,7 @@
                 error = undefined;
                 keyData = undefined;
                 try {
-                    exportKey("raw", key)
+                    cryptoSubtle.exportKey("raw", key)
                     .then(function (result) {
                         keyData = result;
                     })
@@ -613,7 +574,7 @@
 
             runs(function () {
                 error = undefined;
-                importKey('raw', rawKeyData, algorithm, false, ["sign", "verify"])
+                cryptoSubtle.importKey('raw', rawKeyData, algorithm, false, ["sign", "verify"])
                     .then(function (result) {
                         hmacKey = result;
                     })
@@ -742,7 +703,7 @@
                         length: keyLength
                     },
                     true,
-                    []
+                    ["sign", "verify"]
                 )
                 .then(function (result) {
                     key = result;
@@ -763,7 +724,7 @@
 
             runs(function () {
                 error = undefined;
-                exportKey("raw", key)
+                cryptoSubtle.exportKey("raw", key)
                 .then(function (result) {
                     keyData = result;
                 })
@@ -793,7 +754,7 @@
                         length: keyLength
                     },
                     false,
-                    []
+                    ["sign", "verify"]
                 )
                 .then(function (result) {
                     key = result;
@@ -817,7 +778,7 @@
                 error = undefined;
                 keyData = undefined;
                 try {
-                    exportKey("raw", key)
+                    cryptoSubtle.exportKey("raw", key)
                     .then(function (result) {
                         keyData = result;
                     })
@@ -954,7 +915,7 @@
 
             runs(function () {
                 error = undefined;
-                importKey("spki", spkiPubKeyData, {name: "RSA-OAEP", hash: {name: "SHA-1"}}, true, [])
+                cryptoSubtle.importKey("spki", spkiPubKeyData, {name: "RSA-OAEP", hash: {name: "SHA-1"}}, true, ["encrypt"])
                 .then(function (result) {
                     key = result;
                 })
@@ -979,7 +940,7 @@
             // verify exported key matches what was imported
             runs(function () {
                 error = undefined;
-                exportKey("spki", key)
+                cryptoSubtle.exportKey("spki", key)
                 .then(function (result) {
                     exportedSpkiKeyData = result && new Uint8Array(result);
                 })
@@ -1038,7 +999,7 @@
 
             // import pkcs8-formatted private key
             runs(function () {
-                importKey("pkcs8", pkcs8PrivKeyData, {name: "RSA-OAEP", hash: {name: "SHA-1"}}, true, [])
+                cryptoSubtle.importKey("pkcs8", pkcs8PrivKeyData, {name: "RSA-OAEP", hash: {name: "SHA-1"}}, true, ["decrypt"])
                 .then(function (result) {
                     privKey = result;
                 })
@@ -1189,7 +1150,7 @@
             
             runs(function () {
                 error = undefined;
-                importKey("spki", pubKeyDataSpki, algorithm, false, ["verify"])
+                cryptoSubtle.importKey("spki", pubKeyDataSpki, algorithm, false, ["verify"])
                     .then(function (result) {
                         pubKey = result;
                     })
@@ -1294,7 +1255,7 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                importKey("jwk", jwk1, { name: "AES-CBC" }, true, ["encrypt"])
+                cryptoSubtle.importKey("jwk", jwk1, { name: "AES-CBC" }, true, ["encrypt"])
                 .then(function (result) {
                     key = result;
                 })
@@ -1313,7 +1274,7 @@
             runs(function () {
                 error = undefined;
                 exportedData = undefined;
-                exportKey("jwk", key)
+                cryptoSubtle.exportKey("jwk", key)
                 .then(function (result) {
                     exportedData = result;
                 })
@@ -1344,7 +1305,7 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                importKey("jwk", jwk3, {name: "HMAC", hash: {name: "SHA-256" }}, true, ["sign"])
+                cryptoSubtle.importKey("jwk", jwk3, {name: "HMAC", hash: {name: "SHA-256" }}, true, ["sign"])
                 .then(function (result) {
                     key = result;
                 })
@@ -1363,7 +1324,7 @@
             runs(function () {
                 error = undefined;
                 exportedData = undefined;
-                exportKey("jwk", key)
+                cryptoSubtle.exportKey("jwk", key)
                 .then(function (result) {
                     exportedData = result;
                 })
@@ -1413,7 +1374,7 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                importKey("jwk", jwk, { name: "RSA-OAEP", hash: {name: "SHA-1"} }, true, ["encrypt"])
+                cryptoSubtle.importKey("jwk", jwk, { name: "RSA-OAEP", hash: {name: "SHA-1"} }, true, ["encrypt"])
                 .then(function (result) {
                     key = result;
                 })
@@ -1433,7 +1394,7 @@
             runs(function () {
                 error = undefined;
                 exportedData = undefined;
-                exportKey("jwk", key)
+                cryptoSubtle.exportKey("jwk", key)
                 .then(function (result) {
                     exportedData = result;
                 })
@@ -1551,7 +1512,7 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                importKey("jwk", jwk, { name: "RSA-OAEP", hash: {name: "SHA-1"} }, true, ["decrypt"])
+                cryptoSubtle.importKey("jwk", jwk, { name: "RSA-OAEP", hash: {name: "SHA-1"} }, true, ["decrypt"])
                 .then(function (result) {
                     key = result;
                 })
@@ -1583,7 +1544,7 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                importKey("jwk", jwk5, { name: "AES-KW" }, true, ["wrapKey"])
+                cryptoSubtle.importKey("jwk", jwk5, { name: "AES-KW" }, true, ["wrapKey"])
                 .then(function (result) {
                     key = result;
                 })
@@ -1602,7 +1563,7 @@
             runs(function () {
                 error = undefined;
                 exportedData = undefined;
-                exportKey("jwk", key)
+                cryptoSubtle.exportKey("jwk", key)
                 .then(function (result) {
                     exportedData = result;
                 })
@@ -1632,7 +1593,7 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                importKey("jwk", jwk6, { name: "AES-KW" }, true, ["unwrapKey"])
+                cryptoSubtle.importKey("jwk", jwk6, { name: "AES-KW" }, true, ["unwrapKey"])
                 .then(function (result) {
                     key = result;
                 })
@@ -1651,7 +1612,7 @@
             runs(function () {
                 error = undefined;
                 exportedData = undefined;
-                exportKey("jwk", key)
+                cryptoSubtle.exportKey("jwk", key)
                 .then(function (result) {
                     exportedData = result;
                 })
@@ -1704,7 +1665,7 @@
             // Import the known wrap-ee key
             runs(function () {
                 error = undefined;
-                importKey('raw', wrapeeKeyData, { name: "AES-CBC" }, true, [])
+                cryptoSubtle.importKey('raw', wrapeeKeyData, { name: "AES-CBC" }, true, ["encrypt"])
                     .then(function (result) {
                         wrapeeKey = result;
                     })
@@ -1725,7 +1686,7 @@
             // Import the known wrap-or key
             runs(function () {
                 error = undefined;
-                importKey('raw', wraporKeyData, { name: "AES-KW" }, false, ["wrapKey", "unwrapKey"])
+                cryptoSubtle.importKey('raw', wraporKeyData, { name: "AES-KW" }, false, ["wrapKey", "unwrapKey"])
                     .then(function (result) {
                         wraporKey = result;
                     })
@@ -1773,7 +1734,7 @@
                         { name: "AES-KW" },
                         { name: "AES-CBC" },
                         true,
-                        [])
+                        ["encrypt"])
                     .then(function (result) {
                         wrapeeKey2 = result;
                     })
@@ -1794,7 +1755,7 @@
             // Export the unwrapped key data and compare to the original
             runs(function () {
                 error = undefined;
-                exportKey("raw", wrapeeKey2)
+                cryptoSubtle.exportKey("raw", wrapeeKey2)
                 .then(function (result) {
                     wrapeeKeyData2 = result && new Uint8Array(result);
                 })
@@ -1825,7 +1786,7 @@
             // Import the key to be wrapped
             runs(function () {
                 error = undefined;
-                importKey('raw', wrappeeKeyData, { name: "HMAC", hash: {name: "SHA-256"} }, true, ["verify"])
+                cryptoSubtle.importKey('raw', wrappeeKeyData, { name: "HMAC", hash: {name: "SHA-256"} }, true, ["verify"])
                     .then(function (result) {
                         wrappeeKey = result;
                     })
@@ -1844,7 +1805,7 @@
             // Import the wrapping key
             runs(function () {
                 error = undefined;
-                importKey('raw', wrapporKeyData, { name: "AES-KW" }, false, ["wrapKey", "unwrapKey"])
+                cryptoSubtle.importKey('raw', wrapporKeyData, { name: "AES-KW" }, false, ["wrapKey", "unwrapKey"])
                     .then(function (result) {
                         wrapporKey = result;
                     })
@@ -1870,7 +1831,7 @@
                         { name: "AES-KW" },
                         { name: "HMAC", hash: {name: "SHA-256"} },
                         true,
-                        [])
+                        ["verify"])
                     .then(function (result) {
                         wrappeeKey2 = result;
                     })
@@ -1889,7 +1850,7 @@
             // Export the unwrapped key data and compare to the original
             runs(function () {
                 error = undefined;
-                exportKey("raw", wrappeeKey2)
+                cryptoSubtle.exportKey("raw", wrappeeKey2)
                 .then(function (result) {
                     wrappeeKeyData2 = result && new Uint8Array(result);
                 })
@@ -1918,7 +1879,7 @@
             // Import the known wrap-ee key
             runs(function () {
                 error = undefined;
-                importKey('raw', wrapeeKeyData, { name: "AES-CBC" }, true, [])
+                cryptoSubtle.importKey('raw', wrapeeKeyData, { name: "AES-CBC" }, true, ["encrypt"])
                     .then(function (result) {
                         wrapeeKey = result;
                     })
@@ -1997,7 +1958,7 @@
                         {name: "RSA-OAEP", hash: {name: "SHA-1"}},
                         {name: "AES-CBC"},
                         true,
-                        [])
+                        ["encrypt"])
                     .then(function (result) {
                         wrapeeKey2 = result;
                     })
@@ -2018,7 +1979,7 @@
             // Export the unwrapped key data and compare to the original
             runs(function () {
                 error = undefined;
-                exportKey("raw", wrapeeKey2)
+                cryptoSubtle.exportKey("raw", wrapeeKey2)
                 .then(function (result) {
                     wrapeeKeyData2 = result && new Uint8Array(result);
                 })
@@ -2047,7 +2008,7 @@
             // Import the known wrap-ee key
             runs(function () {
                 error = undefined;
-                importKey('raw', wrapeeKeyData, { name: "AES-CBC" }, true, [])
+                cryptoSubtle.importKey('raw', wrapeeKeyData, { name: "AES-CBC" }, true, ["encrypt"])
                     .then(function (result) {
                         wrapeeKey = result;
                     })
@@ -2128,7 +2089,7 @@
                         wrapAlgorithm,
                         { name: "AES-CBC" },
                         true,
-                        [])
+                        ["encrypt"])
                     .then(function (result) {
                         wrapeeKey2 = result;
                     })
@@ -2149,7 +2110,7 @@
             // Export the unwrapped key data and compare to the original
             runs(function () {
                 error = undefined;
-                exportKey("raw", wrapeeKey2)
+                cryptoSubtle.exportKey("raw", wrapeeKey2)
                 .then(function (result) {
                     wrapeeKeyData2 = result && new Uint8Array(result);
                 })
@@ -2328,8 +2289,8 @@
           runs(function () {
               error = undefined;
               Promise.all([
-                importKey("jwk", pubKeyJwk, algorithm, true, ["wrapKey"]),
-                importKey("jwk", privKeyJwk, algorithm, true, ["unwrapKey"])
+                cryptoSubtle.importKey("jwk", pubKeyJwk, algorithm, true, ["wrapKey"]),
+                cryptoSubtle.importKey("jwk", privKeyJwk, algorithm, true, ["unwrapKey"])
               ])
               .then(function (result) {
                   publicKey = result[0];
@@ -2355,12 +2316,12 @@
           // unwrap, wrap, uwrap, then export the wrappee
           runs(function () {
             error = undefined;
-            cryptoSubtle.unwrapKey("raw", ciphertext, privateKey, algorithm, {name: "AES-CBC"}, true, [])
+            cryptoSubtle.unwrapKey("raw", ciphertext, privateKey, algorithm, {name: "AES-CBC"}, true, ["encrypt"])
             .then(function(key) {
                 return cryptoSubtle.wrapKey("raw", key, publicKey, algorithm);
             })
             .then(function(data) {
-                return cryptoSubtle.unwrapKey("raw", data, privateKey, algorithm, {name: "AES-CBC"}, true, []);
+                return cryptoSubtle.unwrapKey("raw", data, privateKey, algorithm, {name: "AES-CBC"}, true, ["encrypt"]);
             })
             .then(function(key) {
                 return cryptoSubtle.exportKey("raw", key);
@@ -2689,7 +2650,7 @@
 
     });
     
-    describe("Key Discovery API for Netflix keys", function () {
+    describe_IfKeyDiscovery("Key Discovery API for Netflix keys", function () {
         
         var key, error;
         
@@ -2817,7 +2778,7 @@
             // Import the signing key to be wrapped
             runs(function () {
                 error = undefined;
-                importKey('raw', wrappeeKeyData, {name: "HMAC", hash: {name: "SHA-256"}}, true, ["sign"])
+                cryptoSubtle.importKey('raw', wrappeeKeyData, {name: "HMAC", hash: {name: "SHA-256"}}, true, ["sign"])
                     .then(function (result) {
                         wrappeeKey = result;
                     })
@@ -2933,7 +2894,7 @@
             // NOTE: extractable = false should make wrapKey fail for any wrapping key except DKS
             runs(function () {
                 error = undefined;
-                importKey('raw', wrappeeKeyData, {name: "HMAC", hash: {name: "SHA-256"}}, false, ["sign"])
+                cryptoSubtle.importKey('raw', wrappeeKeyData, {name: "HMAC", hash: {name: "SHA-256"}}, false, ["sign"])
                     .then(function (result) {
                         wrappeeKey = result;
                     })
