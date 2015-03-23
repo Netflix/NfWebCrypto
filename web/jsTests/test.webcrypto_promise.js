@@ -1995,7 +1995,7 @@
                 expect(wrapeeKeyData2).toBeDefined();
                 expect(base16.stringify(wrapeeKeyData2)).toBe(base16.stringify(wrapeeKeyData));
             });
-        });
+        }, 5000);  // extra long timeout for this test; generating 2048-bit RSA keys can take a long time on slow systems
         
         it("RSA-OAEP wrap/unwrap raw key round trip", function () {
             // Note: we can't do a known-answer test for RSA-OAEP because
