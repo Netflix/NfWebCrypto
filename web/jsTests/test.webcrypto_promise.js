@@ -1639,12 +1639,58 @@
                 alg:         "A128CBC",
                 kty:         "oct",
                 key_ops:     ["encrypt"],
-                extractible: true,
                 k:           base64.stringifyUrlSafe(key128),
             };
+
+            // JWK 'extractability' should be ignored, with or without 'ext' present
             runs(function () {
                 key = undefined;
                 error = undefined;
+                jwk1.extractable = false;
+                cryptoSubtle.importKey("jwk", jwk1, { name: "AES-CBC" }, false, ["encrypt"])
+                .then(function (result) {
+                    key = result;
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
+            })
+            waitsFor(function () {
+                return key || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(key).toBeDefined();
+                expect(key.extractable).toBe(false);
+            });
+            runs(function () {
+                key = undefined;
+                error = undefined;
+                jwk1.extractable = true;
+                cryptoSubtle.importKey("jwk", jwk1, { name: "AES-CBC" }, false, ["encrypt"])
+                .then(function (result) {
+                    key = result;
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
+            })
+            waitsFor(function () {
+                return key || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(key).toBeDefined();
+                expect(key.extractable).toBe(false);
+            });
+
+            // If 'ext' is present, it must be consistent with the extractible function parm
+            // The 'extractible' field must still be ignored
+            runs(function () {
+                key = undefined;
+                error = undefined;
+                jwk1.extractable = false;
+                jwk1.ext = true
                 cryptoSubtle.importKey("jwk", jwk1, { name: "AES-CBC" }, true, ["encrypt"])
                 .then(function (result) {
                     key = result;
@@ -1661,9 +1707,29 @@
                 expect(key).toBeDefined();
                 expect(key.extractable).toBe(true);
             });
+            runs(function () {
+                key = undefined;
+                error = undefined;
+                jwk1.extractable = true;
+                jwk1.ext = false
+                cryptoSubtle.importKey("jwk", jwk1, { name: "AES-CBC" }, false, ["encrypt"])
+                .then(function (result) {
+                    key = result;
+                })
+                .catch(function (result) {
+                    error = "ERROR";
+                })
+            })
+            waitsFor(function () {
+                return key || error;
+            });
+            runs(function () {
+                expect(error).toBeUndefined();
+                expect(key).toBeDefined();
+                expect(key.extractable).toBe(false);
+            });
 
         });
-
 
     });
 
