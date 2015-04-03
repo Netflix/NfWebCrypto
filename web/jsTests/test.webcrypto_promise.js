@@ -1689,7 +1689,7 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                jwk1.extractable = false;
+                jwk1.extractable = true;
                 jwk1.ext = true
                 cryptoSubtle.importKey("jwk", jwk1, { name: "AES-CBC" }, true, ["encrypt"])
                 .then(function (result) {
@@ -1710,7 +1710,7 @@
             runs(function () {
                 key = undefined;
                 error = undefined;
-                jwk1.extractable = true;
+                jwk1.extractable = false;
                 jwk1.ext = false
                 cryptoSubtle.importKey("jwk", jwk1, { name: "AES-CBC" }, false, ["encrypt"])
                 .then(function (result) {
