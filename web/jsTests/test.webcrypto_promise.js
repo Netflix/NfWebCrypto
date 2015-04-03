@@ -1642,7 +1642,7 @@
                 k:           base64.stringifyUrlSafe(key128),
             };
 
-            // JWK 'extractability' should be ignored, with or without 'ext' present
+            // JWK 'extractability' should be ignored
             runs(function () {
                 key = undefined;
                 error = undefined;
