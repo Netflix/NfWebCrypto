@@ -1661,26 +1661,6 @@
                 expect(key).toBeDefined();
                 expect(key.extractable).toBe(true);
             });
-            runs(function () {
-                error = undefined;
-                exportedData = undefined;
-                cryptoSubtle.exportKey("jwk", key)
-                .then(function (result) {
-                    exportedData = result;
-                })
-                .catch(function (result) {
-                    error = "ERROR";
-                })
-            })
-            waitsFor(function () {
-                return exportedData || error;
-            });
-            runs(function () {
-                expect(error).toBeUndefined();
-                expect(key).toBeDefined();
-                expect(exportedData.hasOwnProperty('extractible').toBe(false));
-                expect(key.ext).toBe(true)
-            });
 
         });
 
