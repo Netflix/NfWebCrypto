@@ -50,7 +50,7 @@
         (function () {
             var jasmineEnv = jasmine.getEnv();
             jasmineEnv.updateInterval = 250;
-            jasmineEnv.defaultTimeoutInterval = 1000;
+            jasmineEnv.defaultTimeoutInterval = 5000;
 
             var htmlReporter = new jasmine.HtmlReporter();
             jasmineEnv.addReporter(htmlReporter);
