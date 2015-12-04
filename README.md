@@ -1,3 +1,6 @@
+NOTE: THIS PROJECT IS NO LONGER UNDER ACTIVE MAINTAINENCE.
+With most browsers now providing W3C Web Crypto implementations and Chrome disallowing 3rd-party PPAPI plugins, there is little use for this project. It will remain here on Github indefinitely, but there are no plans to keep any branch updated. The most recent code lives in the 'newInterface' branch.
+
 Netflix WebCrypto (NfWebCrypto)
 ================================
 
