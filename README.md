@@ -183,20 +183,30 @@ and Uint8Array:
 
 // string to uint array
 function text2ua(s) {
-    var ua = new Uint8Array(s.length);
-    for (var i = 0; i < s.length; i++) {
-        ua[i] = s.charCodeAt(i);
-    }
+    var escstr = encodeURIComponent(s);
+    var binstr = escstr.replace(/%([0-9A-F]{2})/g, function(match, p1) {
+        return String.fromCharCode('0x' + p1);
+    });
+    var ua = new Uint8Array(binstr.length);
+    Array.prototype.forEach.call(binstr, function (ch, i) {
+        ua[i] = ch.charCodeAt(0);
+    });
     return ua;
 }
 
 // uint array to string
 function ua2text(ua) {
-    var s = '';
-    for (var i = 0; i < ua.length; i++) {
-        s += String.fromCharCode(ua[i]);
-    }
-    return s;
+    var binstr = Array.prototype.map.call(ua, function (ch) {
+        return String.fromCharCode(ch);
+    }).join('');
+    var escstr = binstr.replace(/(.)/g, function (m, p) {
+        var code = p.charCodeAt(p).toString(16).toUpperCase();
+        if (code.length < 2) {
+            code = '0' + code;
+        }
+        return '%' + code;
+    });
+    return decodeURIComponent(escstr);
 }
 
 ```
